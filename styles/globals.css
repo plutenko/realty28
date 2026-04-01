@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+/* Tailwind v4: явно указываем, где искать классы (иначе slate-* и др. могут быть «unknown») */
+@source "../pages/**/*.{js,jsx,ts,tsx}";
+@source "../components/**/*.{js,jsx,ts,tsx}";
+@source "../lib/**/*.{js,jsx,ts,tsx}";
+
+/* Base styles without @apply (Tailwind v4 compatibility) */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: #020617; /* slate-950 */
+  color: #f8fafc; /* slate-50 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Двойной ползунок цены на /apartments (см. PriceFilterSection) */
+.apartments-price-slider input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: transparent;
+  border-radius: 999px;
+}
+
+.apartments-price-slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: transparent;
+  border-radius: 999px;
+}
+
+.apartments-price-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #3b82f6;
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  z-index: 10;
+  margin-top: -6px;
+}
+
+.apartments-price-slider input[type="range"]::-moz-range-track {
+  height: 4px;
+  background: transparent;
+  border-radius: 999px;
+}
+
+.apartments-price-slider input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #3b82f6;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+/* Только бегунок min: кликабельный thumb, трек не перехватывает события */
+.apartments-price-slider input.apartments-range-min {
+  pointer-events: none;
+}
+
+.apartments-price-slider input.apartments-range-min::-webkit-slider-thumb {
+  pointer-events: auto;
+}
+
+.apartments-price-slider input.apartments-range-min::-moz-range-thumb {
+  pointer-events: auto;
+}
+

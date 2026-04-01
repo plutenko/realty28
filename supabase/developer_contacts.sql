@@ -1,0 +1,3 @@
+-- DEPRECATED: контакты застройщика хранятся в `developer_managers` (см. migrations/003_developer_managers.sql).
+-- Если у вас осталась старая таблица developer_contacts, выполните migrations/004_drop_developer_contacts.sql
+-- в Supabase SQL Editor — данные будут перенесены и таблица удалена.

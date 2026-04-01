@@ -1,0 +1,34 @@
+{
+  "name": "cursor-ai-next-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:migrate": "node scripts/apply-db-migrations.mjs",
+    "db:migrate:one": "node scripts/apply-one-migration.mjs",
+    "db:migrate:skip": "node scripts/mark-migration-applied.mjs",
+    "db:migrate:list-skip": "node scripts/print-migration-skip-commands.mjs",
+    "db:migrate:bundle": "node scripts/bundle-migrations-for-supabase.mjs",
+    "check:setup": "node scripts/check-setup.mjs"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@supabase/supabase-js": "latest",
+    "dotenv": "latest",
+    "googleapis": "^171.4.0",
+    "lucide-react": "^0.577.0",
+    "next": "latest",
+    "rc-slider": "^11.1.9",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwindcss": "latest",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "autoprefixer": "latest",
+    "pg": "^8.20.0",
+    "postcss": "latest"
+  }
+}
