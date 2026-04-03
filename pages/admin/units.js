@@ -1861,8 +1861,13 @@ export default function AdminUnitsPage() {
                                   cover &&
                                   !isAnchorCell(cover, f, globalPos, perFloor)
                                 ) {
-                                  const ce = Number(cover.entrance)
+                                  const ceRaw = cover.entrance
+                                  const ce =
+                                    ceRaw != null && ceRaw !== ''
+                                      ? Number(ceRaw)
+                                      : null
                                   if (
+                                    ce == null ||
                                     !Number.isFinite(ce) ||
                                     ce === r.entrance
                                   ) {
