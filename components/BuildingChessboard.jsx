@@ -156,8 +156,7 @@ export function spanFloors(apt) {
 /** Этажи сверху вниз: от верхнего к нижнему; учитывает span_floors (нижняя граница квартиры). */
 function getFloorsDescending(floorsCount, apartments) {
   let maxFromData = 0
-  let minFromData = 1
-  let lowestOccupied = 1
+  let minFromData = Infinity
 
   for (const a of apartments || []) {
     const f = Number(a?.floor)
@@ -166,7 +165,6 @@ function getFloorsDescending(floorsCount, apartments) {
     const fTop = f + sf - 1
     maxFromData = Math.max(maxFromData, fTop)
     minFromData = Math.min(minFromData, f)
-    lowestOccupied = Math.min(lowestOccupied, f)
   }
 
   const top = Math.max(Number(floorsCount) || 0, maxFromData)
@@ -176,9 +174,12 @@ function getFloorsDescending(floorsCount, apartments) {
     return []
   }
 
-  const bottom = apartments.length
-    ? Math.min(1, lowestOccupied, minFromData)
-    : Math.min(1, minFromData)
+  const bottom =
+    apartments.length > 0 &&
+    Number.isFinite(minFromData) &&
+    minFromData !== Infinity
+      ? minFromData
+      : 1
 
   const out = []
   for (let f = top; f >= bottom; f -= 1) {

@@ -625,7 +625,7 @@ export default function AdminUnitsPage() {
     }
 
     let top = 0
-    let low = 1
+    let low = Infinity
     for (const u of gridUnits ?? []) {
       const f = Number(u.floor)
       if (!Number.isFinite(f)) continue
@@ -638,6 +638,7 @@ export default function AdminUnitsPage() {
       low = 1
     } else {
       top = Math.max(top, Number(selectedBuilding?.floors) || 0)
+      if (!Number.isFinite(low) || low === Infinity) low = 1
     }
     if (top < low) top = low
     const out = []
