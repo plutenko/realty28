@@ -12,8 +12,14 @@
 
 ## Источники данных застройщиков
 - Profitbase API — уже работает; этаж в шахматке при синке берётся из **номера квартиры** (201→2 этаж, 2401→24), если номер — обычные цифры, иначе остаётся этаж ячейки из smallGrid (у доски и маркетинга этаж иногда расходятся)
-- Google Sheets — реализовано через Google OAuth (личный аккаунт)
+- Google Sheets — реализовано через Google OAuth (личный аккаунт); **у каждого застройщика свой парсер разметки таблицы** (см. ниже)
 - CSV, ручной ввод — в планах
+
+## Google Sheets и `parser_type`
+- Общая выгрузка и запись в БД: `lib/syncGoogleSheetsFromSource.js` (OAuth, xlsx, `upsertImportedUnits`).
+- **`lib/parsers/googleSheets.js` → `parseGoogleSheetsChessboard()`** — это **только формат застройщика «Содружество»** (3 строки на этаж, AA, merged cells и т.д.). Не считать универсальным «парсером любой Google-таблицы».
+- В БД у источника поле **`parser_type`**: сейчас **`sodruzhestvo`**, **`default`** или пусто → используется парсер Содружества и его пост-обработка (`isGoogleSheetsSodruzhestvoParserType` в `syncGoogleSheetsFromSource.js`).
+- **Другой застройщик с Google Sheets:** завести новое значение `parser_type` (например `builder_xyz`), добавить ветку в `parseGoogleSheetRowsByParserType` и новый файл в `lib/parsers/…`; при сборке `units` не полагаться на эвристики Содружества (этаж из номера, `position: k+1` и т.д.), если они не подходят.
 
 ## Застройщик Содружество
 - **Источник данных — только Google Sheets, не Profitbase.** В админке источник с типом Google Sheets / парсер `sodruzhestvo` (или `default` для того же `parseGoogleSheetsChessboard`), URL с `#gid=…` на нужный литер. Синхронизация: `lib/syncGoogleSheetsFromSource.js` → `upsertImportedUnits`, без Profitbase API.
@@ -29,8 +35,8 @@
 
 ## Ключевые файлы
 - pages/admin/sources.js — управление источниками синхронизации
-- lib/syncGoogleSheetsFromSource.js — синхронизация Google Sheets
-- lib/parsers/googleSheets.js — парсер шахматки
+- lib/syncGoogleSheetsFromSource.js — синхронизация Google Sheets, выбор парсера по `parser_type`, пост-обработка только для Содружества
+- lib/parsers/googleSheets.js — **парсер шахматки Содружество** (Google Sheets)
 - lib/syncSources.js — роутер синхронизации
 - components/BuildingChessboard.jsx — визуализация шахматки
 - pages/admin/units.js — админка квартир
