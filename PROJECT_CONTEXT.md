@@ -23,7 +23,7 @@
 
 ## Застройщик Содружество
 - **Источник данных — только Google Sheets, не Profitbase.** В админке источник с типом Google Sheets / парсер `sodruzhestvo` (или `default` для того же `parseGoogleSheetsChessboard`), URL с `#gid=…` на нужный литер. Синхронизация: `lib/syncGoogleSheetsFromSource.js` → `upsertImportedUnits`, без Profitbase API.
-- **Пример:** литер **14А** — вкладка Google-таблицы. Для **обычных** (не двухуровневых) квартир этаж в БД: если номер однозначно кодирует этаж (`201`→2), берётся из номера (`lib/inferFloorFromFlatNumber.js`), иначе из колонки A парсера — так исправляется сдвиг этажа в xlsx. У `span_floors=2` нижний этаж остаётся как рассчитал парсер по merged cells.
+- **Пример:** литер **14А** — вкладка Google-таблицы. Маркетинговая логика номеров: **201 = 2-й этаж, 301 = 3-й** (сотни). При синке вызывается `sodruzhestvoFloorFromRow`: этаж из номера, если он распознан (`inferFloorFromFlatNumber`), с поправкой только на настоящие двухуровневые «6xx при нижнем 5» в парсере.
 - Шахматка в Google Sheets: одна таблица, каждый литер = отдельная вкладка
 - Структура: 3 строки на этаж (A=номер/площадь/тип, B=цена/м², C=цена руб)
 - Парсер: lib/parsers/googleSheets.js → parseGoogleSheetsChessboard()
