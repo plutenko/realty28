@@ -37,7 +37,8 @@ export default function LoginPage() {
         throw new Error('Профиль не найден. Обратитесь к администратору.')
       }
 
-      router.replace(profileData.role === 'admin' ? '/admin' : '/buildings')
+      const dest = profileData.role === 'admin' ? '/admin' : profileData.role === 'manager' ? '/manager' : '/buildings'
+      router.replace(dest)
     } catch (err) {
       setError(err.message || 'Ошибка входа')
     } finally {

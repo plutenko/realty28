@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     });
   }
 
-  const { unitIds, selectedUnits, title, clientName } = req.body ?? {};
+  const { unitIds, selectedUnits, title, clientName, createdBy } = req.body ?? {};
   const rawIds = Array.isArray(selectedUnits) ? selectedUnits : unitIds;
   const ids = Array.isArray(rawIds) ? rawIds.map((x) => String(x)).filter(Boolean) : [];
 
@@ -28,6 +28,7 @@ export default async function handler(req, res) {
   const basePayload = {
     token,
     title: title ? String(title) : null,
+    created_by: createdBy ?? null,
   };
   const modernPayload = {
     ...basePayload,

@@ -3,12 +3,9 @@ import { useRouter } from 'next/router'
 import "../styles/globals.css"
 import { AuthProvider, useAuth } from '../lib/authContext'
 
-// Маршруты, доступные без авторизации
 const PUBLIC_PATHS = ['/', '/login', '/admin/login', '/auth/reset-password']
-// Маршруты только для admin
-const ADMIN_PREFIX = '/admin'
-// Маршруты для риелторов (и admin тоже)
-const REALTOR_PREFIXES = ['/buildings', '/apartments', '/collections']
+const ADMIN_PREFIX   = '/admin'
+const MANAGER_PREFIX = '/manager'
 
 function AuthGuard({ children }) {
   const router = useRouter()
@@ -21,21 +18,26 @@ function AuthGuard({ children }) {
     const isPublic = PUBLIC_PATHS.includes(path) || path.startsWith('/collections/')
     if (isPublic) return
 
-    const isAdminRoute   = path.startsWith(ADMIN_PREFIX)
-    const isRealtorRoute = REALTOR_PREFIXES.some(p => path.startsWith(p))
-
     if (!user) {
-      router.replace(isAdminRoute ? '/admin/login' : '/login')
+      router.replace(path.startsWith(ADMIN_PREFIX) ? '/admin/login' : '/login')
       return
     }
 
-    if (isAdminRoute && profile?.role !== 'admin') {
+    const role = profile?.role
+
+    // Только admin в /admin/*
+    if (path.startsWith(ADMIN_PREFIX) && role !== 'admin') {
       router.replace('/admin/login')
+      return
+    }
+
+    // Только manager и admin в /manager/*
+    if (path.startsWith(MANAGER_PREFIX) && role !== 'manager' && role !== 'admin') {
+      router.replace('/login')
       return
     }
   }, [loading, user, profile, path])
 
-  // Пока грузим сессию — показываем заглушку на защищённых страницах
   if (loading && !PUBLIC_PATHS.includes(path) && !path.startsWith('/collections/')) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">

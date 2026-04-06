@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import AdminLayout from '../../components/admin/AdminLayout'
 import { supabase } from '../../lib/supabaseClient'
 
-const ROLE_LABEL = { admin: 'Администратор', realtor: 'Риелтор' }
+const ROLE_LABEL = { admin: 'Администратор', realtor: 'Риелтор', manager: 'Руководитель' }
 const ROLE_COLOR = {
   admin:   'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
   realtor: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  manager: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
 }
 
 async function apiFetch(method, path, body) {
@@ -162,6 +163,7 @@ export default function UsersPage() {
                 className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
               >
                 <option value="realtor">Риелтор</option>
+                <option value="manager">Руководитель</option>
                 <option value="admin">Администратор</option>
               </select>
             </div>
