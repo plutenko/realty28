@@ -1,9 +1,5 @@
 import { getSupabaseAdmin } from '../../../lib/supabaseServer'
 
-function loginToEmail(login) {
-  return `${login.trim().toLowerCase()}@app.local`
-}
-
 async function requireAdmin(req) {
   const token = req.headers.authorization?.replace('Bearer ', '')
   if (!token) return null
@@ -31,17 +27,17 @@ export default async function handler(req, res) {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, role, name, login')
+      .select('id, role, name, email')
 
     const profileMap = Object.fromEntries((profiles ?? []).map(p => [p.id, p]))
 
     const result = users.map(u => ({
       id: u.id,
+      email: u.email,
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at,
       role: profileMap[u.id]?.role ?? null,
       name: profileMap[u.id]?.name ?? null,
-      login: profileMap[u.id]?.login ?? null,
     }))
 
     return res.status(200).json(result)
@@ -49,15 +45,13 @@ export default async function handler(req, res) {
 
   // POST — создать пользователя
   if (req.method === 'POST') {
-    const { login, password, role, name } = req.body
-    if (!login || !password || !role) {
-      return res.status(400).json({ error: 'login, password и role обязательны' })
+    const { email, password, role, name } = req.body
+    if (!email || !password || !role) {
+      return res.status(400).json({ error: 'email, password и role обязательны' })
     }
     if (!['admin', 'realtor'].includes(role)) {
       return res.status(400).json({ error: 'role должен быть admin или realtor' })
     }
-
-    const email = loginToEmail(login)
 
     const { data: { user }, error: createError } = await supabase.auth.admin.createUser({
       email,
@@ -68,14 +62,14 @@ export default async function handler(req, res) {
 
     const { error: profileError } = await supabase
       .from('profiles')
-      .insert({ id: user.id, role, name: name || null, login, email })
+      .insert({ id: user.id, role, name: name || null, email })
 
     if (profileError) {
       await supabase.auth.admin.deleteUser(user.id)
       return res.status(500).json({ error: profileError.message })
     }
 
-    return res.status(201).json({ id: user.id, login, role, name })
+    return res.status(201).json({ id: user.id, email, role, name })
   }
 
   // PATCH — изменить имя/роль/пароль

@@ -3,14 +3,10 @@ import { useRouter } from 'next/router'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/authContext'
 
-function loginToEmail(login) {
-  return `${login.trim().toLowerCase()}@app.local`
-}
-
 export default function AdminLoginPage() {
   const router = useRouter()
   const { user, profile, loading } = useAuth()
-  const [login, setLogin]       = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -27,11 +23,8 @@ export default function AdminLoginPage() {
     setError('')
     setSubmitting(true)
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: loginToEmail(login),
-        password,
-      })
-      if (authError) throw new Error('Неверный логин или пароль')
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      if (authError) throw new Error('Неверный email или пароль')
 
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -76,16 +69,16 @@ export default function AdminLoginPage() {
 
           <div className="mb-4">
             <label className="mb-1.5 block text-sm font-medium text-slate-300">
-              Логин
+              Email
             </label>
             <input
-              type="text"
+              type="email"
               required
-              autoComplete="username"
-              value={login}
-              onChange={e => setLogin(e.target.value)}
+              autoComplete="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
               className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              placeholder="admin"
+              placeholder="admin@example.com"
             />
           </div>
 
@@ -112,12 +105,6 @@ export default function AdminLoginPage() {
             {submitting ? 'Вход...' : 'Войти'}
           </button>
         </form>
-
-        <p className="mt-6 text-center text-xs text-slate-600">
-          <a href="/login" className="text-slate-500 hover:text-slate-400 underline">
-            Вход для риелтора
-          </a>
-        </p>
       </div>
     </div>
   )

@@ -31,7 +31,7 @@ export default function UsersPage() {
   const [error, setError]         = useState('')
 
   const [showForm, setShowForm]   = useState(false)
-  const [form, setForm]           = useState({ login: '', password: '', name: '', role: 'realtor' })
+  const [form, setForm]           = useState({ email: '', password: '', name: '', role: 'realtor' })
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
 
@@ -59,7 +59,7 @@ export default function UsersPage() {
     setSubmitting(true)
     try {
       await apiFetch('POST', '/api/admin/users', form)
-      setForm({ login: '', password: '', name: '', role: 'realtor' })
+      setForm({ email: '', password: '', name: '', role: 'realtor' })
       setShowForm(false)
       await loadUsers()
     } catch (e) {
@@ -132,13 +132,13 @@ export default function UsersPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-400">Логин *</label>
+              <label className="mb-1 block text-xs font-medium text-slate-400">Email *</label>
               <input
-                type="text"
+                type="email"
                 required
-                value={form.login}
-                onChange={e => setForm(f => ({ ...f, login: e.target.value.replace(/\s/g, '') }))}
-                placeholder="ivan_petrov"
+                value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                placeholder="ivan@example.com"
                 className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500"
               />
             </div>
@@ -216,7 +216,7 @@ export default function UsersPage() {
                 <tr key={u.id} className="border-b border-slate-800/60 hover:bg-slate-900/40">
                   <td className="px-4 py-3">
                     <div className="font-medium text-white">{u.name || '—'}</div>
-                    <div className="text-xs text-slate-500">{u.login ?? '—'}</div>
+                    <div className="text-xs text-slate-500">{u.email ?? '—'}</div>
                   </td>
                   <td className="px-4 py-3">
                     {u.role ? (
