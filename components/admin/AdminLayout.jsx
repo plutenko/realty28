@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { useAuth } from '../../lib/authContext'
 
 const links = [
   { href: '/admin', label: 'Главная' },
@@ -9,10 +10,17 @@ const links = [
   { href: '/admin/units', label: 'Квартиры' },
   { href: '/admin/collections', label: 'Подборки' },
   { href: '/admin/sources', label: 'Источники' },
+  { href: '/admin/users', label: 'Пользователи' },
 ]
 
 export default function AdminLayout({ children, title }) {
   const router = useRouter()
+  const { profile, signOut } = useAuth()
+
+  async function handleSignOut() {
+    await signOut()
+    router.push('/admin/login')
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -37,6 +45,17 @@ export default function AdminLayout({ children, title }) {
               </Link>
             ))}
           </nav>
+          <div className="ml-auto flex items-center gap-3">
+            {profile?.name && (
+              <span className="text-sm text-slate-400">{profile.name}</span>
+            )}
+            <button
+              onClick={handleSignOut}
+              className="rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-slate-800 hover:text-white transition"
+            >
+              Выйти
+            </button>
+          </div>
         </div>
       </div>
       <main className="mx-auto max-w-6xl px-4 py-6">
