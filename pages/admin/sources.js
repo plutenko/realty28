@@ -343,7 +343,7 @@ function messageForGoogleOAuthParam(code) {
     case 'redirect_mismatch':
       return 'Redirect URI не совпадает с настройками Google Cloud. В консоли (OAuth client → Authorized redirect URIs) добавьте значение из GOOGLE_OAUTH_REDIRECT_URI посимвольно: тот же протокол, хост, порт и путь /api/auth/google-sheets/callback.'
     case 'invalid_grant':
-      return 'Код авторизации просрочен или уже использован. Нажмите «Подключить Google» снова один раз.'
+      return 'Токен Google устарел или отозван. Нажмите «Переподключить» рядом со статусом Google и пройдите авторизацию заново.'
     case 'token':
       return 'Обмен кода на токен не удался. Проверьте GOOGLE_OAUTH_CLIENT_SECRET, совпадение GOOGLE_OAUTH_REDIRECT_URI с Google Cloud и перезапустите dev-сервер после правок .env.'
     case 'no_refresh':
@@ -907,7 +907,15 @@ export default function AdminSourcesPage() {
         {googleSheetsConnected === null ? (
           <span className="text-xs text-slate-500">Проверка Google…</span>
         ) : googleSheetsConnected ? (
-          <span className="text-sm font-medium text-emerald-400">Google подключён ✓</span>
+          <>
+            <span className="text-sm font-medium text-emerald-400">Google подключён ✓</span>
+            <a
+              href="/api/auth/google-sheets/start"
+              className="inline-flex rounded-xl border border-slate-600 px-3 py-1 text-xs text-slate-400 hover:bg-slate-800 hover:text-white"
+            >
+              Переподключить
+            </a>
+          </>
         ) : (
           <>
             <span className="text-xs text-slate-500">
