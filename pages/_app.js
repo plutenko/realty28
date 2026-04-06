@@ -25,11 +25,11 @@ function AuthGuard({ children }) {
   useEffect(() => {
     if (loading) return
 
-    const isPublic = PUBLIC_PATHS.includes(path) || path.startsWith('/collections/')
+    const isPublic = PUBLIC_PATHS.includes(path)
     if (isPublic) return
 
     if (!user) {
-      router.replace(path.startsWith(ADMIN_PREFIX) ? '/admin/login' : '/login')
+      router.replace('/login')
       return
     }
 
@@ -48,7 +48,7 @@ function AuthGuard({ children }) {
     }
   }, [loading, user, profile, path])
 
-  if (loading && !PUBLIC_PATHS.includes(path) && !path.startsWith('/collections/')) {
+  if (loading && !PUBLIC_PATHS.includes(path)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">
         <div className="text-slate-500 text-sm">Загрузка...</div>
