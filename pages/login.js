@@ -108,12 +108,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-slate-600">
-          Доступ только для авторизованных риелторов.{' '}
-          <a href="/admin/login" className="text-slate-500 hover:text-slate-400 underline">
-            Вход для администратора
-          </a>
-        </p>
       </div>
     </div>
   )
