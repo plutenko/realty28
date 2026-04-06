@@ -6,6 +6,7 @@ import CatalogTabs from '../components/CatalogTabs'
 import { getUnits } from '../lib/supabaseQueries'
 import FiltersSidebar from '../components/apartments/FiltersSidebar'
 import ApartmentCard from '../components/apartments/ApartmentCard'
+import ApartmentModal from '../components/apartments/ApartmentModal'
 
 const ABS_MIN = 0
 const ABS_MAX = 15000000
@@ -100,6 +101,7 @@ export default function ApartmentsPage() {
   const [areaTo, setAreaTo] = useState('')
   const [selectedAreaRanges, setSelectedAreaRanges] = useState([])
   const [selectedUnits, setSelectedUnits] = useState([])
+  const [modalUnit, setModalUnit] = useState(null)
   const [creatingCollection, setCreatingCollection] = useState(false)
 
   useEffect(() => {
@@ -795,7 +797,9 @@ export default function ApartmentsPage() {
                       />
                       В подборку
                     </label>
-                    <ApartmentCard unit={u} />
+                    <div onClick={() => setModalUnit(u)} className="cursor-pointer">
+                      <ApartmentCard unit={u} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -803,6 +807,15 @@ export default function ApartmentsPage() {
           </div>
         </div>
       </div>
+
+      {modalUnit && (
+        <ApartmentModal
+          unit={modalUnit}
+          onClose={() => setModalUnit(null)}
+          onAddToCollection={toggleSelectedUnit}
+          isSelected={selectedUnits.includes(modalUnit.id)}
+        />
+      )}
     </div>
   )
 }
