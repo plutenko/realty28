@@ -35,26 +35,40 @@ export default async function handler(req, res) {
   const { data: { user }, error: authErr } = await supabase.auth.getUser(token)
   if (authErr || !user) return res.status(401).json({ error: 'Unauthorized' })
 
+  // Получаем роль пользователя
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
   const sessionId = crypto.randomUUID()
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
     || req.socket?.remoteAddress
     || 'unknown'
   const ua = req.headers['user-agent'] || ''
 
-  // Обновляем активную сессию (предыдущая становится недействительной)
-  await supabase
-    .from('profiles')
-    .update({ active_session_id: sessionId })
-    .eq('id', user.id)
+  // deviceLabel формируется из данных переданных клиентом (platform + разрешение)
+  const body = req.body || {}
+  const deviceLabel = body.deviceLabel ? String(body.deviceLabel).slice(0, 100) : null
 
-  // Пишем в журнал
+  // Ограничение одной сессии — только для риелторов
+  if (profile?.role === 'realtor') {
+    await supabase
+      .from('profiles')
+      .update({ active_session_id: sessionId })
+      .eq('id', user.id)
+  }
+
+  // Журнал пишем для всех
   await supabase.from('login_logs').insert({
-    user_id:    user.id,
-    session_id: sessionId,
-    ip_address: ip,
-    browser:    parseBrowser(ua),
-    os_name:    parseOS(ua),
+    user_id:      user.id,
+    session_id:   sessionId,
+    ip_address:   ip,
+    browser:      parseBrowser(ua),
+    os_name:      parseOS(ua),
+    device_label: deviceLabel,
   })
 
-  return res.status(200).json({ sessionId })
+  return res.status(200).json({ sessionId, role: profile?.role })
 }

@@ -41,9 +41,18 @@ export default function LoginPage() {
       try {
         const { data: { session: s } } = await supabase.auth.getSession()
         if (s) {
+          const deviceLabel = [
+            navigator.platform || '',
+            screen.width && screen.height ? `${screen.width}×${screen.height}` : '',
+          ].filter(Boolean).join(' · ')
+
           const evRes = await fetch('/api/auth/login-event', {
             method: 'POST',
-            headers: { Authorization: `Bearer ${s.access_token}` },
+            headers: {
+              Authorization: `Bearer ${s.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ deviceLabel }),
           })
           if (evRes.ok) {
             const { sessionId } = await evRes.json()

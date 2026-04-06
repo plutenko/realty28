@@ -358,7 +358,10 @@ export default function ManagerPage() {
                             <div className="text-xs text-gray-400">{l.userEmail}</div>
                           </td>
                           <td className="px-4 py-3 text-gray-600">
-                            {l.browser} · {l.os_name}
+                            <div>{l.browser} · {l.os_name}</div>
+                            {l.device_label && (
+                              <div className="text-xs text-gray-400">{l.device_label}</div>
+                            )}
                           </td>
                           <td className="px-4 py-3 font-mono text-xs text-gray-500">{l.ip_address}</td>
                           <td className="px-4 py-3 text-xs text-gray-400">
