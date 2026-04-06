@@ -13,6 +13,15 @@ function AuthGuard({ children }) {
   const { user, profile, loading } = useAuth()
   const path = router.pathname
 
+  // Перехватываем токен восстановления пароля из хэша URL
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const hash = window.location.hash
+    if (hash && hash.includes('type=recovery')) {
+      router.replace('/auth/reset-password' + hash)
+    }
+  }, [])
+
   useEffect(() => {
     if (loading) return
 
