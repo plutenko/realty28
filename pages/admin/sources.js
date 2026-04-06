@@ -406,7 +406,7 @@ export default function AdminSourcesPage() {
     let s = await supabase
       .from('sources')
       .select(
-        'id, name, type, url, building_id, last_sync_at, parser_type, last_sync_count, last_sync_error'
+        'id, name, type, url, building_id, last_sync_at, parser_type, last_sync_count, last_sync_error, pb_account_id, pb_referer, pb_api_key, pb_domain'
       )
       .order('name', { ascending: true })
 
@@ -525,6 +525,15 @@ export default function AdminSourcesPage() {
     setDeveloperParser(developerParserFromRow(row.type, row.parser_type))
     setSheetName(row.sheet_name ?? '')
     setSheetList([])
+    // Per-source Profitbase settings (fallback to global)
+    if (row.pb_account_id || row.pb_referer) {
+      setPbSettings({
+        account_id: row.pb_account_id ?? '',
+        site_widget_referer: row.pb_referer ?? '',
+        pb_api_key: row.pb_api_key ?? '',
+        pb_domain: row.pb_domain ?? DEFAULT_PB_DOMAIN,
+      })
+    }
     const bId = row.building_id ?? ''
     setBuildingId(bId)
     const ownerComplex =
@@ -571,31 +580,6 @@ export default function AdminSourcesPage() {
     if (!supabase || !canSubmit) return
     setBusy(true)
     setMsg('')
-    // Если создаём/редактируем Profitbase-источник — сохраняем настройки Profitbase в БД
-    if (String(type || '').toLowerCase() === 'profitbase') {
-      const settingsPayload = {
-        id: 1,
-        account_id: String(pbSettings.account_id || '').trim() || null,
-        site_widget_referer:
-          String(pbSettings.site_widget_referer || '').trim() || null,
-        pb_api_key: String(pbSettings.pb_api_key || '').trim() || null,
-        pb_domain:
-          String(pbSettings.pb_domain || DEFAULT_PB_DOMAIN)
-            .replace(/^\.+/, '')
-            .trim() || DEFAULT_PB_DOMAIN,
-        updated_at: new Date().toISOString(),
-      }
-      const { error: setErr } = await supabase
-        .from('profitbase_settings')
-        .upsert(settingsPayload, { onConflict: 'id' })
-      if (setErr && !/profitbase_settings/i.test(String(setErr.message || ''))) {
-        setBusy(false)
-        setMsg(
-          `${setErr.message}. Примените миграцию 018_profitbase_settings.sql.`
-        )
-        return
-      }
-    }
     const typeNorm = String(type || 'csv').toLowerCase()
     const typeToSave = SOURCE_TYPE_VALUES.has(typeNorm) ? typeNorm : 'csv'
     const payload = {
@@ -605,6 +589,13 @@ export default function AdminSourcesPage() {
       building_id: buildingId || null,
       parser_type: resolvedParserType(typeToSave, developerParser),
       sheet_name: typeToSave === 'google_sheets' && sheetName ? sheetName.trim() : null,
+    }
+    // Per-source Profitbase settings
+    if (typeToSave === 'profitbase') {
+      payload.pb_account_id = String(pbSettings.account_id || '').trim() || null
+      payload.pb_referer = String(pbSettings.site_widget_referer || '').trim() || null
+      payload.pb_api_key = String(pbSettings.pb_api_key || '').trim() || null
+      payload.pb_domain = String(pbSettings.pb_domain || DEFAULT_PB_DOMAIN).replace(/^\.+/, '').trim() || DEFAULT_PB_DOMAIN
     }
     const q = editId
       ? supabase.from('sources').update(payload).eq('id', editId)
