@@ -371,6 +371,8 @@ export default function AdminSourcesPage() {
     pb_domain: DEFAULT_PB_DOMAIN,
   })
   const [pbSettingsLoaded, setPbSettingsLoaded] = useState(false)
+  const [pbDetecting, setPbDetecting] = useState(false)
+  const [pbDetectMsg, setPbDetectMsg] = useState('')
 
   const [editId, setEditId] = useState('')
   const [name, setName] = useState('')
@@ -1156,86 +1158,128 @@ export default function AdminSourcesPage() {
 
         {type === 'profitbase' ? (
           <div>
-            <label className="block text-xs text-slate-400">House ID (из Profitbase)</label>
-            <input
-              type="text"
-              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-              placeholder="например: 136134"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              required
-            />
-
-            <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/40 p-4">
-              <div className="mb-2 text-sm font-semibold text-slate-200">
-                Настройки Profitbase (сохраняются в Supabase)
-              </div>
-              <p className="mb-3 text-xs text-slate-500">
-                Эти поля заменяют ручное редактирование <span className="font-mono text-slate-400">.env.local</span>.
-                Они нужны для авто-JWT через SSO и для fallback через <span className="font-mono text-slate-400">smallGrid</span>.
-              </p>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block text-xs text-slate-400">Account ID</label>
-                  <input
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-                    value={pbSettings.account_id}
-                    onChange={(e) =>
-                      setPbSettings((p) => ({ ...p, account_id: e.target.value }))
+            <label className="block text-xs text-slate-400">URL шахматки (с сайта застройщика)</label>
+            <div className="mt-1 flex gap-2">
+              <input
+                type="text"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                placeholder="Вставьте ссылку на шахматку, например: https://сайт.рф/#/catalog/house/103325/smallGrid"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                disabled={!url || pbDetecting}
+                onClick={async () => {
+                  setPbDetecting(true)
+                  setPbDetectMsg('')
+                  try {
+                    const resp = await fetch(`/api/profitbase/detect?url=${encodeURIComponent(url)}`)
+                    const data = await resp.json()
+                    const found = []
+                    if (data.houseId) {
+                      setUrl(data.houseId)
+                      found.push(`House ID: ${data.houseId}`)
                     }
-                    placeholder="например: 20366"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400">pbDomain</label>
-                  <input
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-                    value={pbSettings.pb_domain}
-                    onChange={(e) =>
-                      setPbSettings((p) => ({ ...p, pb_domain: e.target.value }))
+                    if (data.referer && !pbSettings.site_widget_referer) {
+                      setPbSettings((p) => ({ ...p, site_widget_referer: data.referer }))
+                      found.push(`Referer: ${data.referer}`)
                     }
-                    placeholder="profitbase.ru"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs text-slate-400">
-                    Site widget referer (URL сайта застройщика)
-                  </label>
-                  <input
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-                    value={pbSettings.site_widget_referer}
-                    onChange={(e) =>
-                      setPbSettings((p) => ({
-                        ...p,
-                        site_widget_referer: e.target.value,
-                      }))
+                    if (data.account_id && !pbSettings.account_id) {
+                      setPbSettings((p) => ({ ...p, account_id: data.account_id }))
+                      found.push(`Account ID: ${data.account_id}`)
                     }
-                    placeholder="например: http://megatek-sz.ru"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs text-slate-400">pbApiKey (опционально)</label>
-                  <input
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-                    value={pbSettings.pb_api_key}
-                    onChange={(e) =>
-                      setPbSettings((p) => ({ ...p, pb_api_key: e.target.value }))
+                    if (data.pb_api_key && !pbSettings.pb_api_key) {
+                      setPbSettings((p) => ({ ...p, pb_api_key: data.pb_api_key }))
+                      found.push(`API Key: найден`)
                     }
-                    placeholder="например: eea9e12..."
-                  />
-                </div>
-              </div>
-
-              {!pbSettingsLoaded ? (
-                <p className="mt-3 text-xs text-slate-500">Загрузка настроек…</p>
-              ) : null}
-              <p className="mt-3 text-xs text-slate-500">
-                Подсказка: <span className="font-mono text-slate-400">Account ID</span> берите из параметра{' '}
-                <span className="font-mono text-slate-400">accountId</span> в коде/URL виджета.{' '}
-                <span className="font-mono text-slate-400">referer</span> — это origin сайта застройщика, где виджет.
-              </p>
+                    setPbDetectMsg(found.length ? `Найдено: ${found.join(', ')}` : 'Не удалось определить параметры автоматически')
+                  } catch {
+                    setPbDetectMsg('Ошибка при определении параметров')
+                  }
+                  setPbDetecting(false)
+                }}
+                className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 transition"
+              >
+                {pbDetecting ? 'Определяю...' : 'Определить'}
+              </button>
             </div>
+            {pbDetectMsg && (
+              <p className={`mt-2 text-xs ${pbDetectMsg.startsWith('Найдено') ? 'text-green-400' : 'text-amber-400'}`}>
+                {pbDetectMsg}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-slate-500">
+              Вставьте полную ссылку на шахматку — House ID, Referer и Account ID определятся автоматически. Или введите только House ID (число).
+            </p>
+
+            <details className="mt-4 rounded-xl border border-slate-800 bg-slate-950/40">
+              <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-slate-200 hover:text-white">
+                Настройки Profitbase (дополнительно)
+              </summary>
+              <div className="px-4 pb-4 pt-2">
+                <p className="mb-3 text-xs text-slate-500">
+                  Эти поля обычно определяются автоматически. Измените только если синхронизация не работает.
+                </p>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-xs text-slate-400">Account ID</label>
+                    <input
+                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                      value={pbSettings.account_id}
+                      onChange={(e) =>
+                        setPbSettings((p) => ({ ...p, account_id: e.target.value }))
+                      }
+                      placeholder="например: 20366"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400">pbDomain</label>
+                    <input
+                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                      value={pbSettings.pb_domain}
+                      onChange={(e) =>
+                        setPbSettings((p) => ({ ...p, pb_domain: e.target.value }))
+                      }
+                      placeholder="profitbase.ru"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs text-slate-400">
+                      Site widget referer (URL сайта застройщика)
+                    </label>
+                    <input
+                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                      value={pbSettings.site_widget_referer}
+                      onChange={(e) =>
+                        setPbSettings((p) => ({
+                          ...p,
+                          site_widget_referer: e.target.value,
+                        }))
+                      }
+                      placeholder="например: http://megatek-sz.ru"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs text-slate-400">pbApiKey (опционально)</label>
+                    <input
+                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                      value={pbSettings.pb_api_key}
+                      onChange={(e) =>
+                        setPbSettings((p) => ({ ...p, pb_api_key: e.target.value }))
+                      }
+                      placeholder="например: eea9e12..."
+                    />
+                  </div>
+                </div>
+
+                {!pbSettingsLoaded ? (
+                  <p className="mt-3 text-xs text-slate-500">Загрузка настроек…</p>
+                ) : null}
+              </div>
+            </details>
           </div>
         ) : (
           <div>
