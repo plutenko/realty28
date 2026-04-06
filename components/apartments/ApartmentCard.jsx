@@ -29,8 +29,9 @@ function toTelegramLink(phone) {
 }
 
 function toMaxLink(phone) {
-  const digits = String(phone ?? '').replace(/\D/g, '')
-  return digits ? `https://max.ru/${digits}` : null
+  const raw = String(phone ?? '').trim()
+  if (raw.startsWith('http')) return raw
+  return null
 }
 
 function getMessengerLink(messenger, phone) {

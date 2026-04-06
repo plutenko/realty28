@@ -410,6 +410,11 @@ export default function AdminDevelopersPage() {
                   </option>
                 ))}
               </select>
+              {mgrMessenger === 'max' && (
+                <p className="mt-1 text-xs text-amber-400">
+                  Max не открывается по номеру телефона. В поле «Телефон» вставьте ссылку на диалог (например: https://max.ru/u/username)
+                </p>
+              )}
             </div>
             <button
               type="submit"
