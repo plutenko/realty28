@@ -1194,9 +1194,10 @@ export default function AdminSourcesPage() {
                       setPbSettings((p) => ({ ...p, pb_api_key: data.pb_api_key }))
                       found.push(`API Key: найден`)
                     }
-                    setPbDetectMsg(found.length ? `Найдено: ${found.join(', ')}` : 'Не удалось определить параметры автоматически')
-                  } catch {
-                    setPbDetectMsg('Ошибка при определении параметров')
+                    const debugStr = data.debug?.length ? ` | ${data.debug.join('; ')}` : ''
+                    setPbDetectMsg(found.length ? `Найдено: ${found.join(', ')}${debugStr}` : `Не удалось определить параметры автоматически${debugStr}`)
+                  } catch (e) {
+                    setPbDetectMsg(`Ошибка при определении параметров: ${e.message}`)
                   }
                   setPbDetecting(false)
                 }}
