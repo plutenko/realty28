@@ -96,12 +96,6 @@ export default function MyCollectionsPage() {
                         >
                           Открыть
                         </a>
-                        <button
-                          onClick={() => handleDelete(c.id)}
-                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition"
-                        >
-                          Удалить
-                        </button>
                       </div>
                     </td>
                   </tr>
