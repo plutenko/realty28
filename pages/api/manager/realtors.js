@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from '../../../lib/supabaseServer'
 
-async function requireManager(req) {
+async function requireManagerOrAdmin(req) {
   const token = req.headers.authorization?.replace('Bearer ', '')
   if (!token) return null
   const supabase = getSupabaseAdmin()
@@ -11,27 +11,26 @@ async function requireManager(req) {
     .select('role')
     .eq('id', user.id)
     .single()
-  return profile?.role === 'manager' || profile?.role === 'admin' ? user : null
+  return ['manager', 'admin'].includes(profile?.role) ? { user, role: profile.role } : null
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
   const supabase = getSupabaseAdmin()
-  const caller = await requireManager(req)
+  const caller = await requireManagerOrAdmin(req)
   if (!caller) return res.status(401).json({ error: 'Unauthorized' })
 
   // Все риелторы
-  const { data: profiles, error: pErr } = await supabase
+  const { data: realtors, error: pErr } = await supabase
     .from('profiles')
     .select('id, name, email, role')
     .eq('role', 'realtor')
     .order('name', { ascending: true })
-
   if (pErr) return res.status(500).json({ error: pErr.message })
 
-  // Подборки для каждого риелтора
-  const realtorIds = (profiles ?? []).map(p => p.id)
+  // Подборки риелторов
+  const realtorIds = (realtors ?? []).map(p => p.id)
   let collections = []
   if (realtorIds.length > 0) {
     const { data: cols } = await supabase
@@ -42,7 +41,6 @@ export default async function handler(req, res) {
     collections = cols ?? []
   }
 
-  // Группируем подборки по риелтору
   const colsByRealtor = {}
   for (const col of collections) {
     const rid = col.created_by
@@ -50,10 +48,21 @@ export default async function handler(req, res) {
     colsByRealtor[rid].push(col)
   }
 
-  const result = (profiles ?? []).map(p => ({
+  const realtorList = (realtors ?? []).map(p => ({
     ...p,
     collections: colsByRealtor[p.id] ?? [],
   }))
 
-  return res.status(200).json(result)
+  // Для admin — ещё список менеджеров
+  let managers = []
+  if (caller.role === 'admin') {
+    const { data: mgrs } = await supabase
+      .from('profiles')
+      .select('id, name, email')
+      .eq('role', 'manager')
+      .order('name', { ascending: true })
+    managers = mgrs ?? []
+  }
+
+  return res.status(200).json({ realtors: realtorList, managers })
 }

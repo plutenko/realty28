@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from '../lib/authContext'
 const PUBLIC_PATHS = ['/', '/login', '/admin/login', '/auth/reset-password']
 const ADMIN_PREFIX   = '/admin'
 const MANAGER_PREFIX = '/manager'
+const REALTOR_PREFIXES = ['/buildings', '/apartments', '/my-collections']
 
 function AuthGuard({ children }) {
   const router = useRouter()

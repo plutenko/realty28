@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { LayoutGrid, List } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
+import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
 import { getUnits } from '../lib/supabaseQueries'
 import FiltersSidebar from '../components/apartments/FiltersSidebar'
@@ -68,6 +69,7 @@ function handoverLabelByKey(key) {
 }
 
 export default function ApartmentsPage() {
+  const { user } = useAuth()
   const [units, setUnits] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -622,6 +624,7 @@ export default function ApartmentsPage() {
           title,
           clientName: clientName || null,
           selectedUnits,
+          createdBy: user?.id ?? null,
         }),
       })
       const body = await res.json()

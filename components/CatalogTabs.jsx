@@ -1,12 +1,11 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { useAuth } from '../lib/authContext'
 
-/**
- * Табы каталога: Квартиры ↔ Дома / ЖК
- */
 export default function CatalogTabs() {
   const router = useRouter()
   const path = router.pathname
+  const { user } = useAuth()
 
   const tabClass = (href) =>
     `rounded-lg px-4 py-2 text-sm font-medium transition ${
@@ -23,6 +22,11 @@ export default function CatalogTabs() {
       <Link href="/buildings" className={tabClass('/buildings')}>
         Дома / ЖК
       </Link>
+      {user && (
+        <Link href="/my-collections" className={tabClass('/my-collections')}>
+          Мои подборки
+        </Link>
+      )}
     </div>
   )
 }
