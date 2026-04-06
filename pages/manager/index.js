@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/authContext'
-import Link from 'next/link'
+import CatalogTabs from '../../components/CatalogTabs'
 
 function formatDate(str) {
   if (!str) return '—'
@@ -19,195 +19,172 @@ async function apiFetch(path) {
   return json
 }
 
-function RealtorsList({ realtors, origin }) {
-  const [expanded, setExpanded] = useState({})
-
-  if (realtors.length === 0) {
-    return (
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-8 text-center text-slate-500">
-        Риелторов пока нет
-      </div>
-    )
-  }
+function RealtorCard({ r, origin }) {
+  const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="space-y-3">
-      {realtors.map(r => (
-        <div key={r.id} className="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden">
-          <button
-            onClick={() => setExpanded(e => ({ ...e, [r.id]: !e[r.id] }))}
-            className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-800/40 transition text-left"
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-left"
+      >
+        <div>
+          <div className="font-semibold text-gray-900">{r.name || '—'}</div>
+          <div className="text-xs text-gray-400 mt-0.5">{r.email}</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+            {r.collections.length} подборок
+          </span>
+          <svg
+            className={`h-4 w-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
-            <div>
-              <div className="font-medium text-white">{r.name || '—'}</div>
-              <div className="text-xs text-slate-500 mt-0.5">{r.email}</div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="rounded-full bg-blue-500/20 border border-blue-500/30 px-2.5 py-0.5 text-xs text-blue-300">
-                {r.collections.length} подборок
-              </span>
-              <span className="text-slate-500 text-sm">{expanded[r.id] ? '▲' : '▼'}</span>
-            </div>
-          </button>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
 
-          {expanded[r.id] && (
-            <div className="border-t border-slate-800">
-              {r.collections.length === 0 ? (
-                <p className="px-5 py-4 text-sm text-slate-500">Подборок нет</p>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-900/80">
-                      <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-400">Подборка</th>
-                      <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-400">Клиент</th>
-                      <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-400">Просмотры</th>
-                      <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-400">Дата</th>
-                      <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-400">Ссылка</th>
+      {expanded && (
+        <div className="border-t border-gray-100">
+          {r.collections.length === 0 ? (
+            <p className="px-4 py-3 text-sm text-gray-400">Подборок нет</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Подборка</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Клиент</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Просмотры</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Дата</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Ссылка</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.collections.map(c => (
+                    <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-4 py-2.5 font-medium text-gray-900">{c.title || '—'}</td>
+                      <td className="px-4 py-2.5 text-gray-500">{c.client_name || '—'}</td>
+                      <td className="px-4 py-2.5 text-gray-500">{c.views_count ?? 0}</td>
+                      <td className="px-4 py-2.5 text-gray-400 text-xs">{formatDate(c.created_at)}</td>
+                      <td className="px-4 py-2.5">
+                        <a
+                          href={`${origin}/collections/${c.token}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-500 underline text-xs"
+                        >
+                          Открыть
+                        </a>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {r.collections.map(c => (
-                      <tr key={c.id} className="border-t border-slate-800/60 hover:bg-slate-800/20">
-                        <td className="px-5 py-3 text-white">{c.title || '—'}</td>
-                        <td className="px-5 py-3 text-slate-400">{c.client_name || '—'}</td>
-                        <td className="px-5 py-3 text-slate-400">{c.views_count ?? 0}</td>
-                        <td className="px-5 py-3 text-slate-400">{formatDate(c.created_at)}</td>
-                        <td className="px-5 py-3">
-                          <a
-                            href={`${origin}/collections/${c.token}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 underline text-xs"
-                          >
-                            Открыть
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
-      ))}
+      )}
     </div>
   )
 }
 
 export default function ManagerPage() {
-  const { profile, signOut, loading } = useAuth()
-  const router = useRouter()
-  const [data, setData] = useState({ realtors: [], managers: [] })
+  const { profile, loading } = useAuth()
+  const [data, setData]       = useState({ realtors: [], managers: [] })
   const [fetching, setFetching] = useState(true)
-  const [error, setError] = useState('')
-  const [origin, setOrigin] = useState('')
+  const [error, setError]     = useState('')
+  const [origin, setOrigin]   = useState('')
+
+  useEffect(() => { setOrigin(window.location.origin) }, [])
 
   useEffect(() => {
-    setOrigin(window.location.origin)
     apiFetch('/api/manager/realtors')
       .then(setData)
       .catch(e => setError(e.message))
       .finally(() => setFetching(false))
   }, [])
 
-  async function handleSignOut() {
-    await signOut()
-    router.push('/login')
-  }
+  if (loading) return null
 
   const isAdmin = profile?.role === 'admin'
   const totalCollections = data.realtors.reduce((s, r) => s + r.collections.length, 0)
 
-  if (loading) return null
-
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Шапка */}
-      <div className="border-b border-slate-800 bg-slate-900/80">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-semibold text-white">
-              {isAdmin ? 'Администратор' : 'Руководитель'}
-            </span>
-            <span className="text-slate-600">|</span>
-            <Link href="/buildings" className="text-sm text-slate-400 hover:text-white transition">Шахматки</Link>
-            <Link href="/apartments" className="text-sm text-slate-400 hover:text-white transition">Квартиры</Link>
-            {isAdmin && (
-              <Link href="/admin" className="text-sm text-slate-400 hover:text-white transition">Админка</Link>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {profile?.name && <span className="text-sm text-slate-400">{profile.name}</span>}
-            <button
-              onClick={handleSignOut}
-              className="rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-slate-800 hover:text-white transition"
-            >
-              Выйти
-            </button>
+    <div className="flex min-h-screen flex-col bg-gray-100">
+      <CatalogTabs />
+
+      <div className="px-4 py-4">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h1 className="text-xl font-bold text-gray-900">
+            {isAdmin ? 'Обзор команды' : 'Кабинет руководителя'}
+          </h1>
+          <div className="flex gap-3 text-sm text-gray-500">
+            <span>Риелторов: <span className="font-semibold text-gray-800">{data.realtors.length}</span></span>
+            <span>Подборок: <span className="font-semibold text-gray-800">{totalCollections}</span></span>
           </div>
         </div>
-      </div>
-
-      <main className="mx-auto max-w-5xl px-4 py-6">
 
         {error && (
-          <div className="mb-4 rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
             {error}
           </div>
         )}
 
         {fetching ? (
-          <p className="text-sm text-slate-500">Загрузка...</p>
+          <p className="text-sm text-gray-400">Загрузка...</p>
         ) : (
           <>
-            {/* Блок менеджеров — только для admin */}
-            {isAdmin && (
-              <div className="mb-8">
-                <h2 className="mb-3 text-lg font-semibold text-white">
+            {/* Менеджеры — только для admin */}
+            {isAdmin && data.managers.length > 0 && (
+              <div className="mb-6">
+                <h2 className="mb-3 text-base font-semibold text-gray-700">
                   Руководители
-                  <span className="ml-2 text-sm font-normal text-slate-400">{data.managers.length}</span>
+                  <span className="ml-2 text-sm font-normal text-gray-400">{data.managers.length}</span>
                 </h2>
-                {data.managers.length === 0 ? (
-                  <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 text-sm text-slate-500">
-                    Руководителей пока нет
-                  </div>
-                ) : (
-                  <div className="overflow-hidden rounded-2xl border border-slate-800">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-slate-800 bg-slate-900/60">
-                          <th className="px-4 py-3 text-left font-medium text-slate-400">Имя</th>
-                          <th className="px-4 py-3 text-left font-medium text-slate-400">Email</th>
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100 bg-gray-50">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Имя</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Email</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.managers.map(m => (
+                        <tr key={m.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-4 py-3 font-medium text-gray-900">{m.name || '—'}</td>
+                          <td className="px-4 py-3 text-gray-500">{m.email}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {data.managers.map(m => (
-                          <tr key={m.id} className="border-b border-slate-800/60 hover:bg-slate-900/40">
-                            <td className="px-4 py-3 font-medium text-white">{m.name || '—'}</td>
-                            <td className="px-4 py-3 text-slate-400">{m.email}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
-            {/* Блок риелторов */}
+            {/* Риелторы */}
             <div>
-              <h2 className="mb-3 text-lg font-semibold text-white">
+              <h2 className="mb-3 text-base font-semibold text-gray-700">
                 Риелторы
-                <span className="ml-2 text-sm font-normal text-slate-400">
-                  {data.realtors.length} · {totalCollections} подборок
-                </span>
+                <span className="ml-2 text-sm font-normal text-gray-400">{data.realtors.length}</span>
               </h2>
-              <RealtorsList realtors={data.realtors} origin={origin} />
+              {data.realtors.length === 0 ? (
+                <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-400">
+                  Риелторов пока нет
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {data.realtors.map(r => (
+                    <RealtorCard key={r.id} r={r} origin={origin} />
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}
-      </main>
+      </div>
     </div>
   )
 }
