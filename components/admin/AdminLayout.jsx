@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
-import { useAuth } from '../../lib/authContext'
+import { useAuth } from '../../lib/authContext'     
 
 const links = [
   { href: '/admin', label: 'Главная', icon: '🏠' },
