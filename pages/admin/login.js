@@ -42,6 +42,21 @@ export default function AdminLoginPage() {
         throw new Error('Нет доступа администратора.')
       }
 
+      // Фиксируем вход
+      try {
+        const { data: { session: s } } = await supabase.auth.getSession()
+        if (s) {
+          const evRes = await fetch('/api/auth/login-event', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${s.access_token}` },
+          })
+          if (evRes.ok) {
+            const { sessionId } = await evRes.json()
+            if (sessionId) localStorage.setItem('domovoy_sid', sessionId)
+          }
+        }
+      } catch {}
+
       router.replace('/admin')
     } catch (err) {
       setError(err.message || 'Ошибка входа')

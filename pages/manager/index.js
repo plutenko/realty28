@@ -29,6 +29,7 @@ const TABS = [
   { id: 'by_day',      label: 'По дням' },
   { id: 'by_month',    label: 'По месяцам' },
   { id: 'by_realtor',  label: 'По риелторам' },
+  { id: 'login_logs',  label: 'Журнал входов' },
 ]
 
 const tabBtn = (active) =>
@@ -53,8 +54,20 @@ export default function ManagerPage() {
   const [origin, setOrigin]     = useState('')
   const [tab, setTab]           = useState('list')
   const [filterRealtor, setFilterRealtor] = useState('all')
+  const [logs, setLogs]         = useState([])
+  const [logsFetched, setLogsFetched] = useState(false)
+  const [logsFetching, setLogsFetching] = useState(false)
 
   useEffect(() => { setOrigin(window.location.origin) }, [])
+
+  useEffect(() => {
+    if (tab !== 'login_logs' || logsFetched) return
+    setLogsFetching(true)
+    apiFetch('/api/manager/login-logs')
+      .then(d => { setLogs(d.logs ?? []); setLogsFetched(true) })
+      .catch(() => {})
+      .finally(() => setLogsFetching(false))
+  }, [tab])
 
   useEffect(() => {
     apiFetch('/api/manager/realtors')
@@ -315,6 +328,42 @@ export default function ManagerPage() {
                           <td className="px-4 py-3 text-gray-500">{r.email}</td>
                           <td className="px-4 py-3 font-semibold text-blue-600">{r.collections.length}</td>
                           <td className="px-4 py-3 font-semibold text-amber-600">{r.views}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {/* Журнал входов */}
+              {tab === 'login_logs' && (
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100 bg-gray-50">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Пользователь</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Устройство</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">IP-адрес</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Дата и время</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {logsFetching ? (
+                        <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-400">Загрузка...</td></tr>
+                      ) : logs.length === 0 ? (
+                        <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-400">Нет данных</td></tr>
+                      ) : logs.map(l => (
+                        <tr key={l.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-900">{l.userName}</div>
+                            <div className="text-xs text-gray-400">{l.userEmail}</div>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            {l.browser} · {l.os_name}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-xs text-gray-500">{l.ip_address}</td>
+                          <td className="px-4 py-3 text-xs text-gray-400">
+                            {new Date(l.created_at).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' })}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

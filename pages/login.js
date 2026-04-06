@@ -37,6 +37,21 @@ export default function LoginPage() {
         throw new Error('Профиль не найден. Обратитесь к администратору.')
       }
 
+      // Фиксируем вход и получаем ID сессии для защиты от шаринга
+      try {
+        const { data: { session: s } } = await supabase.auth.getSession()
+        if (s) {
+          const evRes = await fetch('/api/auth/login-event', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${s.access_token}` },
+          })
+          if (evRes.ok) {
+            const { sessionId } = await evRes.json()
+            if (sessionId) localStorage.setItem('domovoy_sid', sessionId)
+          }
+        }
+      } catch {}
+
       const dest = profileData.role === 'admin' ? '/admin' : profileData.role === 'manager' ? '/manager' : '/buildings'
       router.replace(dest)
     } catch (err) {
