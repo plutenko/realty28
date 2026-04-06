@@ -94,28 +94,23 @@ export function CommercialPremisesSection({ units, variant = 'public' }) {
                     {f} этаж
                   </div>
                 ) : null}
-                <div className="flex flex-row flex-wrap gap-2">
+                <div
+                  className="grid gap-2"
+                  style={{
+                    gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))`,
+                  }}
+                >
                   {row.map((u) => {
                     const a = Number(u.area)
                     const hasA = Number.isFinite(a) && a > 0
-                    const flexGrow = hasA ? a / sumA : 1 / row.length
-                    const basisPct = hasA
-                      ? `${Math.max(8, (a / maxA) * 100)}%`
-                      : `${100 / Math.max(row.length, 1)}%`
                     const areaStr = hasA ? `${a} м²` : '—'
                     return (
                       <div
                         key={u.id ?? u.external_id ?? String(u.layout_title)}
-                        className={`min-w-[6rem] rounded-lg border p-3 text-xs shadow-sm ${commercialCardStatusClass(
+                        className={`rounded-lg border p-3 text-xs shadow-sm ${commercialCardStatusClass(
                           u.status,
                           variant
                         )}`}
-                        style={{
-                          flexGrow,
-                          flexBasis: basisPct,
-                          minWidth: '6.5rem',
-                          maxWidth: '100%',
-                        }}
                       >
                         <div className="font-semibold leading-tight">
                           {u.layout_title ?? 'Коммерция'}
@@ -498,10 +493,11 @@ export default function BuildingChessboard({
   const colPlan = 2
 
   const gridTemplateColumns = useMemo(() => {
+    const cellW = '5.5rem'
     if (entranceWidths?.length) {
       const inner = entranceWidths
         .map((w, i) => {
-          const chunk = `repeat(${w}, minmax(0, 1fr))`
+          const chunk = `repeat(${w}, ${cellW})`
           if (i === 0) return chunk
           return `0.625rem ${chunk}`
         })
@@ -511,8 +507,8 @@ export default function BuildingChessboard({
         : `2.5rem ${inner}`
     }
     return planColActive
-      ? `2.5rem minmax(4.5rem, 7rem) repeat(${maxPositions}, minmax(0, 1fr))`
-      : `2.5rem repeat(${maxPositions}, minmax(0, 1fr))`
+      ? `2.5rem minmax(4.5rem, 7rem) repeat(${maxPositions}, ${cellW})`
+      : `2.5rem repeat(${maxPositions}, ${cellW})`
   }, [entranceWidths, maxPositions, planColActive])
 
   if (!gridApartments?.length && commercialUnits.length > 0) {
@@ -605,14 +601,16 @@ export default function BuildingChessboard({
 
   return (
     <>
-      <div
-        className="grid gap-2"
-        style={{
-          gridTemplateColumns,
-          gridTemplateRows: `repeat(${nRows}, minmax(6rem, auto))`,
-        }}
-      >
-        {gridItems}
+      <div className="overflow-x-auto">
+        <div
+          className="grid gap-2"
+          style={{
+            gridTemplateColumns,
+            gridTemplateRows: `repeat(${nRows}, minmax(6rem, auto))`,
+          }}
+        >
+          {gridItems}
+        </div>
       </div>
       {commercialUnits.length > 0 ? (
         <CommercialPremisesSection units={commercialUnits} variant="public" />

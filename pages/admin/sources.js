@@ -379,6 +379,9 @@ export default function AdminSourcesPage() {
   const [complexId, setComplexId] = useState('')
   const [buildingId, setBuildingId] = useState('')
   const [developerParser, setDeveloperParser] = useState('default')
+  const [sheetName, setSheetName] = useState('')
+  const [sheetList, setSheetList] = useState([])
+  const [sheetsLoading, setSheetsLoading] = useState(false)
 
   async function load() {
     if (!supabase) return
@@ -505,6 +508,8 @@ export default function AdminSourcesPage() {
       setType('csv')
       setUrl('')
       setDeveloperParser('default')
+      setSheetName('')
+      setSheetList([])
       const firstComplexId = complexes[0]?.id || ''
       setComplexId(firstComplexId)
       const firstBuildingId =
@@ -516,12 +521,38 @@ export default function AdminSourcesPage() {
     setType(sourceTypeForForm(row.type, row.parser_type))
     setUrl(row.url ?? '')
     setDeveloperParser(developerParserFromRow(row.type, row.parser_type))
+    setSheetName(row.sheet_name ?? '')
+    setSheetList([])
     const bId = row.building_id ?? ''
     setBuildingId(bId)
     const ownerComplex =
       complexes.find((cx) => (cx.buildings ?? []).some((b) => b.id === bId)) || null
     setComplexId(ownerComplex?.id ?? '')
   }, [editId, rows, complexes])
+
+  async function fetchSheetList() {
+    const trimmed = url.trim()
+    if (!trimmed) return
+    setSheetsLoading(true)
+    setSheetList([])
+    try {
+      const res = await fetch('/api/list-sheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: trimmed }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Ошибка')
+      setSheetList(data.sheets || [])
+      if (!sheetName && data.sheets?.length) {
+        setSheetName(data.sheets[0].name)
+      }
+    } catch (e) {
+      setMsg(e?.message || 'Не удалось загрузить листы')
+    } finally {
+      setSheetsLoading(false)
+    }
+  }
 
   const buildingsBySelectedComplex = useMemo(() => {
     const c = complexes.find((x) => x.id === complexId)
@@ -571,6 +602,7 @@ export default function AdminSourcesPage() {
       url: url.trim(),
       building_id: buildingId || null,
       parser_type: resolvedParserType(typeToSave, developerParser),
+      sheet_name: typeToSave === 'google_sheets' && sheetName ? sheetName.trim() : null,
     }
     const q = editId
       ? supabase.from('sources').update(payload).eq('id', editId)
@@ -820,11 +852,7 @@ export default function AdminSourcesPage() {
       sourceNeedsChessboardGidInUrl(source) &&
       !googleSheetsUrlHasTabSelector(String(source?.url || ''))
     ) {
-      const t =
-        'Укажите в URL #gid=… (вкладка) или для внешнего Excel добавьте &sync_sheet=ИмяВкладки либо &sync_sheet=0 (первый лист).'
-      setMsg(t)
-      alert(t)
-      return
+      console.warn('[sources] URL без #gid / sync_sheet — синк возьмёт первый лист по умолчанию.')
     }
     setSyncing(true)
     setSyncingSourceId(source.id)
@@ -1216,12 +1244,41 @@ export default function AdminSourcesPage() {
               }
             />
             {type === 'google_sheets' ? (
-              <p className="mt-1.5 text-xs text-slate-500">
-                Обычно: откройте вкладку и скопируйте ссылку с <span className="font-mono text-slate-400">#gid=</span>.
-                Если файл — внешний Excel по ссылке и несколько листов, добавьте к URL{' '}
-                <span className="font-mono text-slate-400">&amp;sync_sheet=0</span> (номер листа: 0 — первый) или{' '}
-                <span className="font-mono text-slate-400">&amp;sync_sheet=…</span> с точным именем вкладки снизу в Google.
-              </p>
+              <div className="mt-2 flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="block text-xs text-slate-400">Лист</label>
+                  {sheetList.length > 0 ? (
+                    <select
+                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                      value={sheetName}
+                      onChange={(e) => setSheetName(e.target.value)}
+                    >
+                      <option value="">— авто (первый лист) —</option>
+                      {sheetList.map((s) => (
+                        <option key={s.index} value={s.name}>
+                          {s.index}: {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                      value={sheetName}
+                      onChange={(e) => setSheetName(e.target.value)}
+                      placeholder={sheetsLoading ? 'Загрузка…' : 'Нажмите «Загрузить листы»'}
+                      readOnly={sheetsLoading}
+                    />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  disabled={sheetsLoading || !url.trim()}
+                  onClick={fetchSheetList}
+                  className="shrink-0 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 disabled:opacity-40"
+                >
+                  {sheetsLoading ? 'Загрузка…' : 'Загрузить листы'}
+                </button>
+              </div>
             ) : null}
           </div>
         )}

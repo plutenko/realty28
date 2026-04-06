@@ -1774,18 +1774,24 @@ export default function AdminUnitsPage() {
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="sticky left-0 z-20 flex w-[13.75rem] shrink-0 flex-col gap-2 bg-slate-950/95 pr-3 backdrop-blur-sm">
+                <div
+                  className="sticky left-0 z-20 grid w-[13.75rem] shrink-0 gap-2 bg-slate-950/95 pr-3 backdrop-blur-sm"
+                  style={{
+                    gridTemplateRows: `repeat(${floorsDesc.length}, minmax(4rem, auto))`,
+                    paddingTop: 'calc(0.75rem + 1px)',
+                  }}
+                >
                   {floorsDesc.map((f) => {
                     const planUrl = floorPlanUrls?.[f] || null
                     return (
-                      <div key={`floor-side-${f}`} className="flex min-h-[4rem] gap-3">
+                      <div key={`floor-side-${f}`} className="flex gap-2 overflow-hidden">
                         <div className="flex w-12 shrink-0 items-center justify-center text-sm font-semibold text-slate-300">
                           {f}
                         </div>
 
-                        <div className="w-40 shrink-0 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <label className="flex-1 cursor-pointer rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-center text-xs text-slate-200 hover:bg-slate-800">
+                        <div className="flex w-40 shrink-0 flex-col justify-center gap-0.5">
+                          <div className="flex items-center gap-1">
+                            <label className="flex-1 cursor-pointer rounded border border-slate-700 bg-slate-900 px-2 py-1 text-center text-[11px] leading-tight text-slate-200 hover:bg-slate-800">
                               <input
                                 type="file"
                                 accept="image/*"
@@ -1803,7 +1809,7 @@ export default function AdminUnitsPage() {
                             {planUrl ? (
                               <button
                                 type="button"
-                                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 hover:bg-slate-800"
+                                className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] leading-tight text-slate-200 hover:bg-slate-800"
                                 onClick={() => setPlanModal({ floor: f, url: planUrl })}
                               >
                                 План
@@ -1814,7 +1820,7 @@ export default function AdminUnitsPage() {
                           <button
                             type="button"
                             disabled={busy}
-                            className="w-full rounded-lg border border-rose-800/70 bg-rose-950/30 px-3 py-2 text-xs text-rose-200 hover:bg-rose-900/30 disabled:opacity-50"
+                            className="w-full rounded border border-rose-800/70 bg-rose-950/30 px-2 py-1 text-[11px] leading-tight text-rose-200 hover:bg-rose-900/30 disabled:opacity-50"
                             onClick={() => deleteFloor(f)}
                           >
                             Удалить этаж
