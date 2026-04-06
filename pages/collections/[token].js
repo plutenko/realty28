@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Header from "../../components/Header";
 import { supabase } from "../../lib/supabaseClient";
 import ApartmentCard from "../../components/apartments/ApartmentCard";
 
@@ -47,6 +46,7 @@ export default function CollectionPage({ token }) {
   const [units, setUnits] = useState([]);
   const [missingCount, setMissingCount] = useState(0);
   const [error, setError] = useState(null);
+  const [realtorName, setRealtorName] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,6 +148,7 @@ export default function CollectionPage({ token }) {
           setCollection(body.collection);
           setUnits(body.units ?? []);
           setMissingCount(Number(body.missingCount ?? 0));
+          setRealtorName(body.realtorName ?? null);
           setLoading(false);
           await bumpViews(Number(body.collection?.views_count ?? 0));
           return;
@@ -177,28 +178,26 @@ export default function CollectionPage({ token }) {
   }, [token]);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <div className="min-h-screen flex flex-col bg-gray-100">
       <main className="flex-1 px-4 py-10">
         <div className="max-w-5xl mx-auto space-y-6">
           <div className="space-y-1">
-            <div className="text-sm text-slate-400">Подборка</div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+            <div className="text-sm text-gray-400">Подборка</div>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">
               {collection?.title || "Квартиры в новостройках"}
             </h1>
             {collection?.client_name ? (
-              <div className="text-sm text-slate-300">
-                Для клиента: <span className="font-medium">{collection.client_name}</span>
+              <div className="text-sm text-gray-600">
+                Для клиента: <span className="font-medium text-gray-800">{collection.client_name}</span>
               </div>
             ) : null}
-            {collection && Object.prototype.hasOwnProperty.call(collection, "views_count") ? (
-              <div className="text-sm text-slate-300">
-                Просмотров:{" "}
-                <span className="font-semibold text-white">{collection?.views_count ?? 0}</span>
+            {realtorName ? (
+              <div className="text-sm text-gray-600">
+                Риелтор: <span className="font-medium text-gray-800">{realtorName}</span>
               </div>
             ) : null}
             {collection?.created_at ? (
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-gray-400">
                 Сформировано:{" "}
                 {new Date(collection.created_at).toLocaleString("ru-RU")}
               </div>
@@ -206,35 +205,35 @@ export default function CollectionPage({ token }) {
           </div>
 
           {loading ? (
-            <div className="text-sm text-slate-300">Загрузка…</div>
+            <div className="text-sm text-gray-400">Загрузка…</div>
           ) : error ? (
-            <div className="text-sm text-rose-300">{error}</div>
+            <div className="text-sm text-rose-500">{error}</div>
           ) : (
             <>
               {units.length === 0 ? (
-                <div className="rounded-lg border border-slate-700 bg-slate-900/40 px-4 py-3 text-sm text-slate-300">
+                <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500">
                   <p>Квартиры в этой подборке не отображаются.</p>
                   {missingCount > 0 ? (
-                    <p className="mt-2 text-slate-400">
+                    <p className="mt-2 text-gray-400">
                       В подборке числилось объектов: {missingCount}, но в каталоге они не найдены
                       (возможно, удалены или сменилась база).
                     </p>
                   ) : (
-                    <p className="mt-2 text-slate-400">
+                    <p className="mt-2 text-gray-400">
                       Список квартир пуст. Создайте подборку заново со страницы «Квартиры».
                     </p>
                   )}
                 </div>
               ) : null}
               {missingCount > 0 && units.length > 0 ? (
-                <div className="text-xs text-amber-200/90">
+                <div className="text-xs text-amber-600">
                   Не найдено в каталоге: {missingCount}{" "}
                   {missingCount === 1 ? "позиция" : "позиций"} из подборки.
                 </div>
               ) : null}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {units.map((u) => (
-                  <ApartmentCard key={u.id} unit={u} />
+                  <ApartmentCard key={u.id} unit={u} collectionView />
                 ))}
               </div>
             </>

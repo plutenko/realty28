@@ -96,10 +96,21 @@ export default async function handler(req, res) {
   const byId = new Map((rows ?? []).map((u) => [String(u.id), u]));
   const orderedUnits = unitIds.map((id) => byId.get(String(id))).filter(Boolean);
 
+  let realtorName = null;
+  if (c.created_by) {
+    const { data: p } = await supabase
+      .from("profiles")
+      .select("name, email")
+      .eq("id", c.created_by)
+      .maybeSingle();
+    if (p) realtorName = p.name || p.email || null;
+  }
+
   res.setHeader("Cache-Control", "no-store");
   return json(res, 200, {
     collection: c,
     units: orderedUnits,
     missingCount: unitIds.length - orderedUnits.length,
+    realtorName,
   });
 }

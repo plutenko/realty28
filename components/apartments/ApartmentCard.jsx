@@ -105,7 +105,7 @@ function entranceFromPosition(position, unitsPerEntrance) {
   return null
 }
 
-export default function ApartmentCard({ unit }) {
+export default function ApartmentCard({ unit, collectionView = false }) {
   const [contactsOpen, setContactsOpen] = useState(false)
   const b = unit?.building
   const c = b?.complex
@@ -177,17 +177,20 @@ export default function ApartmentCard({ unit }) {
           Цена: <span className="font-semibold text-gray-900">{formatPriceRub(unit?.price)} ₽</span>
         </div>
       </div>
-      <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-left text-sm">
-        <span className="block text-gray-600">Комиссия риелтора:</span>
-        <span
-          className={`block font-semibold break-words ${
-            commission.amount != null ? 'text-blue-700' : 'text-gray-600'
-          }`}
-        >
-          {commission.text}
-        </span>
-      </div>
+      {!collectionView && (
+        <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-left text-sm">
+          <span className="block text-gray-600">Комиссия риелтора:</span>
+          <span
+            className={`block font-semibold break-words ${
+              commission.amount != null ? 'text-blue-700' : 'text-gray-600'
+            }`}
+          >
+            {commission.text}
+          </span>
+        </div>
+      )}
 
+      {!collectionView && (
       <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-left text-sm">
         <div className="flex items-center justify-between gap-2">
           <span className="block text-gray-600">Контакты застройщика:</span>
@@ -247,6 +250,7 @@ export default function ApartmentCard({ unit }) {
           )
         ) : null}
       </div>
+      )}
     </div>
   )
 }
