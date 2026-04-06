@@ -223,7 +223,7 @@ export default function ApartmentsPage() {
       const complexName = u?.building?.complex?.name
       const floorVal = u?.floor ?? 0
       const st = String(u?.status ?? '').toLowerCase()
-      const notSold = st !== 'sold'
+      const notSold = st !== 'sold' && st !== 'booked'
       const handoverKey = getHandoverKeyForUnit(u)
 
       return (
@@ -253,7 +253,7 @@ export default function ApartmentsPage() {
       const devName = u?.building?.complex?.developer?.name
       const floorVal = u?.floor ?? 0
       const st = String(u?.status ?? '').toLowerCase()
-      const notSold = st !== 'sold'
+      const notSold = st !== 'sold' && st !== 'booked'
       return (
         notSold &&
         (selectedDevelopers.length === 0 || selectedDevelopers.includes(devName)) &&
@@ -279,7 +279,7 @@ export default function ApartmentsPage() {
       const devName = u?.building?.complex?.developer?.name
       const floorVal = u?.floor ?? 0
       const st = String(u?.status ?? '').toLowerCase()
-      const notSold = st !== 'sold'
+      const notSold = st !== 'sold' && st !== 'booked'
 
       return (
         notSold &&
@@ -474,7 +474,7 @@ export default function ApartmentsPage() {
       const complexName = u?.building?.complex?.name
       const price = Number(u?.price ?? 0)
       const st = String(u?.status ?? '').toLowerCase()
-      const notSold = st !== 'sold'
+      const notSold = st !== 'sold' && st !== 'booked'
       const handoverKey = getHandoverKeyForUnit(u)
 
       const matchPriceSlider = price >= priceMin && price <= priceMax
