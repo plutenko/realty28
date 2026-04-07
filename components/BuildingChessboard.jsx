@@ -492,6 +492,21 @@ export default function BuildingChessboard({
   const colFirstApt = planColActive ? 3 : 2
   const colPlan = 2
 
+  /** Колонки-разделители между подъездами (grid column indices) */
+  const separatorCols = useMemo(() => {
+    if (!entranceWidths?.length || entranceWidths.length < 2) return []
+    const cols = []
+    let col = colFirstApt
+    for (let i = 0; i < entranceWidths.length; i += 1) {
+      if (i > 0) {
+        cols.push(col)
+        col += 1
+      }
+      col += entranceWidths[i]
+    }
+    return cols
+  }, [entranceWidths, colFirstApt])
+
   const gridTemplateColumns = useMemo(() => {
     const cellW = '5.5rem'
     if (entranceWidths?.length) {
@@ -499,7 +514,7 @@ export default function BuildingChessboard({
         .map((w, i) => {
           const chunk = `repeat(${w}, ${cellW})`
           if (i === 0) return chunk
-          return `0.625rem ${chunk}`
+          return `4px ${chunk}`
         })
         .join(' ')
       return planColActive
@@ -523,12 +538,37 @@ export default function BuildingChessboard({
     )
   }
 
+  const hasEntrances = entranceWidths?.length >= 2
+  // +1 row for entrance headers when multiple entrances
+  const headerRow = hasEntrances ? 1 : 0
   const nRows = floorsToRender.length
 
   const gridItems = []
+
+  // Entrance headers row
+  if (hasEntrances) {
+    let col = colFirstApt
+    for (let i = 0; i < entranceWidths.length; i += 1) {
+      if (i > 0) col += 1 // skip separator column
+      gridItems.push(
+        <div
+          key={`ent-h-${i}`}
+          className="flex items-center justify-center rounded-t-lg bg-blue-100 py-1.5 text-xs font-bold text-blue-700"
+          style={{
+            gridColumn: `${col} / span ${entranceWidths[i]}`,
+            gridRow: 1,
+          }}
+        >
+          Подъезд {i + 1}
+        </div>
+      )
+      col += entranceWidths[i]
+    }
+  }
+
   for (let fi = 0; fi < nRows; fi += 1) {
     const f = floorsToRender[fi]
-    const row = fi + 1
+    const row = fi + 1 + headerRow
     gridItems.push(
       <div
         key={`lab-${f}`}
@@ -561,9 +601,19 @@ export default function BuildingChessboard({
       )
     }
 
+    // Vertical separators between entrances
+    for (const sepCol of separatorCols) {
+      gridItems.push(
+        <div
+          key={`sep-${f}-${sepCol}`}
+          className="bg-blue-300 rounded-full"
+          style={{ gridColumn: sepCol, gridRow: row, width: '4px', minHeight: '100%' }}
+        />
+      )
+    }
+
     for (let p = 1; p <= maxPositions; p += 1) {
       const apt = findCoveringAt(gridApartments, f, p, maxPositions)
-      /* Ячейка входит в вертикальный охват квартиры, якорь — на другом этаже: не ставим пустой слот */
       if (apt && !isAnchorCell(apt, f, p, maxPositions)) continue
 
       const aptCol = entranceWidths?.length
@@ -606,7 +656,9 @@ export default function BuildingChessboard({
           className="grid gap-2"
           style={{
             gridTemplateColumns,
-            gridTemplateRows: `repeat(${nRows}, minmax(6rem, auto))`,
+            gridTemplateRows: hasEntrances
+              ? `auto repeat(${nRows}, minmax(6rem, auto))`
+              : `repeat(${nRows}, minmax(6rem, auto))`,
           }}
         >
           {gridItems}
