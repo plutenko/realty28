@@ -122,9 +122,11 @@ export default function ApartmentCard({ unit, collectionView = false }) {
     .sort((a, b) => new Date(a?.created_at ?? 0) - new Date(b?.created_at ?? 0))
     .slice(0, 2)
 
-  const entrance =
+  const entranceRaw =
+    unit?.entrance ??
     entranceFromPosition(unit?.position, b?.units_per_entrance) ??
     null
+  const entrance = entranceRaw != null && Number(entranceRaw) > 0 ? Number(entranceRaw) : 1
 
   return (
     <div

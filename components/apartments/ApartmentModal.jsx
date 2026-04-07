@@ -102,7 +102,11 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
     .sort((a, b) => new Date(a?.created_at ?? 0) - new Date(b?.created_at ?? 0))
     .slice(0, 4)
 
-  const entrance = entranceFromPosition(unit?.position, b?.units_per_entrance) ?? null
+  const entranceRaw =
+    unit?.entrance ??
+    entranceFromPosition(unit?.position, b?.units_per_entrance) ??
+    null
+  const entrance = entranceRaw != null && Number(entranceRaw) > 0 ? Number(entranceRaw) : 1
   const pricePerM2 = unit?.price_per_meter
     ? Number(unit.price_per_meter)
     : unit?.price && unit?.area && Number(unit.area) > 0
