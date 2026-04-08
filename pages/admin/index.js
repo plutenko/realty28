@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/admin/AdminLayout'
 import { supabase } from '../../lib/supabaseClient'
+import { getAllUnitsViaComplexes } from '../../lib/supabaseQueries'
 
 function formatRooms(rooms) {
   if (rooms == null) return '?'
@@ -35,17 +36,7 @@ export default function AdminHomePage() {
   useEffect(() => {
     async function load() {
       if (!supabase) return
-      const { data, error } = await supabase
-        .from('complexes')
-        .select(`
-          id, name,
-          developers ( id, name ),
-          buildings (
-            id, name, handover_status, handover_quarter, handover_year,
-            units ( id, rooms, status )
-          )
-        `)
-        .order('name')
+      const { data: allUnits, error } = await getAllUnitsViaComplexes(supabase)
 
       if (error) {
         console.error(error)
@@ -53,37 +44,49 @@ export default function AdminHomePage() {
         return
       }
 
-      const tableRows = []
-      for (const c of data ?? []) {
-        const dev = Array.isArray(c.developers) ? c.developers[0] : c.developers
-        for (const b of c.buildings ?? []) {
-          const allUnits = b.units ?? []
-          const available = allUnits.filter((u) => {
-            const s = String(u.status ?? '').toLowerCase()
-            return s !== 'sold' && s !== 'booked' && s !== 'reserved'
-          })
-          const roomCounts = {}
-          for (const u of available) {
-            const key = formatRooms(u.rooms)
-            roomCounts[key] = (roomCounts[key] || 0) + 1
-          }
-          const roomEntries = Object.entries(roomCounts)
-            .sort((a, b) => {
-              const na = a[0] === 'Ст' ? -1 : parseInt(a[0]) || 99
-              const nb = b[0] === 'Ст' ? -1 : parseInt(b[0]) || 99
-              return na - nb
-            })
-
-          tableRows.push({
-            id: b.id,
-            developer: dev?.name || '—',
-            complex: c.name || '—',
-            building: b.name || '—',
-            handover: handoverLabel(b),
-            available: available.length,
-            roomEntries,
+      // Group by building
+      const byBuilding = new Map()
+      for (const u of allUnits ?? []) {
+        const bid = u.building?.id
+        if (!bid) continue
+        if (!byBuilding.has(bid)) {
+          byBuilding.set(bid, {
+            building: u.building,
+            units: [],
           })
         }
+        byBuilding.get(bid).units.push(u)
+      }
+
+      const tableRows = []
+      for (const { building: b, units } of byBuilding.values()) {
+        const c = b?.complex
+        const d = c?.developer
+        const available = units.filter((u) => {
+          const s = String(u.status ?? '').toLowerCase()
+          return s !== 'sold' && s !== 'booked' && s !== 'reserved'
+        })
+        const roomCounts = {}
+        for (const u of available) {
+          const key = formatRooms(u.rooms)
+          roomCounts[key] = (roomCounts[key] || 0) + 1
+        }
+        const roomEntries = Object.entries(roomCounts)
+          .sort((a, b) => {
+            const na = a[0] === 'Ст' ? -1 : parseInt(a[0]) || 99
+            const nb = b[0] === 'Ст' ? -1 : parseInt(b[0]) || 99
+            return na - nb
+          })
+
+        tableRows.push({
+          id: b.id,
+          developer: d?.name || '—',
+          complex: c?.name || '—',
+          building: b?.name || '—',
+          handover: handoverLabel(b),
+          available: available.length,
+          roomEntries,
+        })
       }
 
       // Sort: developer → complex → building
