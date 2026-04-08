@@ -107,7 +107,7 @@ export default function ManagerPage() {
         for (const b of c.buildings ?? []) {
           const available = (b.units ?? []).filter((u) => {
             const s = String(u.status ?? '').toLowerCase()
-            return s !== 'sold' && s !== 'booked'
+            return s !== 'sold' && s !== 'booked' && s !== 'reserved'
           })
           const roomCounts = {}
           for (const u of available) {

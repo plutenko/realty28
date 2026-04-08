@@ -60,7 +60,7 @@ export default function AdminHomePage() {
           const allUnits = b.units ?? []
           const available = allUnits.filter((u) => {
             const s = String(u.status ?? '').toLowerCase()
-            return s !== 'sold' && s !== 'booked'
+            return s !== 'sold' && s !== 'booked' && s !== 'reserved'
           })
           const roomCounts = {}
           for (const u of available) {

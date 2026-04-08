@@ -318,7 +318,7 @@ export default function BuildingsPage() {
       for (const b of builds) {
         const allUnits = b.units || []
         const st = (u) => String(u?.status ?? '').toLowerCase()
-        const availableUnits = allUnits.filter((u) => st(u) !== 'sold' && st(u) !== 'booked')
+        const availableUnits = allUnits.filter((u) => st(u) !== 'sold' && st(u) !== 'booked' && st(u) !== 'reserved')
         const prices = availableUnits
           .map((u) => Number(u.price))
           .filter((p) => !Number.isNaN(p) && p > 0)
