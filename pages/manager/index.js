@@ -25,12 +25,37 @@ async function apiFetch(path) {
 }
 
 const TABS = [
+  { id: 'summary',     label: 'Сводка' },
   { id: 'list',        label: 'Все подборки' },
   { id: 'by_day',      label: 'По дням' },
   { id: 'by_month',    label: 'По месяцам' },
   { id: 'by_realtor',  label: 'По риелторам' },
   { id: 'login_logs',  label: 'Журнал входов' },
 ]
+
+function formatRoomsKey(rooms) {
+  if (rooms == null) return '?'
+  if (rooms === 0) return 'Ст'
+  return `${rooms}к`
+}
+
+function handoverLabel(b) {
+  const st = String(b?.handover_status || '').toLowerCase()
+  if (st === 'delivered') return 'Сдан'
+  const q = Number(b?.handover_quarter)
+  const y = Number(b?.handover_year)
+  if (Number.isFinite(q) && q >= 1 && q <= 4 && Number.isFinite(y) && y > 0) return `${q} кв. ${y}`
+  return '—'
+}
+
+const ROOM_COLORS = {
+  'Ст': 'bg-purple-100 text-purple-700 border-purple-200',
+  '1к': 'bg-blue-100 text-blue-700 border-blue-200',
+  '2к': 'bg-green-100 text-green-700 border-green-200',
+  '3к': 'bg-amber-100 text-amber-700 border-amber-200',
+  '4к': 'bg-rose-100 text-rose-700 border-rose-200',
+  '5к': 'bg-red-100 text-red-700 border-red-200',
+}
 
 const tabBtn = (active) =>
   `rounded-xl px-4 py-2 text-sm font-medium transition border ${
@@ -52,13 +77,69 @@ export default function ManagerPage() {
   const [fetching, setFetching] = useState(true)
   const [error, setError]       = useState('')
   const [origin, setOrigin]     = useState('')
-  const [tab, setTab]           = useState('list')
+  const [tab, setTab]           = useState('summary')
   const [filterRealtor, setFilterRealtor] = useState('all')
   const [logs, setLogs]         = useState([])
   const [logsFetched, setLogsFetched] = useState(false)
   const [logsFetching, setLogsFetching] = useState(false)
+  const [summaryRows, setSummaryRows] = useState([])
+  const [summaryFetched, setSummaryFetched] = useState(false)
 
   useEffect(() => { setOrigin(window.location.origin) }, [])
+
+  useEffect(() => {
+    if (tab !== 'summary' || summaryFetched || !supabase) return
+    ;(async () => {
+      const { data: complexes } = await supabase
+        .from('complexes')
+        .select(`
+          id, name,
+          developers ( id, name ),
+          buildings (
+            id, name, handover_status, handover_quarter, handover_year,
+            units ( id, rooms, status )
+          )
+        `)
+        .order('name')
+      const rows = []
+      for (const c of complexes ?? []) {
+        const dev = Array.isArray(c.developers) ? c.developers[0] : c.developers
+        for (const b of c.buildings ?? []) {
+          const available = (b.units ?? []).filter((u) => {
+            const s = String(u.status ?? '').toLowerCase()
+            return s !== 'sold' && s !== 'booked'
+          })
+          const roomCounts = {}
+          for (const u of available) {
+            const key = formatRoomsKey(u.rooms)
+            roomCounts[key] = (roomCounts[key] || 0) + 1
+          }
+          const roomEntries = Object.entries(roomCounts)
+            .sort((a, b) => {
+              const na = a[0] === 'Ст' ? -1 : parseInt(a[0]) || 99
+              const nb = b[0] === 'Ст' ? -1 : parseInt(b[0]) || 99
+              return na - nb
+            })
+          rows.push({
+            id: b.id,
+            developer: dev?.name || '—',
+            complex: c.name || '—',
+            building: b.name || '—',
+            handover: handoverLabel(b),
+            available: available.length,
+            roomEntries,
+          })
+        }
+      }
+      rows.sort((a, b) =>
+        a.developer.localeCompare(b.developer, 'ru') ||
+        a.complex.localeCompare(b.complex, 'ru') ||
+        a.building.localeCompare(b.building, 'ru', { numeric: true })
+      )
+      setSummaryRows(rows)
+      setSummaryFetched(true)
+    })()
+  }, [tab, summaryFetched])
 
   useEffect(() => {
     if (tab !== 'login_logs' || logsFetched) return
@@ -212,6 +293,74 @@ export default function ManagerPage() {
                     </button>
                   ))}
                 </div>
+              )}
+
+              {/* Сводка по объектам */}
+              {tab === 'summary' && (
+                !summaryFetched ? (
+                  <p className="text-sm text-gray-400">Загрузка сводки...</p>
+                ) : summaryRows.length === 0 ? (
+                  <p className="text-sm text-gray-400">Нет данных</p>
+                ) : (
+                  <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <tr>
+                          <th className="px-4 py-3">Застройщик</th>
+                          <th className="px-4 py-3">ЖК</th>
+                          <th className="px-4 py-3">Дом</th>
+                          <th className="px-4 py-3">Сдача</th>
+                          <th className="px-4 py-3 text-center">В продаже</th>
+                          <th className="px-4 py-3">Комнатность</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {summaryRows.map((r, i) => {
+                          const prev = i > 0 ? summaryRows[i - 1] : null
+                          const sameDev = prev?.developer === r.developer
+                          const sameComplex = sameDev && prev?.complex === r.complex
+                          return (
+                            <tr
+                              key={r.id}
+                              className={`hover:bg-gray-50 transition ${
+                                !sameDev && i > 0 ? 'border-t-2 border-gray-300' : ''
+                              }`}
+                            >
+                              <td className="px-4 py-3 text-gray-800">{sameDev ? '' : r.developer}</td>
+                              <td className="px-4 py-3 text-gray-800">{sameComplex ? '' : r.complex}</td>
+                              <td className="px-4 py-3 text-gray-800 font-medium">{r.building}</td>
+                              <td className="px-4 py-3 text-gray-600">{r.handover}</td>
+                              <td className="px-4 py-3 text-center">
+                                <span className={`font-semibold ${r.available > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                                  {r.available}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex flex-wrap gap-1.5">
+                                  {r.roomEntries.length === 0 ? (
+                                    <span className="text-gray-400">—</span>
+                                  ) : (
+                                    r.roomEntries.map(([key, count]) => (
+                                      <span
+                                        key={key}
+                                        className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${
+                                          ROOM_COLORS[key] || 'bg-gray-100 text-gray-600 border-gray-200'
+                                        }`}
+                                      >
+                                        <span>{key}</span>
+                                        <span className="font-bold">{count}</span>
+                                      </span>
+                                    ))
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )
               )}
 
               {/* Все подборки */}
