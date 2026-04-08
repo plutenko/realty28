@@ -6,7 +6,7 @@ import CatalogTabs from '../components/CatalogTabs'
 import BuildingChessboard, {
   mapUnitsToChessboardApartments,
 } from '../components/BuildingChessboard'
-import { getComplexesWithNestedUnits } from '../lib/supabaseQueries'
+import { getComplexesWithNestedUnits, getAllUnitsViaComplexes } from '../lib/supabaseQueries'
 
 const normalize = (str) =>
   (str || '')
@@ -225,12 +225,46 @@ export default function BuildingsPage() {
       if (!supabase) return
       setBusy(true)
       setError('')
-      const { data, error: err } = await getComplexesWithNestedUnits(supabase)
+      const { data: flatUnits, error: err } = await getAllUnitsViaComplexes(supabase)
       if (err) {
         setError(err.message || 'Ошибка загрузки')
         setComplexes([])
       } else {
-        setComplexes(sanitizeComplexesPayload(data ?? []))
+        // Rebuild complexes structure from flat units
+        const cMap = new Map()
+        for (const u of flatUnits ?? []) {
+          const cId = u.building?.complex?.id
+          const bId = u.building?.id
+          if (!cId || !bId) continue
+          if (!cMap.has(cId)) {
+            const c = u.building.complex
+            cMap.set(cId, {
+              id: c.id, name: c.name,
+              realtor_commission_type: c.realtor_commission_type,
+              realtor_commission_value: c.realtor_commission_value,
+              developer_id: c.developer?.id,
+              developers: c.developer ? [c.developer] : [],
+              buildings: new Map(),
+            })
+          }
+          const cx = cMap.get(cId)
+          if (!cx.buildings.has(bId)) {
+            cx.buildings.set(bId, {
+              id: u.building.id, name: u.building.name,
+              floors: u.building.floors, units_per_floor: u.building.units_per_floor,
+              units_per_entrance: u.building.units_per_entrance,
+              handover_status: u.building.handover_status,
+              handover_quarter: u.building.handover_quarter,
+              handover_year: u.building.handover_year,
+              units: [],
+            })
+          }
+          cx.buildings.get(bId).units.push(u)
+        }
+        const rebuilt = [...cMap.values()].map((c) => ({
+          ...c, buildings: [...c.buildings.values()],
+        }))
+        setComplexes(sanitizeComplexesPayload(rebuilt))
       }
       setBusy(false)
     }
@@ -316,9 +350,7 @@ export default function BuildingsPage() {
     for (const c of filteredComplexes) {
       const builds = [...(c.buildings ?? [])].sort(sortBuildingsByName)
       for (const b of builds) {
-        const allUnits = b.units || []
-        const st = (u) => String(u?.status ?? '').toLowerCase()
-        const availableUnits = allUnits.filter((u) => st(u) !== 'sold' && st(u) !== 'booked' && st(u) !== 'reserved')
+        const availableUnits = b.units || [] // already filtered at DB level
         const prices = availableUnits
           .map((u) => Number(u.price))
           .filter((p) => !Number.isNaN(p) && p > 0)
