@@ -19,6 +19,15 @@ function handoverLabel(b) {
   return '—'
 }
 
+const ROOM_COLORS = {
+  'Ст': 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  '1к': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  '2к': 'bg-green-500/20 text-green-300 border-green-500/30',
+  '3к': 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+  '4к': 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+  '5к': 'bg-red-500/20 text-red-300 border-red-500/30',
+}
+
 export default function AdminHomePage() {
   const [rows, setRows] = useState([])
   const [busy, setBusy] = useState(true)
@@ -53,20 +62,17 @@ export default function AdminHomePage() {
             const s = String(u.status ?? '').toLowerCase()
             return s !== 'sold' && s !== 'booked'
           })
-          // Count by rooms
           const roomCounts = {}
           for (const u of available) {
             const key = formatRooms(u.rooms)
             roomCounts[key] = (roomCounts[key] || 0) + 1
           }
-          const roomsSummary = Object.entries(roomCounts)
+          const roomEntries = Object.entries(roomCounts)
             .sort((a, b) => {
               const na = a[0] === 'Ст' ? -1 : parseInt(a[0]) || 99
               const nb = b[0] === 'Ст' ? -1 : parseInt(b[0]) || 99
               return na - nb
             })
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(', ')
 
           tableRows.push({
             id: b.id,
@@ -74,12 +80,19 @@ export default function AdminHomePage() {
             complex: c.name || '—',
             building: b.name || '—',
             handover: handoverLabel(b),
-            total: allUnits.length,
             available: available.length,
-            roomsSummary: roomsSummary || '—',
+            roomEntries,
           })
         }
       }
+
+      // Sort: developer → complex → building
+      tableRows.sort((a, b) =>
+        a.developer.localeCompare(b.developer, 'ru') ||
+        a.complex.localeCompare(b.complex, 'ru') ||
+        a.building.localeCompare(b.building, 'ru', { numeric: true })
+      )
+
       setRows(tableRows)
       setBusy(false)
     }
@@ -101,27 +114,57 @@ export default function AdminHomePage() {
                 <th className="px-4 py-3">ЖК</th>
                 <th className="px-4 py-3">Дом</th>
                 <th className="px-4 py-3">Сдача</th>
-                <th className="px-4 py-3 text-center">Всего</th>
                 <th className="px-4 py-3 text-center">В продаже</th>
                 <th className="px-4 py-3">Комнатность</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {rows.map((r) => (
-                <tr key={r.id} className="hover:bg-slate-900/50 transition">
-                  <td className="px-4 py-3 text-slate-200">{r.developer}</td>
-                  <td className="px-4 py-3 text-slate-200">{r.complex}</td>
-                  <td className="px-4 py-3 text-slate-200 font-medium">{r.building}</td>
-                  <td className="px-4 py-3 text-slate-300">{r.handover}</td>
-                  <td className="px-4 py-3 text-center text-slate-400">{r.total}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`font-semibold ${r.available > 0 ? 'text-green-400' : 'text-slate-500'}`}>
-                      {r.available}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-300 text-xs">{r.roomsSummary}</td>
-                </tr>
-              ))}
+              {rows.map((r, i) => {
+                const prevRow = i > 0 ? rows[i - 1] : null
+                const sameDev = prevRow?.developer === r.developer
+                const sameComplex = sameDev && prevRow?.complex === r.complex
+                return (
+                  <tr
+                    key={r.id}
+                    className={`hover:bg-slate-900/50 transition ${
+                      !sameDev && i > 0 ? 'border-t-2 border-slate-700' : ''
+                    }`}
+                  >
+                    <td className="px-4 py-3 text-slate-200">
+                      {sameDev ? '' : r.developer}
+                    </td>
+                    <td className="px-4 py-3 text-slate-200">
+                      {sameComplex ? '' : r.complex}
+                    </td>
+                    <td className="px-4 py-3 text-slate-200 font-medium">{r.building}</td>
+                    <td className="px-4 py-3 text-slate-300">{r.handover}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`font-semibold ${r.available > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+                        {r.available}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        {r.roomEntries.length === 0 ? (
+                          <span className="text-slate-500">—</span>
+                        ) : (
+                          r.roomEntries.map(([key, count]) => (
+                            <span
+                              key={key}
+                              className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${
+                                ROOM_COLORS[key] || 'bg-slate-700/40 text-slate-300 border-slate-600'
+                              }`}
+                            >
+                              <span>{key}</span>
+                              <span className="font-bold">{count}</span>
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
