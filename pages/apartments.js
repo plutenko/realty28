@@ -9,13 +9,14 @@ import ApartmentCard from '../components/apartments/ApartmentCard'
 import ApartmentModal from '../components/apartments/ApartmentModal'
 
 const ABS_MIN = 0
-const ABS_MAX = 15000000
+const ABS_MAX = 50000000
 
 const priceRanges = [
   { label: 'До 7 млн ₽', min: 0, max: 7000000 },
   { label: '7 – 9 млн ₽', min: 7000000, max: 9000000 },
   { label: '9 – 12 млн ₽', min: 9000000, max: 12000000 },
-  { label: '12+ млн ₽', min: 12000000, max: Infinity },
+  { label: '12 – 20 млн ₽', min: 12000000, max: 20000000 },
+  { label: '20+ млн ₽', min: 20000000, max: Infinity },
 ]
 
 const areaRanges = [
