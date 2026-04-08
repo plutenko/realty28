@@ -3,7 +3,7 @@ import { LayoutGrid, List } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
-import { getUnits } from '../lib/supabaseQueries'
+import { getAllUnitsViaComplexes } from '../lib/supabaseQueries'
 import FiltersSidebar from '../components/apartments/FiltersSidebar'
 import ApartmentCard from '../components/apartments/ApartmentCard'
 import ApartmentModal from '../components/apartments/ApartmentModal'
@@ -126,7 +126,7 @@ export default function ApartmentsPage() {
       setError('')
 
       try {
-        const { data, error: err } = await getUnits(supabase)
+        const { data, error: err } = await getAllUnitsViaComplexes(supabase)
         if (err) {
           setError(err.message || 'Ошибка загрузки')
           setUnits([])
