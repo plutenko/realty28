@@ -131,7 +131,17 @@ export default function ApartmentsPage() {
           setError(err.message || 'Ошибка загрузки')
           setUnits([])
         } else {
-          setUnits(data ?? [])
+          const units = data ?? []
+          console.log('[apartments] loaded units:', units.length,
+            'by building:', Object.entries(
+              units.reduce((acc, u) => {
+                const key = `${u.building?.complex?.name} / ${u.building?.name}`
+                acc[key] = (acc[key] || 0) + 1
+                return acc
+              }, {})
+            ).sort((a, b) => b[1] - a[1])
+          )
+          setUnits(units)
         }
       } catch (e) {
         setError(e?.message || 'Ошибка загрузки')
