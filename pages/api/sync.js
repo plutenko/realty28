@@ -69,13 +69,29 @@ export default async function handler(req, res) {
         });
         return;
       }
-      const one = await syncSource(source, supabase);
-      res.status(200).json({
-        ok: true,
-        total: 1,
-        failed: 0,
-        results: [{ ok: true, ...one, name: source.name, type: source.type }],
-      });
+      try {
+        const one = await syncSource(source, supabase);
+        res.status(200).json({
+          ok: true,
+          total: 1,
+          failed: 0,
+          results: [{ ok: true, ...one, name: source.name, type: source.type }],
+        });
+      } catch (syncErr) {
+        res.status(200).json({
+          ok: false,
+          total: 1,
+          failed: 1,
+          results: [{
+            ok: false,
+            sourceId: source.id,
+            inserted: 0,
+            name: source.name,
+            type: source.type,
+            error: syncErr?.message || 'Sync failed',
+          }],
+        });
+      }
       return;
     }
 
