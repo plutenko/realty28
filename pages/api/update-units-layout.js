@@ -37,29 +37,33 @@ export default async function handler(req, res) {
     }
 
     if (upsert.length) {
-      const rows = upsert.map((u) => ({
-        id: ensureUnitId(u.id),
-        building_id: u.building_id ?? null,
-        source_id: u.source_id ?? null,
-        external_id: u.external_id ?? null,
-        number: u.number ?? null,
-        floor: u.floor ?? null,
-        entrance: u.entrance ?? null,
-        position: u.position ?? null,
-        rooms: u.rooms ?? null,
-        area: u.area ?? null,
-        price: u.price ?? null,
-        price_per_meter: u.price_per_meter ?? null,
-        status: u.status ?? 'available',
-        span_columns: u.span_columns ?? 1,
-        span_floors: u.span_floors ?? 1,
-        is_combined: Boolean(u.is_combined),
-        combined_unit_ids: Array.isArray(u.combined_unit_ids) ? u.combined_unit_ids : [],
-        layout_title: u.layout_title ?? null,
-        is_commercial: Boolean(u.is_commercial),
-        layout_image_url: u.layout_image_url ?? null,
-        finish_image_url: u.finish_image_url ?? null,
-      }))
+      const rows = upsert.map((u) => {
+        const row = {
+          id: ensureUnitId(u.id),
+          building_id: u.building_id ?? null,
+          source_id: u.source_id ?? null,
+          external_id: u.external_id ?? null,
+          number: u.number ?? null,
+          floor: u.floor ?? null,
+          entrance: u.entrance ?? null,
+          position: u.position ?? null,
+          rooms: u.rooms ?? null,
+          area: u.area ?? null,
+          price: u.price ?? null,
+          price_per_meter: u.price_per_meter ?? null,
+          status: u.status ?? 'available',
+          span_columns: u.span_columns ?? 1,
+          span_floors: u.span_floors ?? 1,
+          is_combined: Boolean(u.is_combined),
+          combined_unit_ids: Array.isArray(u.combined_unit_ids) ? u.combined_unit_ids : [],
+          layout_title: u.layout_title ?? null,
+          is_commercial: Boolean(u.is_commercial),
+        }
+        // Only include image fields if explicitly provided — don't overwrite with null
+        if ('layout_image_url' in u) row.layout_image_url = u.layout_image_url ?? null
+        if ('finish_image_url' in u) row.finish_image_url = u.finish_image_url ?? null
+        return row
+      })
 
       try {
         await upsertUnitsStrippingUnknownColumns(supabase, rows, {
