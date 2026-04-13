@@ -165,7 +165,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <img src="/logo.png" alt="СОБР" className="mx-auto mb-4 h-28 w-auto" />
+          <img src="/logo.png" alt="СОБР" className="mx-auto mb-4 h-44 w-auto" />
           <h1 className="text-2xl font-bold text-white">Вход</h1>
         </div>
 
