@@ -166,7 +166,6 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <img src="/logo.png" alt="СОБР" className="mx-auto mb-4 h-44 w-auto" />
-          <h1 className="text-2xl font-bold text-white">Вход</h1>
         </div>
 
         {pendingToken ? (
