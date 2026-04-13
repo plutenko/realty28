@@ -73,7 +73,7 @@ function handoverLabelByKey(key) {
 export default function ApartmentsPage() {
   const { user } = useAuth()
   const [units, setUnits] = useState([])
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
 
   const [viewMode, setViewMode] = useState('grid')
@@ -807,7 +807,10 @@ export default function ApartmentsPage() {
 
           <div className="flex-1">
             {busy ? (
-              <p className="text-sm text-gray-500">Загрузка...</p>
+              <div className="flex items-center justify-center py-20">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500"></div>
+                <span className="ml-3 text-sm text-gray-500">Загрузка квартир...</span>
+              </div>
             ) : error ? (
               <p className="text-sm text-rose-600">{error}</p>
             ) : filtered.length === 0 ? (
