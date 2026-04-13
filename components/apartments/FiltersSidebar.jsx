@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import PriceFilterSection from './PriceFilterSection'
 
 function MultiCheckboxList({ items, selected, onToggle, emptyText }) {
@@ -82,6 +82,9 @@ export default function FiltersSidebar({
   selectedRooms,
   onToggleRoom,
   roomCountsByValue,
+  twoLevelOnly,
+  onToggleTwoLevel,
+  twoLevelCount,
   floorFrom,
   floorTo,
   onFloorFromChange,
@@ -118,8 +121,17 @@ export default function FiltersSidebar({
     }))
   }
 
-  /** Свёрнут список литеров для этого ЖК (по умолчанию все развёрнуты). */
+  /** Свёрнут список литеров для этого ЖК (по умолчанию все свёрнуты). */
   const [collapsedZhks, setCollapsedZhks] = useState(() => new Set())
+
+  // По умолчанию сворачиваем все ЖК при первой загрузке списка
+  const initializedRef = useRef(false)
+  useEffect(() => {
+    if (initializedRef.current) return
+    if (!complexBuildingsTree?.length) return
+    initializedRef.current = true
+    setCollapsedZhks(new Set(complexBuildingsTree.map((c) => c.complexName)))
+  }, [complexBuildingsTree])
 
   const toggleZhkLiters = (complexName) => {
     setCollapsedZhks((prev) => {
@@ -263,6 +275,25 @@ export default function FiltersSidebar({
             </label>
           ))}
         </div>
+        <label
+          className={`mt-2 flex cursor-pointer items-center justify-between gap-2 rounded-md px-1 py-1 text-sm text-gray-900 transition hover:bg-gray-50 ${
+            (twoLevelCount ?? 0) === 0 && !twoLevelOnly ? 'opacity-40' : ''
+          }`}
+        >
+          <div className="flex min-w-0 items-center gap-2">
+            <input
+              type="checkbox"
+              checked={Boolean(twoLevelOnly)}
+              disabled={(twoLevelCount ?? 0) === 0 && !twoLevelOnly}
+              onChange={() => onToggleTwoLevel?.()}
+              className="accent-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+            />
+            <span className="truncate">Двухуровневые</span>
+          </div>
+          <span className="shrink-0 text-xs text-gray-400">
+            ({twoLevelCount ?? 0})
+          </span>
+        </label>
       </FilterBlock>
 
       <FilterBlock

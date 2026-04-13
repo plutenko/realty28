@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 function formatPriceRub(n) {
   if (n == null || Number.isNaN(Number(n))) return '—'
@@ -88,6 +88,7 @@ function entranceFromPosition(position, unitsPerEntrance) {
 }
 
 export default function ApartmentModal({ unit, onClose, onAddToCollection, isSelected, collectionView = false }) {
+  const [zoomedSrc, setZoomedSrc] = useState(null)
   const b = unit?.building
   const c = b?.complex
   const d = c?.developer
@@ -174,7 +175,9 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
                 <img
                   src={unit.layout_image_url}
                   alt="Планировка"
-                  className="mx-auto max-h-[400px] object-contain p-2"
+                  className="mx-auto max-h-[400px] cursor-zoom-in object-contain p-2"
+                  onClick={() => setZoomedSrc(unit.layout_image_url)}
+                  title="Нажмите чтобы увеличить"
                 />
               </div>
             </div>
@@ -189,7 +192,9 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
                 <img
                   src={unit.finish_image_url}
                   alt="Отделка"
-                  className="mx-auto max-h-[400px] object-contain p-2"
+                  className="mx-auto max-h-[400px] cursor-zoom-in object-contain p-2"
+                  onClick={() => setZoomedSrc(unit.finish_image_url)}
+                  title="Нажмите чтобы увеличить"
                 />
               </div>
             </div>
@@ -288,6 +293,33 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
           )}
         </div>
       </div>
+      {zoomedSrc && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setZoomedSrc(null)}
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setZoomedSrc(null)
+            }}
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+            aria-label="Закрыть"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={zoomedSrc}
+            alt=""
+            className="max-h-[95vh] max-w-[95vw] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   )
 }

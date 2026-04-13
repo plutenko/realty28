@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 export default function UnitModal({
   activeCell,
   form,
@@ -9,14 +11,34 @@ export default function UnitModal({
   uploadUnitMedia,
   removeUnitMedia,
   mediaBusy,
+  mediaError,
 }) {
+  const [pasteTarget, setPasteTarget] = useState('unit_layout')
+
   if (!activeCell) return null
+
+  async function handlePaste(e) {
+    if (!activeCell.unit?.id) return
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of items) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+        if (file) {
+          e.preventDefault()
+          await uploadUnitMedia(pasteTarget, file, activeCell.unit.id)
+          return
+        }
+      }
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4">
       <form
         onSubmit={onSaveUnit}
-        className="w-full max-w-xl space-y-4 rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
+        onPaste={handlePaste}
+        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-4 rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
       >
         <h2 className="text-lg font-semibold text-white">
           {activeCell.unit ? 'Редактирование квартиры' : 'Новая квартира'}
@@ -29,10 +51,11 @@ export default function UnitModal({
           <div>
             <label className="block text-xs text-slate-400">Номер</label>
             <input
-              type="number"
+              type={form.is_commercial ? 'text' : 'number'}
               className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
               value={form.number}
               onChange={(e) => setForm((prev) => ({ ...prev, number: e.target.value }))}
+              placeholder={form.is_commercial ? 'например: 1.1' : ''}
             />
           </div>
           <div>
@@ -78,10 +101,14 @@ export default function UnitModal({
           <div>
             <label className="block text-xs text-slate-400">Цена</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-              value={form.price}
-              onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
+              value={form.price ? Number(form.price).toLocaleString('ru-RU') : ''}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, '')
+                setForm((prev) => ({ ...prev, price: raw }))
+              }}
             />
           </div>
           <div>
@@ -91,15 +118,56 @@ export default function UnitModal({
               value={form.status}
               onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
             >
-              <option value="available">available</option>
-              <option value="booked">booked (на брони)</option>
-              <option value="sold">sold</option>
+              <option value="available">В продаже</option>
+              <option value="booked">Бронь</option>
+              <option value="sold">Продано</option>
+              <option value="closed">Продажи закрыты</option>
             </select>
+          </div>
+          <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                checked={form.is_commercial || false}
+                onChange={(e) => setForm((prev) => ({ ...prev, is_commercial: e.target.checked }))}
+                className="h-4 w-4 rounded border-slate-600 bg-slate-800"
+              />
+              Коммерческое помещение
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                checked={Number(form.span_floors) >= 2}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    span_floors: e.target.checked ? 2 : 1,
+                  }))
+                }
+                className="h-4 w-4 rounded border-slate-600 bg-slate-800"
+              />
+              Двухуровневая (занимает 2 этажа)
+            </label>
           </div>
         </div>
 
         <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-4">
-          <div className="mb-2 text-sm font-semibold text-slate-200">Медиа квартиры</div>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="text-sm font-semibold text-slate-200">Медиа квартиры</div>
+            {activeCell.unit?.id && (
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <span>Ctrl+V в:</span>
+                <select
+                  value={pasteTarget}
+                  onChange={(e) => setPasteTarget(e.target.value)}
+                  className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200"
+                >
+                  <option value="unit_layout">Планировка</option>
+                  <option value="unit_finish">Ремонт</option>
+                </select>
+              </div>
+            )}
+          </div>
           {!activeCell.unit?.id ? (
             <p className="text-xs text-slate-500">
               Сначала сохраните квартиру, затем можно загрузить изображения.
@@ -177,6 +245,11 @@ export default function UnitModal({
             </div>
           )}
           {mediaBusy ? <p className="mt-2 text-xs text-slate-500">Загрузка…</p> : null}
+          {mediaError ? (
+            <p className="mt-2 rounded bg-rose-900/40 px-2 py-1 text-xs text-rose-200">
+              Ошибка: {mediaError}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

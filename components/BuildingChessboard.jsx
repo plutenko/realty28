@@ -239,6 +239,8 @@ function isAnchorCell(apt, f, p, maxPos) {
 function ApartmentCard({ apt, className = '' }) {
   const sold = apt.status === 'sold'
   const booked = apt.status === 'booked'
+  const closed = apt.status === 'closed'
+  const commercial = apt.is_commercial
   const ap = apt
   const sf = spanFloors(apt)
 
@@ -251,21 +253,24 @@ function ApartmentCard({ apt, className = '' }) {
       ? formatPriceRub(apt.pricePerMeter)
       : '—'
 
+  const statusClass = sold
+    ? 'bg-rose-200 text-rose-900'
+    : booked
+    ? 'bg-amber-200 text-amber-900'
+    : closed
+    ? 'bg-gray-300 text-gray-600'
+    : 'bg-green-400 text-white'
+  const borderClass = commercial ? 'ring-2 ring-violet-500 ring-inset' : ''
+
   return (
     <div
       className={`flex h-full min-h-0 flex-col justify-between overflow-hidden rounded p-2 text-xs transition hover:scale-[1.02] ${
         sf > 1 ? 'min-h-[calc(12rem+0.5rem)] py-2' : 'min-h-[6rem]'
-      } ${
-        sold
-          ? 'bg-rose-200 text-rose-900'
-          : booked
-          ? 'bg-amber-200 text-amber-900'
-          : 'bg-green-400 text-white'
-      } ${className}`}
-      title={`№${ap.number ?? '—'} · ${areaStr} м² · ${formatPriceRub(apt.price)} ₽`}
+      } ${statusClass} ${borderClass} ${className}`}
+      title={`${commercial ? 'Коммерция · ' : ''}№${ap.number ?? '—'} · ${areaStr} м² · ${formatPriceRub(apt.price)} ₽`}
     >
       <div className="flex justify-between text-[10px]">
-        <span>{ap.rooms}К</span>
+        <span>{commercial ? 'КП' : `${ap.rooms}К`}</span>
         <span>
           {ap.number != null && ap.number !== ''
             ? `№${ap.number}`
@@ -355,9 +360,45 @@ export default function BuildingChessboard({
   const { gridApartments, commercialUnits } = useMemo(() => {
     const grid = []
     const comm = []
+    // Assign positions to commercial units that lack them
+    const commByFloor = new Map()
     for (const a of apartments || []) {
-      if (isCommercialUnitRow(a)) comm.push(a)
-      else grid.push(a)
+      if (isCommercialUnitRow(a)) {
+        comm.push(a)
+        const f = a.floor ?? 1
+        if (!commByFloor.has(f)) commByFloor.set(f, [])
+        commByFloor.get(f).push(a)
+      }
+    }
+    // Find max position per floor from regular units
+    const maxPosByFloor = new Map()
+    for (const a of apartments || []) {
+      if (isCommercialUnitRow(a)) continue
+      const f = a.floor ?? 0
+      const p = Number(a.position)
+      if (Number.isFinite(p) && p > 0) {
+        maxPosByFloor.set(f, Math.max(maxPosByFloor.get(f) || 0, p))
+      }
+    }
+    // Sort commercial by position (from parser) or by number
+    for (const [f, units] of commByFloor) {
+      units.sort((a, b) => {
+        const pa = Number(a.position) || 999
+        const pb = Number(b.position) || 999
+        if (pa !== pb) return pa - pb
+        const na = String(a.number ?? '').replace(',', '.')
+        const nb = String(b.number ?? '').replace(',', '.')
+        return na.localeCompare(nb, undefined, { numeric: true })
+      })
+      // Only assign positions to units that don't have one
+      for (let i = 0; i < units.length; i++) {
+        if (!Number.isFinite(Number(units[i].position)) || Number(units[i].position) < 1) {
+          units[i].position = i + 1
+        }
+      }
+    }
+    for (const a of apartments || []) {
+      grid.push(a)
     }
     return { gridApartments: grid, commercialUnits: comm }
   }, [apartments])
@@ -476,9 +517,7 @@ export default function BuildingChessboard({
       floorsOrder.length > 0
         ? floorsOrder
         : [...byFloor.keys()].sort((a, b) => b - a)
-    return base.filter(
-      (f) => !commercialFloors.has(f) || residentialFloors.has(f)
-    )
+    return base
   }, [floorsOrder, byFloor, commercialFloors, residentialFloors])
 
   const planColActive = useMemo(() => {
@@ -664,9 +703,6 @@ export default function BuildingChessboard({
           {gridItems}
         </div>
       </div>
-      {commercialUnits.length > 0 ? (
-        <CommercialPremisesSection units={commercialUnits} variant="public" />
-      ) : null}
     </>
   )
 }
@@ -688,6 +724,8 @@ export function mapUnitsToChessboardApartments(units) {
         ? 'sold'
         : st === 'booked' || st === 'reserved' || st === 'бронь' || st === 'на брони'
         ? 'booked'
+        : st === 'closed'
+        ? 'closed'
         : 'available'
     const numRaw = u.number
     const posRaw = u.position

@@ -18,7 +18,7 @@ const TABS = [
   { id: 'list',       label: 'Все подборки' },
   { id: 'by_day',     label: 'По дням' },
   { id: 'by_month',   label: 'По месяцам' },
-  { id: 'by_realtor', label: 'По риелторам' },
+  { id: 'by_realtor', label: 'По пользователям' },
 ]
 
 export default function AdminCollectionsPage() {
@@ -36,15 +36,20 @@ export default function AdminCollectionsPage() {
     if (!supabase) return
     setBusy(true)
     setMsg('')
-    const [{ data: cols }, { data: profs }] = await Promise.all([
-      supabase.from('collections').select('*').order('created_at', { ascending: false }),
-      supabase.from('profiles').select('id, name, email').eq('role', 'realtor'),
-    ])
-    setBusy(false)
-    setRows(cols ?? [])
-    const map = {}
-    for (const p of (profs ?? [])) map[p.id] = p
-    setProfiles(map)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/admin/collections', {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error || 'Ошибка')
+      setRows(body.collections ?? [])
+      setProfiles(body.profiles ?? {})
+    } catch (e) {
+      setMsg(e.message)
+    } finally {
+      setBusy(false)
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -69,9 +74,15 @@ export default function AdminCollectionsPage() {
     setMsg('Ссылка скопирована')
   }
 
-  const realtorName = (id) => {
+  const ROLE_LABELS = { admin: 'Админ', manager: 'Рук-ль', realtor: 'Риелтор' }
+
+  const userName = (id) => {
     if (!id) return '—'
-    return profiles[id]?.name || profiles[id]?.email || '—'
+    const p = profiles[id]
+    if (!p) return '—'
+    const name = p.name || p.email || '—'
+    const badge = p.role && p.role !== 'realtor' ? ` (${ROLE_LABELS[p.role] || p.role})` : ''
+    return name + badge
   }
 
   const filtered = useMemo(() => {
@@ -145,7 +156,7 @@ export default function AdminCollectionsPage() {
       {/* Фильтр по риелтору */}
       {tab !== 'by_realtor' && realtorsWithCols.length > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="text-sm text-slate-400">Риелтор:</span>
+          <span className="text-sm text-slate-400">Автор:</span>
           <button onClick={() => setFilterRealtor('all')}
             className={`rounded-lg px-3 py-1.5 text-sm transition ${filterRealtor === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
           >
@@ -170,7 +181,7 @@ export default function AdminCollectionsPage() {
             <thead className="border-b border-slate-800 bg-slate-900/80">
               <tr>
                 <th className="p-3">Название</th>
-                <th className="p-3">Риелтор</th>
+                <th className="p-3">Автор</th>
                 <th className="p-3">Клиент</th>
                 <th className="p-3">Квартир</th>
                 <th className="p-3">Просмотры</th>
@@ -189,7 +200,7 @@ export default function AdminCollectionsPage() {
                       <span className="ml-2 rounded bg-emerald-700/40 px-1.5 py-0.5 text-xs text-emerald-200">Новая</span>
                     )}
                   </td>
-                  <td className="p-3 text-slate-300">{realtorName(c.created_by)}</td>
+                  <td className="p-3 text-slate-300">{userName(c.created_by)}</td>
                   <td className="p-3 text-slate-300">{c.client_name || '—'}</td>
                   <td className="p-3 text-slate-300">{Array.isArray(c.units) ? c.units.length : 0}</td>
                   <td className="p-3 font-semibold text-slate-100">{c.views_count ?? 0}</td>
@@ -273,7 +284,7 @@ export default function AdminCollectionsPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-800 bg-slate-900/80">
               <tr>
-                <th className="p-3">Риелтор</th>
+                <th className="p-3">Автор</th>
                 <th className="p-3">Email</th>
                 <th className="p-3">Подборок</th>
                 <th className="p-3">Просмотров</th>

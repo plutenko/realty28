@@ -3,6 +3,28 @@ import AdminLayout from '../../components/admin/AdminLayout'
 import { supabase } from '../../lib/supabaseClient'
 
 const ROLE_LABEL = { admin: 'Администратор', realtor: 'Риелтор', manager: 'Руководитель' }
+
+function generatePassword(length = 10) {
+  const alphabet = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let out = ''
+  const arr = new Uint32Array(length)
+  if (typeof window !== 'undefined' && window.crypto?.getRandomValues) {
+    window.crypto.getRandomValues(arr)
+  } else {
+    for (let i = 0; i < length; i++) arr[i] = Math.floor(Math.random() * 2 ** 32)
+  }
+  for (let i = 0; i < length; i++) out += alphabet[arr[i] % alphabet.length]
+  return out
+}
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    return false
+  }
+}
 const ROLE_COLOR = {
   admin:   'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
   realtor: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
@@ -33,10 +55,14 @@ export default function UsersPage() {
 
   const [showForm, setShowForm]   = useState(false)
   const [form, setForm]           = useState({ email: '', password: '', name: '', role: 'realtor' })
+  const [showPwd, setShowPwd]     = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
+  const [createdCreds, setCreatedCreds] = useState(null) // { email, password, name, role }
+  const [copied, setCopied]       = useState(false)
 
-  const [editPwd, setEditPwd]     = useState(null) // { id, value }
+  const [editPwd, setEditPwd]     = useState(null) // { id, value, show }
+  const [editPwdSaved, setEditPwdSaved] = useState(null) // { id, value }
   const [deleting, setDeleting]   = useState(null)
 
   const loadUsers = useCallback(async () => {
@@ -59,14 +85,28 @@ export default function UsersPage() {
     setFormError('')
     setSubmitting(true)
     try {
+      const snapshot = { ...form }
       await apiFetch('POST', '/api/admin/users', form)
+      setCreatedCreds(snapshot)
+      setCopied(false)
       setForm({ email: '', password: '', name: '', role: 'realtor' })
+      setShowPwd(false)
       setShowForm(false)
       await loadUsers()
     } catch (e) {
       setFormError(e.message)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleCopyCreds() {
+    if (!createdCreds) return
+    const text = `Email: ${createdCreds.email}\nПароль: ${createdCreds.password}`
+    const ok = await copyToClipboard(text)
+    if (ok) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     }
   }
 
@@ -89,10 +129,21 @@ export default function UsersPage() {
       return
     }
     try {
-      await apiFetch('PATCH', '/api/admin/users', { id, password: editPwd.value })
+      const value = editPwd.value
+      await apiFetch('PATCH', '/api/admin/users', { id, password: value })
       setEditPwd(null)
+      setEditPwdSaved({ id, value })
     } catch (e) {
       alert(e.message)
+    }
+  }
+
+  async function handleCopySavedPwd() {
+    if (!editPwdSaved) return
+    const ok = await copyToClipboard(editPwdSaved.value)
+    if (ok) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     }
   }
 
@@ -145,15 +196,35 @@ export default function UsersPage() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-400">Пароль *</label>
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                placeholder="Минимум 6 символов"
-                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500"
-              />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={showPwd ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    value={form.password}
+                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                    placeholder="Минимум 6 символов"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 pr-10 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd(v => !v)}
+                    className="absolute inset-y-0 right-0 px-3 text-xs text-slate-400 hover:text-white"
+                    title={showPwd ? 'Скрыть' : 'Показать'}
+                  >
+                    {showPwd ? '🙈' : '👁'}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setForm(f => ({ ...f, password: generatePassword(10) })); setShowPwd(true) }}
+                  className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-300 hover:bg-slate-700"
+                  title="Сгенерировать случайный пароль"
+                >
+                  Сгенерировать
+                </button>
+              </div>
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-400">Роль *</label>
@@ -185,6 +256,72 @@ export default function UsersPage() {
             </button>
           </div>
         </form>
+      )}
+
+      {createdCreds && (
+        <div className="mb-4 rounded-2xl border border-green-500/40 bg-green-500/10 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-green-300">
+                ✓ Пользователь создан{createdCreds.name ? `: ${createdCreds.name}` : ''}
+              </h3>
+              <p className="mt-1 text-xs text-green-400/80">
+                Сохраните эти данные и передайте пользователю. После закрытия карточки пароль восстановить нельзя.
+              </p>
+              <div className="mt-3 space-y-1.5 font-mono text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="w-20 text-xs text-slate-400">Email:</span>
+                  <span className="text-white">{createdCreds.email}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-20 text-xs text-slate-400">Пароль:</span>
+                  <span className="select-all text-white">{createdCreds.password}</span>
+                </div>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyCreds}
+                  className="rounded-lg bg-green-600/30 px-3 py-1.5 text-xs font-semibold text-green-200 hover:bg-green-600/50 transition"
+                >
+                  {copied ? '✓ Скопировано' : 'Скопировать email и пароль'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreatedCreds(null)}
+                  className="rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800 transition"
+                >
+                  Закрыть
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editPwdSaved && (
+        <div className="mb-4 rounded-2xl border border-blue-500/40 bg-blue-500/10 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 font-mono text-sm">
+              <span className="text-xs text-slate-400 mr-2">Новый пароль:</span>
+              <span className="select-all text-white">{editPwdSaved.value}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCopySavedPwd}
+              className="rounded-lg bg-blue-600/30 px-3 py-1.5 text-xs font-semibold text-blue-200 hover:bg-blue-600/50"
+            >
+              {copied ? '✓ Скопировано' : 'Скопировать'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditPwdSaved(null)}
+              className="rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800"
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
       )}
 
       {error && (
@@ -221,13 +358,26 @@ export default function UsersPage() {
                     <div className="text-xs text-slate-500">{u.email ?? '—'}</div>
                   </td>
                   <td className="px-4 py-3">
-                    {u.role ? (
-                      <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${ROLE_COLOR[u.role]}`}>
-                        {ROLE_LABEL[u.role]}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-slate-600">без профиля</span>
-                    )}
+                    <select
+                      value={u.role || ''}
+                      onChange={async e => {
+                        const newRole = e.target.value
+                        if (!newRole || newRole === u.role) return
+                        if (!confirm(`Сменить роль ${u.name || u.email} на «${ROLE_LABEL[newRole]}»?`)) return
+                        try {
+                          await apiFetch('PATCH', '/api/admin/users', { id: u.id, role: newRole })
+                          await loadUsers()
+                        } catch (err) {
+                          alert(err.message)
+                        }
+                      }}
+                      className={`rounded-full border px-2 py-0.5 text-xs font-medium outline-none ${u.role ? ROLE_COLOR[u.role] : 'border-slate-700 bg-slate-800 text-slate-400'}`}
+                    >
+                      {!u.role && <option value="">без профиля</option>}
+                      <option value="realtor">Риелтор</option>
+                      <option value="manager">Руководитель</option>
+                      <option value="admin">Администратор</option>
+                    </select>
                   </td>
                   <td className="px-4 py-3 text-slate-400">
                     {u.last_sign_in_at
@@ -239,13 +389,29 @@ export default function UsersPage() {
                       {editPwd?.id === u.id ? (
                         <>
                           <input
-                            type="password"
+                            type={editPwd.show ? 'text' : 'password'}
                             autoFocus
                             placeholder="Новый пароль"
                             value={editPwd.value}
                             onChange={e => setEditPwd(p => ({ ...p, value: e.target.value }))}
-                            className="w-36 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-white outline-none focus:border-blue-500"
+                            className="w-40 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-white outline-none focus:border-blue-500"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setEditPwd(p => ({ ...p, show: !p.show }))}
+                            className="rounded-lg px-2 py-1 text-xs text-slate-400 hover:bg-slate-800"
+                            title={editPwd.show ? 'Скрыть' : 'Показать'}
+                          >
+                            {editPwd.show ? '🙈' : '👁'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditPwd(p => ({ ...p, value: generatePassword(10), show: true }))}
+                            className="rounded-lg px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
+                            title="Сгенерировать"
+                          >
+                            ⚡
+                          </button>
                           <button
                             onClick={() => handleSavePwd(u.id)}
                             className="rounded-lg bg-blue-600/20 px-2 py-1 text-xs text-blue-400 hover:bg-blue-600/30 transition"
@@ -261,7 +427,7 @@ export default function UsersPage() {
                         </>
                       ) : (
                         <button
-                          onClick={() => setEditPwd({ id: u.id, value: '' })}
+                          onClick={() => setEditPwd({ id: u.id, value: '', show: false })}
                           className="rounded-lg px-2 py-1 text-xs text-slate-400 hover:bg-slate-800 transition"
                         >
                           Сменить пароль

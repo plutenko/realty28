@@ -18,13 +18,21 @@ function normalizePhone(phone) {
 }
 
 function toWhatsAppLink(phone) {
-  const digits = String(phone ?? '').replace(/\D/g, '')
+  const raw = String(phone ?? '').trim()
+  if (!raw) return null
+  if (raw.startsWith('http')) return raw
+  const digits = raw.replace(/\D/g, '')
   return digits ? `https://wa.me/${digits}` : null
 }
 
 function toTelegramLink(phone) {
   const raw = String(phone ?? '').trim()
+  if (!raw) return null
   if (raw.startsWith('@')) return `https://t.me/${raw.slice(1)}`
+  if (raw.startsWith('http')) return raw
+  // По номеру телефона: https://t.me/+79656708911
+  const digits = raw.replace(/[^\d+]/g, '')
+  if (digits) return `https://t.me/${digits.startsWith('+') ? digits : '+' + digits}`
   return null
 }
 
@@ -34,11 +42,13 @@ function toMaxLink(phone) {
   return null
 }
 
-function getMessengerLink(messenger, phone) {
+function getMessengerLink(messenger, phone, messengerContact) {
   const type = String(messenger || '').toLowerCase()
-  if (type === 'whatsapp') return toWhatsAppLink(phone)
-  if (type === 'telegram') return toTelegramLink(phone)
-  if (type === 'max') return toMaxLink(phone)
+  // Если задан отдельный контакт мессенджера — используем его, иначе номер
+  const target = String(messengerContact || '').trim() || phone
+  if (type === 'whatsapp') return toWhatsAppLink(target)
+  if (type === 'telegram') return toTelegramLink(target)
+  if (type === 'max') return toMaxLink(target)
   return null
 }
 
@@ -106,7 +116,7 @@ function entranceFromPosition(position, unitsPerEntrance) {
   return null
 }
 
-export default function ApartmentCard({ unit, collectionView = false }) {
+export default function ApartmentCard({ unit, collectionView = false, listView = false }) {
   const [contactsOpen, setContactsOpen] = useState(false)
   const b = unit?.building
   const c = b?.complex
@@ -130,10 +140,23 @@ export default function ApartmentCard({ unit, collectionView = false }) {
 
   return (
     <div
-      className={`rounded-xl bg-white p-4 shadow transition hover:shadow-lg hover:scale-105 ${
+      className={`rounded-xl bg-white p-4 shadow transition hover:shadow-lg ${
+        listView ? '' : 'hover:scale-105'
+      } ${
         sold ? 'ring-1 ring-gray-300' : booked ? 'ring-1 ring-amber-300' : 'ring-1 ring-green-200'
-      }`}
+      } ${listView && unit?.layout_image_url ? 'flex gap-4' : ''}`}
     >
+      {listView && unit?.layout_image_url && (
+        <div className="w-56 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={unit.layout_image_url}
+            alt="Планировка"
+            className="mx-auto h-full max-h-56 w-full object-contain p-2"
+          />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
       <div className="mb-2 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate text-base font-semibold text-gray-900">
@@ -159,6 +182,17 @@ export default function ApartmentCard({ unit, collectionView = false }) {
           {sold ? 'Продано' : booked ? 'На брони' : 'В продаже'}
         </div>
       </div>
+
+      {!listView && unit?.layout_image_url && (
+        <div className="mb-3 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={unit.layout_image_url}
+            alt="Планировка"
+            className="mx-auto max-h-44 object-contain p-2"
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
         <div>
@@ -194,12 +228,15 @@ export default function ApartmentCard({ unit, collectionView = false }) {
       )}
 
       {!collectionView && (
-      <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-left text-sm">
+      <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-left text-sm" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-2">
           <span className="block text-gray-600">Контакты застройщика:</span>
           <button
             type="button"
-            onClick={() => setContactsOpen((v) => !v)}
+            onClick={(e) => {
+              e.stopPropagation()
+              setContactsOpen((v) => !v)
+            }}
             className="rounded border border-slate-300 px-2 py-1 text-xs text-gray-700 hover:bg-slate-100"
           >
             {contactsOpen ? 'Скрыть' : 'Показать'}
@@ -213,7 +250,7 @@ export default function ApartmentCard({ unit, collectionView = false }) {
               {managers.map((m) => {
                 const phone = m?.phone || ''
                 const tel = normalizePhone(phone)
-                const messengerUrl = getMessengerLink(m?.messenger, phone)
+                const messengerUrl = getMessengerLink(m?.messenger, phone, m?.messenger_contact)
                 return (
                   <div key={m.id} className="rounded-md border border-slate-200 bg-white px-2 py-2">
                     <div className="font-semibold text-gray-900">{m?.name || 'Менеджер'}</div>
@@ -254,6 +291,7 @@ export default function ApartmentCard({ unit, collectionView = false }) {
         ) : null}
       </div>
       )}
+      </div>
     </div>
   )
 }

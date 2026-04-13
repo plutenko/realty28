@@ -61,9 +61,20 @@ export default async function handler(req, res) {
         finish_image_url: u.finish_image_url ?? null,
       }))
 
-      await upsertUnitsStrippingUnknownColumns(supabase, rows, {
-        onConflict: 'id',
-      })
+      try {
+        await upsertUnitsStrippingUnknownColumns(supabase, rows, {
+          onConflict: 'id',
+        })
+      } catch (e) {
+        // If duplicate building_id+number, retry with that conflict key
+        if (/units_building_id_number_key|duplicate key/.test(String(e?.message || ''))) {
+          await upsertUnitsStrippingUnknownColumns(supabase, rows, {
+            onConflict: 'building_id,number',
+          })
+        } else {
+          throw e
+        }
+      }
     }
 
     return json(res, 200, { ok: true, upserted: upsert.length, deleted: deleteIds.length })

@@ -138,6 +138,17 @@ export default function AdminBuildingsPage() {
     return '—'
   }
 
+  // Group buildings by complex
+  const grouped = (() => {
+    const map = new Map()
+    for (const r of rows) {
+      const cName = r.complexes?.name || '—'
+      if (!map.has(cName)) map.set(cName, [])
+      map.get(cName).push(r)
+    }
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ru'))
+  })()
+
   return (
     <AdminLayout title="Дома / корпуса">
       {msg ? (
@@ -146,47 +157,9 @@ export default function AdminBuildingsPage() {
         </p>
       ) : null}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 bg-slate-900/80">
-            <tr>
-              <th className="p-3">Название</th>
-              <th className="p-3">ЖК</th>
-              <th className="p-3">Сдача</th>
-              <th className="p-3 w-40"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b border-slate-800/80">
-                <td className="p-3 font-medium">{r.name}</td>
-                <td className="p-3">{r.complexes?.name || '—'}</td>
-                <td className="p-3 text-slate-300">{formatHandover(r)}</td>
-                <td className="p-3">
-                  <button
-                    type="button"
-                    onClick={() => setEditId(r.id)}
-                    className="mr-2 text-blue-400 hover:underline"
-                  >
-                    Изменить
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDelete(r.id)}
-                    className="text-rose-400 hover:underline"
-                  >
-                    Удалить
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
       <form
         onSubmit={onSubmit}
-        className="mt-8 space-y-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-6"
+        className="mb-8 space-y-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-6"
       >
         <h2 className="text-lg font-semibold">
           {editId ? 'Редактирование' : 'Новый корпус'}
@@ -280,6 +253,47 @@ export default function AdminBuildingsPage() {
           {editId ? 'Сохранить' : 'Создать'}
         </button>
       </form>
+
+      {grouped.map(([complexName, buildings]) => (
+        <div key={complexName} className="mb-6">
+          <h3 className="mb-2 text-sm font-semibold text-orange-300">{complexName}</h3>
+          <div className="overflow-x-auto rounded-xl border border-slate-800">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-slate-800 bg-slate-900/80">
+                <tr>
+                  <th className="p-3">Название</th>
+                  <th className="p-3">Сдача</th>
+                  <th className="p-3 w-40"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {buildings.map((r) => (
+                  <tr key={r.id} className={`border-b border-slate-800/80 ${editId === r.id ? 'bg-blue-950/30' : ''}`}>
+                    <td className="p-3 font-medium">{r.name}</td>
+                    <td className="p-3 text-slate-300">{formatHandover(r)}</td>
+                    <td className="p-3">
+                      <button
+                        type="button"
+                        onClick={() => setEditId(r.id)}
+                        className="mr-2 text-blue-400 hover:underline"
+                      >
+                        Изменить
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(r.id)}
+                        className="text-rose-400 hover:underline"
+                      >
+                        Удалить
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
     </AdminLayout>
   )
 }

@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { getAllUnitsViaComplexes } from '../../lib/supabaseQueries'
 import { useAuth } from '../../lib/authContext'
 import CatalogTabs from '../../components/CatalogTabs'
 
@@ -25,38 +24,18 @@ async function apiFetch(path) {
   return json
 }
 
-const TABS = [
-  { id: 'summary',     label: 'Сводка' },
+const COLLECTION_TABS = [
   { id: 'list',        label: 'Все подборки' },
   { id: 'by_day',      label: 'По дням' },
   { id: 'by_month',    label: 'По месяцам' },
   { id: 'by_realtor',  label: 'По риелторам' },
-  { id: 'login_logs',  label: 'Журнал входов' },
 ]
+const OTHER_TABS = [
+  { id: 'login_logs',  label: '📋 Журнал входов' },
+  { id: 'security',    label: '🔒 Безопасность' },
+]
+const TABS = [...COLLECTION_TABS, ...OTHER_TABS]
 
-function formatRoomsKey(rooms) {
-  if (rooms == null) return '?'
-  if (rooms === 0) return 'Ст'
-  return `${rooms}к`
-}
-
-function handoverLabel(b) {
-  const st = String(b?.handover_status || '').toLowerCase()
-  if (st === 'delivered') return 'Сдан'
-  const q = Number(b?.handover_quarter)
-  const y = Number(b?.handover_year)
-  if (Number.isFinite(q) && q >= 1 && q <= 4 && Number.isFinite(y) && y > 0) return `${q} кв. ${y}`
-  return '—'
-}
-
-const ROOM_COLORS = {
-  'Ст': 'bg-purple-100 text-purple-700 border-purple-200',
-  '1к': 'bg-blue-100 text-blue-700 border-blue-200',
-  '2к': 'bg-green-100 text-green-700 border-green-200',
-  '3к': 'bg-amber-100 text-amber-700 border-amber-200',
-  '4к': 'bg-rose-100 text-rose-700 border-rose-200',
-  '5к': 'bg-red-100 text-red-700 border-red-200',
-}
 
 const tabBtn = (active) =>
   `rounded-xl px-4 py-2 text-sm font-medium transition border ${
@@ -78,65 +57,12 @@ export default function ManagerPage() {
   const [fetching, setFetching] = useState(true)
   const [error, setError]       = useState('')
   const [origin, setOrigin]     = useState('')
-  const [tab, setTab]           = useState('summary')
+  const [tab, setTab]           = useState('list')
   const [filterRealtor, setFilterRealtor] = useState('all')
   const [logs, setLogs]         = useState([])
   const [logsFetched, setLogsFetched] = useState(false)
   const [logsFetching, setLogsFetching] = useState(false)
-  const [summaryRows, setSummaryRows] = useState([])
-  const [summaryFetched, setSummaryFetched] = useState(false)
-
   useEffect(() => { setOrigin(window.location.origin) }, [])
-
-  useEffect(() => {
-    if (tab !== 'summary' || summaryFetched || !supabase) return
-    ;(async () => {
-      const { data: allUnits } = await getAllUnitsViaComplexes(supabase)
-      const byBuilding = new Map()
-      for (const u of allUnits ?? []) {
-        const bid = u.building?.id
-        if (!bid) continue
-        if (!byBuilding.has(bid)) byBuilding.set(bid, { building: u.building, units: [] })
-        byBuilding.get(bid).units.push(u)
-      }
-      const rows = []
-      for (const { building: b, units } of byBuilding.values()) {
-        const c = b?.complex
-        const d = c?.developer
-        const available = units.filter((u) => {
-          const s = String(u.status ?? '').toLowerCase()
-          return s !== 'sold' && s !== 'booked' && s !== 'reserved'
-        })
-        const roomCounts = {}
-        for (const u of available) {
-          const key = formatRoomsKey(u.rooms)
-          roomCounts[key] = (roomCounts[key] || 0) + 1
-        }
-        const roomEntries = Object.entries(roomCounts)
-          .sort((a, b) => {
-            const na = a[0] === 'Ст' ? -1 : parseInt(a[0]) || 99
-            const nb = b[0] === 'Ст' ? -1 : parseInt(b[0]) || 99
-            return na - nb
-          })
-        rows.push({
-          id: b.id,
-          developer: d?.name || '—',
-          complex: c?.name || '—',
-          building: b?.name || '—',
-          handover: handoverLabel(b),
-          available: available.length,
-          roomEntries,
-        })
-      }
-      rows.sort((a, b) =>
-        a.developer.localeCompare(b.developer, 'ru') ||
-        a.complex.localeCompare(b.complex, 'ru') ||
-        a.building.localeCompare(b.building, 'ru', { numeric: true })
-      )
-      setSummaryRows(rows)
-      setSummaryFetched(true)
-    })()
-  }, [tab, summaryFetched])
 
   useEffect(() => {
     if (tab !== 'login_logs' || logsFetched) return
@@ -266,15 +192,48 @@ export default function ManagerPage() {
 
             {/* Подборки с фильтрацией */}
             <div>
-              <h2 className="mb-3 text-base font-semibold text-gray-700">Подборки риелторов</h2>
+              <h2 className="mb-3 text-base font-semibold text-gray-700">
+                {tab === 'login_logs' ? 'Журнал входов' : tab === 'security' ? 'Безопасность и устройства' : 'Подборки риелторов'}
+              </h2>
 
-              {/* Табы */}
-              <div className="mb-3 flex flex-wrap gap-2">
-                {TABS.map(t => (
-                  <button key={t.id} onClick={() => setTab(t.id)} className={tabBtn(tab === t.id)}>
-                    {t.label}
-                  </button>
-                ))}
+              {/* Табы: две группы с разделителем */}
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                {/* Группа 1: подборки */}
+                <div className="flex flex-wrap gap-1.5 rounded-xl bg-gray-100 p-1">
+                  {COLLECTION_TABS.map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => setTab(t.id)}
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                        tab === t.id
+                          ? 'bg-white text-blue-700 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Разделитель */}
+                <div className="mx-1 h-6 w-px bg-gray-300" />
+
+                {/* Группа 2: логи + безопасность */}
+                <div className="flex flex-wrap gap-1.5">
+                  {OTHER_TABS.map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => setTab(t.id)}
+                      className={`rounded-xl border px-3 py-1.5 text-sm font-medium transition ${
+                        tab === t.id
+                          ? 'border-blue-600 bg-blue-600 text-white'
+                          : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Фильтр по риелтору */}
@@ -290,74 +249,6 @@ export default function ManagerPage() {
                     </button>
                   ))}
                 </div>
-              )}
-
-              {/* Сводка по объектам */}
-              {tab === 'summary' && (
-                !summaryFetched ? (
-                  <p className="text-sm text-gray-400">Загрузка сводки...</p>
-                ) : summaryRows.length === 0 ? (
-                  <p className="text-sm text-gray-400">Нет данных</p>
-                ) : (
-                  <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                        <tr>
-                          <th className="px-4 py-3">Застройщик</th>
-                          <th className="px-4 py-3">ЖК</th>
-                          <th className="px-4 py-3">Дом</th>
-                          <th className="px-4 py-3">Сдача</th>
-                          <th className="px-4 py-3 text-center">В продаже</th>
-                          <th className="px-4 py-3">Комнатность</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {summaryRows.map((r, i) => {
-                          const prev = i > 0 ? summaryRows[i - 1] : null
-                          const sameDev = prev?.developer === r.developer
-                          const sameComplex = sameDev && prev?.complex === r.complex
-                          return (
-                            <tr
-                              key={r.id}
-                              className={`hover:bg-gray-50 transition ${
-                                !sameDev && i > 0 ? 'border-t-2 border-gray-300' : ''
-                              }`}
-                            >
-                              <td className="px-4 py-3 text-gray-800">{sameDev ? '' : r.developer}</td>
-                              <td className="px-4 py-3 text-gray-800">{sameComplex ? '' : r.complex}</td>
-                              <td className="px-4 py-3 text-gray-800 font-medium">{r.building}</td>
-                              <td className="px-4 py-3 text-gray-600">{r.handover}</td>
-                              <td className="px-4 py-3 text-center">
-                                <span className={`font-semibold ${r.available > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                                  {r.available}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex flex-wrap gap-1.5">
-                                  {r.roomEntries.length === 0 ? (
-                                    <span className="text-gray-400">—</span>
-                                  ) : (
-                                    r.roomEntries.map(([key, count]) => (
-                                      <span
-                                        key={key}
-                                        className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${
-                                          ROOM_COLORS[key] || 'bg-gray-100 text-gray-600 border-gray-200'
-                                        }`}
-                                      >
-                                        <span>{key}</span>
-                                        <span className="font-bold">{count}</span>
-                                      </span>
-                                    ))
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )
               )}
 
               {/* Все подборки */}
@@ -480,6 +371,9 @@ export default function ManagerPage() {
                   </table>
                 </div>
               )}
+              {/* Безопасность */}
+              {tab === 'security' && <SecurityTab />}
+
               {/* Журнал входов */}
               {tab === 'login_logs' && (
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
@@ -523,6 +417,176 @@ export default function ManagerPage() {
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+function SecurityTab() {
+  const { user } = useAuth()
+  const [devices, setDevices] = useState([])
+  const [realtors, setRealtors] = useState([])
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [tgLink, setTgLink] = useState(null)
+  const [myTgChatId, setMyTgChatId] = useState(null)
+
+  async function load() {
+    if (!supabase || !user) return
+    const { data: rs } = await supabase
+      .from('profiles')
+      .select('id, email, name, role, telegram_chat_id')
+      .order('name')
+    setRealtors(rs ?? [])
+    const me = (rs ?? []).find((r) => r.id === user.id)
+    setMyTgChatId(me?.telegram_chat_id || null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        const res = await fetch('/api/auth/devices', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        const data = await res.json()
+        if (res.ok) setDevices(data.devices ?? [])
+      }
+    } catch {}
+  }
+
+  useEffect(() => {
+    if (user) load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
+
+  async function handleGenerateTelegramLink() {
+    setBusy(true); setMsg('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/auth/generate-telegram-link', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Ошибка')
+      setTgLink(data)
+    } catch (e) { setMsg(e.message) } finally { setBusy(false) }
+  }
+
+  async function handleDeleteDevice(id) {
+    if (!confirm('Удалить устройство? Пользователю придётся снова подтвердить вход.')) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Нет сессии')
+      const res = await fetch(`/api/auth/devices?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Ошибка')
+      load()
+    } catch (e) {
+      setMsg(e.message)
+    }
+  }
+
+  async function handleUnlinkTelegram() {
+    if (!confirm('Отвязать Telegram?')) return
+    const { error } = await supabase
+      .from('profiles').update({ telegram_chat_id: null }).eq('id', user.id)
+    if (error) setMsg(error.message)
+    else { setMyTgChatId(null); setTgLink(null); load() }
+  }
+
+  const realtorById = new Map(realtors.map((r) => [r.id, r]))
+
+  return (
+    <div className="space-y-6">
+      {msg && (
+        <p className="rounded-lg bg-rose-100 px-3 py-2 text-sm text-rose-700">{msg}</p>
+      )}
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-6">
+        <h2 className="text-lg font-semibold text-gray-900">Telegram для уведомлений</h2>
+        <p className="mt-2 text-sm text-gray-600">
+          Привяжите ваш Telegram, чтобы получать запросы на подтверждение входа риелторов с новых устройств.
+        </p>
+        {myTgChatId ? (
+          <div className="mt-4 flex items-center gap-3">
+            <div className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+              ✓ Telegram привязан (chat_id: {myTgChatId})
+            </div>
+            <button type="button" onClick={handleUnlinkTelegram} className="text-sm text-rose-600 hover:underline">
+              Отвязать
+            </button>
+          </div>
+        ) : (
+          <div className="mt-4">
+            <button type="button" onClick={handleGenerateTelegramLink} disabled={busy}
+              className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-medium text-white disabled:opacity-50">
+              Получить ссылку для привязки
+            </button>
+            {tgLink && (
+              <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                {tgLink.link ? (
+                  <div>
+                    <p className="text-sm text-gray-700">Откройте ссылку в Telegram и нажмите «Start»:</p>
+                    <a href={tgLink.link} target="_blank" rel="noreferrer"
+                      className="mt-2 block break-all text-blue-600 hover:underline">{tgLink.link}</a>
+                    <p className="mt-3 text-xs text-gray-500">После подтверждения бота обновите страницу.</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm text-amber-700">TELEGRAM_BOT_USERNAME не задан. Используйте команду:</p>
+                    <code className="mt-2 block rounded bg-white px-3 py-2 text-sm text-gray-900">/start {tgLink.code}</code>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-6">
+        <h2 className="text-lg font-semibold text-gray-900">Зарегистрированные устройства</h2>
+        <p className="mt-2 text-sm text-gray-600">
+          Устройства с которых разрешён вход риелторам. Удалите, чтобы потребовать повторное подтверждение.
+        </p>
+        <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-gray-200 bg-gray-50 text-gray-600">
+              <tr>
+                <th className="p-3">Пользователь</th>
+                <th className="p-3">Устройство</th>
+                <th className="p-3">Добавлено</th>
+                <th className="p-3">Последний вход</th>
+                <th className="w-28 p-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {devices.length === 0 ? (
+                <tr><td colSpan={5} className="p-4 text-center text-gray-400">Устройств пока нет</td></tr>
+              ) : devices.map((d) => {
+                const r = realtorById.get(d.user_id)
+                const name = d.user_name || r?.name || d.user_email || r?.email || '—'
+                const role = d.user_role || r?.role || '—'
+                return (
+                  <tr key={d.id} className="border-b border-gray-100">
+                    <td className="p-3">
+                      <div className="font-medium text-gray-900">{name}</div>
+                      <div className="text-xs text-gray-500">{role}</div>
+                    </td>
+                    <td className="p-3 text-gray-700">{d.label || '—'}</td>
+                    <td className="p-3 text-xs text-gray-500">{new Date(d.created_at).toLocaleString('ru-RU')}</td>
+                    <td className="p-3 text-xs text-gray-500">{new Date(d.last_used_at).toLocaleString('ru-RU')}</td>
+                    <td className="p-3">
+                      <button type="button" onClick={() => handleDeleteDevice(d.id)}
+                        className="text-rose-600 hover:underline">Удалить</button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   )
 }

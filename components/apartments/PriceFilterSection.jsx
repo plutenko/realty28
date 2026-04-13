@@ -57,6 +57,8 @@ export default function PriceFilterSection({
   onPriceMaxChange,
   absMin = 0,
   absMax = 15000000,
+  step = SLIDER_STEP,
+  formatLabel = formatPrice,
 }) {
   const [minStr, setMinStr] = useState(() => formatDigits(priceMin))
   const [maxStr, setMaxStr] = useState(() => formatDigits(priceMax))
@@ -164,13 +166,13 @@ export default function PriceFilterSection({
             className="pointer-events-none absolute top-0 z-20 whitespace-nowrap rounded bg-black px-2 py-1 text-xs text-white"
             style={getBubbleStyle(priceMin, absMax)}
           >
-            {formatPrice(priceMin)}
+            {formatLabel(priceMin)}
           </div>
           <div
             className="pointer-events-none absolute top-0 z-[21] whitespace-nowrap rounded bg-black px-2 py-1 text-xs text-white"
             style={getBubbleStyle(priceMax, absMax)}
           >
-            {formatPrice(priceMax)}
+            {formatLabel(priceMax)}
           </div>
         </div>
 
@@ -192,7 +194,7 @@ export default function PriceFilterSection({
             type="range"
             min={absMin}
             max={absMax}
-            step={SLIDER_STEP}
+            step={step}
             value={priceMin}
             onChange={(e) => {
               const val = Number(e.target.value)
@@ -207,7 +209,7 @@ export default function PriceFilterSection({
             type="range"
             min={absMin}
             max={absMax}
-            step={SLIDER_STEP}
+            step={step}
             value={priceMax}
             onChange={(e) => {
               const val = Number(e.target.value)

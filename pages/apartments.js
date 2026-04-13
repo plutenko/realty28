@@ -96,6 +96,7 @@ export default function ApartmentsPage() {
   // Быстрый фильтр цен (диапазоны как в DNS)
   const [selectedPriceRanges, setSelectedPriceRanges] = useState([])
   const [selectedRooms, setSelectedRooms] = useState([])
+  const [twoLevelOnly, setTwoLevelOnly] = useState(false)
   const [floorFrom, setFloorFrom] = useState(null)
   const [floorTo, setFloorTo] = useState(null)
   const [areaFrom, setAreaFrom] = useState('')
@@ -104,6 +105,7 @@ export default function ApartmentsPage() {
   const [selectedUnits, setSelectedUnits] = useState([])
   const [modalUnit, setModalUnit] = useState(null)
   const [creatingCollection, setCreatingCollection] = useState(false)
+  const [cartOpen, setCartOpen] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -236,7 +238,7 @@ export default function ApartmentsPage() {
       const complexName = u?.building?.complex?.name
       const floorVal = u?.floor ?? 0
       const st = String(u?.status ?? '').toLowerCase()
-      const notSold = st !== 'sold' && st !== 'booked' && st !== 'reserved'
+      const notSold = st !== 'sold' && st !== 'booked' && st !== 'reserved' && st !== 'closed'
       const handoverKey = getHandoverKeyForUnit(u)
 
       return (
@@ -266,7 +268,7 @@ export default function ApartmentsPage() {
       const devName = u?.building?.complex?.developer?.name
       const floorVal = u?.floor ?? 0
       const st = String(u?.status ?? '').toLowerCase()
-      const notSold = st !== 'sold' && st !== 'booked' && st !== 'reserved'
+      const notSold = st !== 'sold' && st !== 'booked' && st !== 'reserved' && st !== 'closed'
       return (
         notSold &&
         (selectedDevelopers.length === 0 || selectedDevelopers.includes(devName)) &&
@@ -292,7 +294,7 @@ export default function ApartmentsPage() {
       const devName = u?.building?.complex?.developer?.name
       const floorVal = u?.floor ?? 0
       const st = String(u?.status ?? '').toLowerCase()
-      const notSold = st !== 'sold' && st !== 'booked' && st !== 'reserved'
+      const notSold = st !== 'sold' && st !== 'booked' && st !== 'reserved' && st !== 'closed'
 
       return (
         notSold &&
@@ -364,6 +366,20 @@ export default function ApartmentsPage() {
     priceMax,
     selectedAreaRanges,
   ])
+
+  const twoLevelCount = useMemo(() => {
+    return baseFiltered.filter((u) => {
+      const p = Number(u?.price ?? 0)
+      const matchSlider = p >= priceMin && p <= priceMax
+      const priceMatches =
+        matchSlider &&
+        (selectedPriceRanges.length === 0 ||
+          selectedPriceRanges.some((idx) => priceOkForIndex(u, idx)))
+      const matchAreaQuick = unitAreaQuickRangesMatch(u, selectedAreaRanges)
+      const isTwoLevel = Number(u?.span_floors ?? 1) >= 2
+      return priceMatches && matchAreaQuick && isTwoLevel
+    }).length
+  }, [baseFiltered, selectedPriceRanges, priceMin, priceMax, selectedAreaRanges])
 
   /** Счётчики по корзинам площади: все прочие фильтры, без учёта выбранных чекбоксов площади */
   const areaCounts = useMemo(() => {
@@ -487,7 +503,7 @@ export default function ApartmentsPage() {
       const complexName = u?.building?.complex?.name
       const price = Number(u?.price ?? 0)
       const st = String(u?.status ?? '').toLowerCase()
-      const notSold = st !== 'sold' && st !== 'booked' && st !== 'reserved'
+      const notSold = st !== 'sold' && st !== 'booked' && st !== 'reserved' && st !== 'closed'
       const handoverKey = getHandoverKeyForUnit(u)
 
       const matchPriceSlider = price >= priceMin && price <= priceMax
@@ -505,6 +521,8 @@ export default function ApartmentsPage() {
           return (u?.rooms ?? null) === v
         })
 
+      const matchTwoLevel = !twoLevelOnly || Number(u?.span_floors ?? 1) >= 2
+
       return (
         notSold &&
         (selectedDevelopers.length === 0 ||
@@ -514,6 +532,7 @@ export default function ApartmentsPage() {
         matchPriceSlider &&
         matchPriceRanges &&
         matchRooms &&
+        matchTwoLevel &&
         (floorFrom == null || (u?.floor ?? 0) >= floorFrom) &&
         (floorTo == null || (u?.floor ?? 0) <= floorTo) &&
         unitAreaMatches(u, areaFrom, areaTo) &&
@@ -530,6 +549,7 @@ export default function ApartmentsPage() {
     priceMax,
     selectedPriceRanges,
     selectedRooms,
+    twoLevelOnly,
     floorFrom,
     floorTo,
     areaFrom,
@@ -714,6 +734,14 @@ export default function ApartmentsPage() {
           </button>
           <button
             type="button"
+            onClick={() => setCartOpen(true)}
+            disabled={selectedUnits.length === 0}
+            className="rounded-xl border border-blue-600 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+          >
+            🛒 Корзина ({selectedUnits.length})
+          </button>
+          <button
+            type="button"
             onClick={createSelection}
             disabled={creatingCollection || selectedUnits.length === 0}
             className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
@@ -754,6 +782,9 @@ export default function ApartmentsPage() {
             selectedRooms={selectedRooms}
             onToggleRoom={toggleRoom}
             roomCountsByValue={roomCountsByValue}
+            twoLevelOnly={twoLevelOnly}
+            onToggleTwoLevel={() => setTwoLevelOnly((v) => !v)}
+            twoLevelCount={twoLevelCount}
             complexCountsByName={complexCountsByName}
             buildingCountsById={buildingCountsById}
             handoverOptions={handoverOptions}
@@ -809,7 +840,7 @@ export default function ApartmentsPage() {
                       В подборку
                     </label>
                     <div onClick={() => setModalUnit(u)} className="cursor-pointer">
-                      <ApartmentCard unit={u} />
+                      <ApartmentCard unit={u} listView={viewMode === 'list'} />
                     </div>
                   </div>
                 ))}
@@ -826,6 +857,103 @@ export default function ApartmentsPage() {
           onAddToCollection={toggleSelectedUnit}
           isSelected={selectedUnits.includes(modalUnit.id)}
         />
+      )}
+
+      {cartOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setCartOpen(false)}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+              <h2 className="text-lg font-bold text-gray-900">
+                Корзина подборки ({selectedUnits.length})
+              </h2>
+              <button
+                type="button"
+                onClick={() => setCartOpen(false)}
+                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100"
+                aria-label="Закрыть"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto px-5 py-3">
+              {selectedUnits.length === 0 ? (
+                <p className="py-8 text-center text-gray-500">
+                  Корзина пуста. Добавьте квартиры галочками.
+                </p>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {units
+                    .filter((u) => selectedUnits.includes(u.id))
+                    .map((u) => (
+                      <li key={u.id} className="flex items-center gap-3 py-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900">
+                            {u.building?.complex?.name} · {u.building?.name} · №{u.number ?? '—'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {u.is_commercial ? 'Коммерция' : `${u.rooms ?? '?'}к`}
+                            {u.area ? ` · ${u.area} м²` : ''}
+                            {u.floor ? ` · ${u.floor} эт.` : ''}
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {u.price ? `${Number(u.price).toLocaleString('ru-RU')} ₽` : '—'}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleSelectedUnit(u.id)}
+                          className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100"
+                          title="Убрать"
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-5 py-4">
+              <div className="text-sm text-gray-700">
+                Всего:{' '}
+                <span className="font-semibold">
+                  {units
+                    .filter((u) => selectedUnits.includes(u.id))
+                    .reduce((sum, u) => sum + (Number(u.price) || 0), 0)
+                    .toLocaleString('ru-RU')} ₽
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUnits([])}
+                  disabled={selectedUnits.length === 0}
+                  className="rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                >
+                  Очистить
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCartOpen(false)
+                    createSelection()
+                  }}
+                  disabled={creatingCollection || selectedUnits.length === 0}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                >
+                  {creatingCollection ? 'Создаём…' : 'Создать подборку'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

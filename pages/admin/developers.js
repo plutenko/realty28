@@ -33,6 +33,7 @@ export default function AdminDevelopersPage() {
   const [mgrPhone, setMgrPhone] = useState('')
   const [mgrShortDescription, setMgrShortDescription] = useState('')
   const [mgrMessenger, setMgrMessenger] = useState('telegram')
+  const [mgrMessengerContact, setMgrMessengerContact] = useState('')
   const [mgrBusy, setMgrBusy] = useState(false)
 
   async function load() {
@@ -66,6 +67,7 @@ export default function AdminDevelopersPage() {
     setMgrPhone('')
     setMgrShortDescription('')
     setMgrMessenger('telegram')
+    setMgrMessengerContact('')
   }, [editId])
 
   const currentManagers = useMemo(() => {
@@ -130,6 +132,7 @@ export default function AdminDevelopersPage() {
     setMgrPhone('')
     setMgrShortDescription('')
     setMgrMessenger('telegram')
+    setMgrMessengerContact('')
   }
 
   function startEditManager(m) {
@@ -138,6 +141,7 @@ export default function AdminDevelopersPage() {
     setMgrPhone(m.phone ?? '')
     setMgrShortDescription(m.short_description ?? '')
     setMgrMessenger(messengerValue(m.messenger))
+    setMgrMessengerContact(m.messenger_contact ?? '')
   }
 
   function messengerValue(raw) {
@@ -161,6 +165,7 @@ export default function AdminDevelopersPage() {
       phone: mgrPhone.trim() || null,
       short_description: mgrShortDescription.trim() || null,
       messenger: mgrMessenger,
+      messenger_contact: mgrMessengerContact.trim() || null,
     }
     let error
     if (mgrEditId) {
@@ -171,6 +176,7 @@ export default function AdminDevelopersPage() {
           phone: payload.phone,
           short_description: payload.short_description,
           messenger: payload.messenger,
+          messenger_contact: payload.messenger_contact,
         })
         .eq('id', mgrEditId)
       error = res.error
@@ -217,14 +223,35 @@ export default function AdminDevelopersPage() {
             <tr>
               <th className="p-3">Название</th>
               <th className="p-3">Описание</th>
+              <th className="p-3">Менеджеры</th>
               <th className="w-40 p-3"></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b border-slate-800/80">
+            {rows.map((r) => {
+              const managers = sortManagers(r.developer_managers)
+              return (
+              <tr key={r.id} className={`border-b border-slate-800/80 ${editId === r.id ? 'bg-blue-950/30' : ''}`}>
                 <td className="p-3 font-medium">{r.name}</td>
                 <td className="p-3 text-slate-400">{r.short_description || '—'}</td>
+                <td className="p-3">
+                  {managers.length === 0 ? (
+                    <span className="text-xs text-slate-500">— нет —</span>
+                  ) : (
+                    <div className="space-y-1">
+                      {managers.map((m) => (
+                        <div key={m.id} className="text-xs text-slate-300">
+                          <span className="font-medium text-slate-200">{m.name || '—'}</span>
+                          {m.phone && <span className="text-slate-400"> · {m.phone}</span>}
+                          {m.short_description && <span className="text-slate-500"> · {m.short_description}</span>}
+                          <span className="ml-1 rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">
+                            {messengerLabel(m.messenger)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </td>
                 <td className="p-3">
                   <button
                     type="button"
@@ -242,7 +269,7 @@ export default function AdminDevelopersPage() {
                   </button>
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>
@@ -325,7 +352,12 @@ export default function AdminDevelopersPage() {
                       <td className="max-w-xs p-2 text-slate-400">
                         {m.short_description || '—'}
                       </td>
-                      <td className="p-2">{messengerLabel(m.messenger)}</td>
+                      <td className="p-2">
+                        <div>{messengerLabel(m.messenger)}</div>
+                        {m.messenger_contact && (
+                          <div className="text-[10px] text-slate-500">{m.messenger_contact}</div>
+                        )}
+                      </td>
                       <td className="p-2">
                         <button
                           type="button"
@@ -397,24 +429,39 @@ export default function AdminDevelopersPage() {
                 placeholder="Например: отдел продаж, корп. клиенты"
               />
             </div>
-            <div>
-              <label className="block text-xs text-slate-400">Мессенджер для связи</label>
-              <select
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-                value={mgrMessenger}
-                onChange={(e) => setMgrMessenger(e.target.value)}
-              >
-                {MESSENGER_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              {mgrMessenger === 'max' && (
-                <p className="mt-1 text-xs text-amber-400">
-                  Max не открывается по номеру телефона. В поле «Телефон» вставьте ссылку на диалог (например: https://max.ru/u/username)
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs text-slate-400">Мессенджер для связи</label>
+                <select
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                  value={mgrMessenger}
+                  onChange={(e) => setMgrMessenger(e.target.value)}
+                >
+                  {MESSENGER_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400">
+                  Контакт в мессенджере (необязательно)
+                </label>
+                <input
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                  value={mgrMessengerContact}
+                  onChange={(e) => setMgrMessengerContact(e.target.value)}
+                  placeholder={
+                    mgrMessenger === 'telegram' ? '@username или https://t.me/...' :
+                    mgrMessenger === 'max' ? 'https://max.ru/u/...' :
+                    'ник или ссылка'
+                  }
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Если пусто — будет открываться по номеру телефона. Для Max обязательно ссылка.
                 </p>
-              )}
+              </div>
             </div>
             <button
               type="submit"

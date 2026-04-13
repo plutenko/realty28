@@ -63,6 +63,7 @@ export default async function handler(req, res) {
               inserted: gs.count,
               name: source.name,
               type: source.type,
+              debug: gs.debug || null,
             },
           ],
         });

@@ -877,7 +877,9 @@ export default function AdminSourcesPage() {
         alert(rowErr)
         return
       }
-      setMsg(`Успешно: ${source.name || source.id}, записано квартир (upsert): ${inserted}`)
+      const dbg = okRow?.debug
+      const dbgStr = dbg ? ` | Статусы: ${JSON.stringify(dbg.statusCounts)} из ${dbg.total}` : ` | (no debug in response, keys: ${JSON.stringify(Object.keys(okRow || {}))})`
+      setMsg(`Успешно: ${source.name || source.id}, записано квартир (upsert): ${inserted}${dbgStr}`)
       setSyncResult(body)
     } catch (e) {
       const t = e?.message || 'Ошибка сети'
@@ -984,25 +986,24 @@ export default function AdminSourcesPage() {
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-800 bg-slate-900/80">
             <tr>
-              <th className="p-3">Название</th>
+              <th className="p-3">ЖК / Дом</th>
               <th className="p-3">Источник</th>
               <th className="p-3">URL</th>
-              <th className="p-3">ЖК / Дом</th>
               <th className="p-3">Парсер</th>
               <th className="p-3">Последняя синхронизация</th>
-              <th className="w-36 p-3"></th>
+              <th className="w-28 p-3"></th>
             </tr>
           </thead>
           <tbody>
             {busy ? (
               <tr>
-                <td className="p-3 text-slate-400" colSpan={7}>
+                <td className="p-3 text-slate-400" colSpan={6}>
                   Загрузка...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td className="p-3 text-slate-400" colSpan={7}>
+                <td className="p-3 text-slate-400" colSpan={6}>
                   Источников пока нет
                 </td>
               </tr>
@@ -1018,7 +1019,24 @@ export default function AdminSourcesPage() {
                 const showDeveloperParserCol = displaySourceType === 'google_sheets'
                 return (
                 <tr key={r.id} className="border-b border-slate-800/80">
-                  <td className="p-3 font-medium">{r.name || 'Без названия'}</td>
+                  <td className="p-3 font-medium">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={syncing}
+                        onClick={() => runSyncOne(r)}
+                        title="Синхронизировать"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/40 disabled:cursor-not-allowed disabled:opacity-40 transition"
+                      >
+                        {syncingSourceId === r.id ? (
+                          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
+                        ) : (
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
+                        )}
+                      </button>
+                      <span>{ownerComplex?.name || '—'} · {ownerBuilding?.name || '—'}</span>
+                    </div>
+                  </td>
                   <td className="p-3">
                     <span
                       className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${sourceTypeBadgeClass(displaySourceType)}`}
@@ -1028,16 +1046,8 @@ export default function AdminSourcesPage() {
                   </td>
                   <td className="max-w-xs truncate p-3 text-xs text-slate-300">
                     {r.type === 'profitbase'
-                      ? `Profitbase (house_id: ${r.url || '—'})`
+                      ? `house_id: ${r.url || '—'}`
                       : r.url}
-                    {r.type === 'profitbase' ? (
-                      <div className="mt-1 text-[11px] text-emerald-300">
-                        Импорт через сервер (JWT / board)
-                      </div>
-                    ) : null}
-                  </td>
-                  <td className="p-3">
-                    {ownerComplex?.name || '—'} · {ownerBuilding?.name || '—'}
                   </td>
                   <td className="p-3">
                     {showDeveloperParserCol ? (
@@ -1063,14 +1073,6 @@ export default function AdminSourcesPage() {
                       className="mr-2 text-blue-400 hover:underline"
                     >
                       Изм.
-                    </button>
-                    <button
-                      type="button"
-                      disabled={syncing}
-                      onClick={() => runSyncOne(r)}
-                      className="mr-2 text-emerald-400 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      {syncingSourceId === r.id ? 'Синк…' : 'Синк'}
                     </button>
                     <button
                       type="button"
@@ -1106,13 +1108,41 @@ export default function AdminSourcesPage() {
         ) : null}
 
         <div>
-          <label className="block text-xs text-slate-400">Название</label>
-          <input
+          <label className="block text-xs text-slate-400">ЖК</label>
+          <select
             className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="например: Google Sheet ЖК Литер 13"
-          />
+            value={complexId}
+            onChange={(e) => {
+              const id = e.target.value
+              setComplexId(id)
+              const next = complexes.find((x) => x.id === id)?.buildings?.[0]?.id || ''
+              setBuildingId(next)
+            }}
+          >
+            <option value="">— не выбрано —</option>
+            {complexes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name || c.id}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs text-slate-400">Дом</label>
+          <select
+            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+            value={buildingId}
+            onChange={(e) => setBuildingId(e.target.value)}
+            required
+          >
+            <option value="">— не выбрано —</option>
+            {buildingsBySelectedComplex.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name || b.id}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
@@ -1283,87 +1313,55 @@ export default function AdminSourcesPage() {
               required
               placeholder={
                 type === 'google_sheets'
-                  ? 'Вставьте ссылку на вкладку литера: .../edit#gid=12345'
+                  ? 'Откройте нужный лист в таблице и скопируйте URL (с #gid=…)'
                   : 'https://...'
               }
             />
             {type === 'google_sheets' ? (
-              <div className="mt-2 flex items-end gap-2">
-                <div className="flex-1">
-                  <label className="block text-xs text-slate-400">Лист</label>
-                  {sheetList.length > 0 ? (
-                    <select
-                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-                      value={sheetName}
-                      onChange={(e) => setSheetName(e.target.value)}
-                    >
-                      <option value="">— авто (первый лист) —</option>
-                      {sheetList.map((s) => (
-                        <option key={s.index} value={s.name}>
-                          {s.index}: {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-                      value={sheetName}
-                      onChange={(e) => setSheetName(e.target.value)}
-                      placeholder={sheetsLoading ? 'Загрузка…' : 'Нажмите «Загрузить листы»'}
-                      readOnly={sheetsLoading}
-                    />
-                  )}
+              /[#&?]gid=\d+/i.test(url) ? (
+                <p className="mt-2 text-xs text-emerald-400">
+                  Лист определён по #gid из URL
+                </p>
+              ) : (
+                <div className="mt-2 flex items-end gap-2">
+                  <div className="flex-1">
+                    <label className="block text-xs text-slate-400">Лист (нет #gid в URL)</label>
+                    {sheetList.length > 0 ? (
+                      <select
+                        className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                        value={sheetName}
+                        onChange={(e) => setSheetName(e.target.value)}
+                      >
+                        <option value="">— авто (первый лист) —</option>
+                        {sheetList.map((s) => (
+                          <option key={s.index} value={s.name}>
+                            {s.index}: {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                        value={sheetName}
+                        onChange={(e) => setSheetName(e.target.value)}
+                        placeholder={sheetsLoading ? 'Загрузка…' : 'Нажмите «Загрузить листы»'}
+                        readOnly={sheetsLoading}
+                      />
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={sheetsLoading || !url.trim()}
+                    onClick={fetchSheetList}
+                    className="shrink-0 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 disabled:opacity-40"
+                  >
+                    {sheetsLoading ? 'Загрузка…' : 'Загрузить листы'}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  disabled={sheetsLoading || !url.trim()}
-                  onClick={fetchSheetList}
-                  className="shrink-0 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 disabled:opacity-40"
-                >
-                  {sheetsLoading ? 'Загрузка…' : 'Загрузить листы'}
-                </button>
-              </div>
+              )
             ) : null}
           </div>
         )}
-
-        <div>
-          <label className="block text-xs text-slate-400">ЖК</label>
-          <select
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-            value={complexId}
-            onChange={(e) => {
-              const id = e.target.value
-              setComplexId(id)
-              const next = complexes.find((x) => x.id === id)?.buildings?.[0]?.id || ''
-              setBuildingId(next)
-            }}
-          >
-            <option value="">— не выбрано —</option>
-            {complexes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name || c.id}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs text-slate-400">Дом</label>
-          <select
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-            value={buildingId}
-            onChange={(e) => setBuildingId(e.target.value)}
-            required
-          >
-            <option value="">— не выбрано —</option>
-            {buildingsBySelectedComplex.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name || b.id}
-              </option>
-            ))}
-          </select>
-        </div>
 
         <button
           type="submit"

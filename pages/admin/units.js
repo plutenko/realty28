@@ -12,6 +12,14 @@ import {
 import ImageUploadField from '../../components/admin/ImageUploadField'
 import UnitModal from '../../components/admin/UnitModal'
 
+function shortPrice(n) {
+  const v = Number(n)
+  if (!v || !Number.isFinite(v)) return ''
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1).replace('.0', '')} млн`
+  if (v >= 1_000) return `${Math.round(v / 1_000)} т`
+  return String(v)
+}
+
 const ENTITY_BUILDING_FLOOR_LEVEL_PLAN = 'building_floor_level_plan'
 const DND_SLOT_PREFIX = 'slot:'
 
@@ -450,15 +458,23 @@ export default function AdminUnitsPage() {
     setMediaBusy(true)
     setMsg('')
     try {
-      const ext = file.name.split('.').pop() || 'jpg'
+      const fileName = file.name || `paste-${Date.now()}.png`
+      const ext = (fileName.includes('.') ? fileName.split('.').pop() : 'png') || 'png'
       const path = `${kind}/${unitId}/${Date.now()}.${ext}`
+      console.log('[uploadUnitMedia] uploading', { kind, path, size: file.size })
+
       const { error: upErr } = await supabase.storage
         .from('images')
-        .upload(path, file, { upsert: true })
-      if (upErr) throw upErr
+        .upload(path, file, { upsert: true, contentType: file.type || 'image/png' })
+      if (upErr) {
+        console.error('[uploadUnitMedia] storage upload error', upErr)
+        throw upErr
+      }
 
       const { data: pub } = supabase.storage.from('images').getPublicUrl(path)
-      const url = pub.publicUrl
+      const url = pub?.publicUrl
+      console.log('[uploadUnitMedia] public url', url)
+      if (!url) throw new Error('Не удалось получить publicUrl')
 
       const patch =
         kind === 'unit_layout'
@@ -468,19 +484,28 @@ export default function AdminUnitsPage() {
           : null
       if (!patch) throw new Error('Unknown media kind')
 
-      const { error: updErr } = await supabase
+      const { data: updRows, error: updErr } = await supabase
         .from('units')
         .update(patch)
         .eq('id', unitId)
-      if (updErr) throw updErr
+        .select()
+      if (updErr) {
+        console.error('[uploadUnitMedia] update error', updErr)
+        throw updErr
+      }
+      console.log('[uploadUnitMedia] updated rows', updRows?.length || 0)
+      if (!updRows || updRows.length === 0) {
+        throw new Error('Картинка загружена, но БД не обновилась (RLS блокирует UPDATE на units)')
+      }
 
-      await loadUnitsForBuilding(selectedBuildingId)
+      await loadUnitsForBuilding(selectedBuildingId, true)
       setActiveCell((prev) =>
         prev?.unit?.id === unitId
           ? { ...prev, unit: { ...prev.unit, ...patch } }
           : prev
       )
     } catch (e) {
+      console.error('[uploadUnitMedia] failed', e)
       setMsg(e?.message || 'Ошибка загрузки')
     } finally {
       setMediaBusy(false)
@@ -523,7 +548,33 @@ export default function AdminUnitsPage() {
   }, [selectedBuilding?.units_per_entrance])
 
   const gridUnits = useMemo(
-    () => (units ?? []).filter((u) => !isCommercialUnitRow(u)),
+    () => {
+      const all = units ?? []
+      // Sort commercial by number and assign positions per floor
+      const commByFloor = new Map()
+      for (const u of all) {
+        if (!isCommercialUnitRow(u)) continue
+        const f = Number(u.floor) || 1
+        if (!commByFloor.has(f)) commByFloor.set(f, [])
+        commByFloor.get(f).push(u)
+      }
+      for (const [, arr] of commByFloor) {
+        arr.sort((a, b) => {
+          const pa = Number(a.position) || 999
+          const pb = Number(b.position) || 999
+          if (pa !== pb) return pa - pb
+          const na = String(a.number ?? '').replace(',', '.')
+          const nb = String(b.number ?? '').replace(',', '.')
+          return na.localeCompare(nb, undefined, { numeric: true })
+        })
+        for (let i = 0; i < arr.length; i++) {
+          if (!Number.isFinite(Number(arr[i].position)) || Number(arr[i].position) < 1) {
+            arr[i].position = i + 1
+          }
+        }
+      }
+      return all
+    },
     [units]
   )
   const commercialUnitsForCards = useMemo(
@@ -639,13 +690,14 @@ export default function AdminUnitsPage() {
     } else {
       top = Math.max(top, Number(selectedBuilding?.floors) || 0)
       if (!Number.isFinite(low) || low === Infinity) low = 1
+      low = Math.min(low, 1)
     }
     if (top < low) top = low
     const out = []
     for (let f = top; f >= low; f -= 1) out.push(f)
     const base = out.length ? out : [1]
     return base.filter(
-      (f) => !commercialFloorsInBuilding.has(f) || residentialFloorLevels.has(f)
+      (f) => true // Show all floors including commercial-only
     )
   }, [
     gridUnits,
@@ -869,6 +921,7 @@ export default function AdminUnitsPage() {
       span_floors: unit
         ? String(Math.max(1, Number(unit.span_floors) || 1))
         : '1',
+      is_commercial: Boolean(unit?.is_commercial),
     })
   }
 
@@ -882,6 +935,7 @@ export default function AdminUnitsPage() {
       status: 'available',
       span_columns: '1',
       span_floors: '1',
+      is_commercial: false,
     })
   }
 
@@ -952,7 +1006,7 @@ export default function AdminUnitsPage() {
               (r) =>
                 activeCell.position >= r.start && activeCell.position <= r.end
             )?.entrance ?? null,
-      number: form.number === '' ? null : parseInt(form.number, 10),
+      number: form.number === '' ? null : form.is_commercial ? form.number.trim() : parseInt(form.number, 10),
       rooms: form.rooms === '' ? null : parseInt(form.rooms, 10),
       area: areaN,
       price: priceN,
@@ -960,6 +1014,7 @@ export default function AdminUnitsPage() {
       status: form.status,
       span_columns: sc,
       span_floors: sf,
+      is_commercial: Boolean(form.is_commercial),
     }
     try {
       await saveLayout({ upsert: [payload], deleteIds: [] })
@@ -1203,6 +1258,56 @@ export default function AdminUnitsPage() {
     }
   }
 
+  async function addColumnToEntrance(entranceIdx) {
+    if (!supabase || !selectedBuildingId) return
+    const next = [...(entranceSizes ?? [])]
+    if (entranceIdx >= 0 && entranceIdx < next.length) {
+      next[entranceIdx] = (next[entranceIdx] || 1) + 1
+    } else {
+      return
+    }
+    if (isEditMode) {
+      queueBuildingPatch({
+        units_per_entrance: next,
+        units_per_floor: next.reduce((a, b) => a + b, 0),
+      })
+      return
+    }
+    const { error } = await supabase
+      .from('buildings')
+      .update({ units_per_entrance: next, units_per_floor: next.reduce((a, b) => a + b, 0) })
+      .eq('id', selectedBuildingId)
+    if (error && !/units_per_entrance/i.test(String(error.message || ''))) {
+      setMsg(error.message)
+    }
+    await loadComplexes()
+  }
+
+  async function removeColumnFromEntrance(entranceIdx) {
+    if (!supabase || !selectedBuildingId) return
+    const next = [...(entranceSizes ?? [])]
+    if (entranceIdx >= 0 && entranceIdx < next.length && next[entranceIdx] > 1) {
+      next[entranceIdx] = next[entranceIdx] - 1
+    } else {
+      return
+    }
+    if (isEditMode) {
+      queueBuildingPatch({
+        units_per_entrance: next,
+        units_per_floor: next.reduce((a, b) => a + b, 0),
+      })
+      return
+    }
+    const { error } = await supabase
+      .from('buildings')
+      .update({ units_per_entrance: next, units_per_floor: next.reduce((a, b) => a + b, 0) })
+      .eq('id', selectedBuildingId)
+    if (error && !/units_per_entrance/i.test(String(error.message || ''))) {
+      setMsg(error.message)
+    }
+    await loadComplexes()
+  }
+
   async function addEntrance() {
     if (!supabase || !selectedBuildingId) return
     // Persist entrance sizes in buildings.units_per_entrance if exists.
@@ -1227,31 +1332,33 @@ export default function AdminUnitsPage() {
   async function addFloor(direction = 'up') {
     if (!supabase || !selectedBuildingId) return
     const currentTop = floorsDesc?.[0] ?? 1
-    const nextFloors = currentTop + 1
-    if (direction === 'down') {
-      try {
-        setBusy(true)
-        const shifted = (units ?? []).map((u) => ({
-          ...u,
-          floor: Number.isFinite(Number(u.floor)) ? Number(u.floor) + 1 : u.floor,
-        }))
-        await saveLayout({ upsert: shifted, deleteIds: [] })
-      } catch (e) {
-        setMsg(e?.message || 'Ошибка добавления нижнего этажа')
-      } finally {
-        setBusy(false)
+    if (direction === 'up') {
+      const nextFloors = currentTop + 1
+      if (isEditMode) {
+        queueBuildingPatch({ floors: nextFloors })
+        return
       }
+      const { error } = await supabase
+        .from('buildings')
+        .update({ floors: nextFloors })
+        .eq('id', selectedBuildingId)
+      if (error && !/floors/i.test(String(error.message || ''))) setMsg(error.message)
+      await loadComplexes()
+    } else {
+      // Add empty floor below — just increase buildings.floors by 1
+      // floorsDesc always starts from 1, so the new floor appears at the bottom
+      const nextFloors = currentTop + 1
+      if (isEditMode) {
+        queueBuildingPatch({ floors: nextFloors })
+        return
+      }
+      const { error } = await supabase
+        .from('buildings')
+        .update({ floors: nextFloors })
+        .eq('id', selectedBuildingId)
+      if (error && !/floors/i.test(String(error.message || ''))) setMsg(error.message)
+      await loadComplexes()
     }
-    if (isEditMode) {
-      queueBuildingPatch({ floors: nextFloors })
-      return
-    }
-    const { error } = await supabase
-      .from('buildings')
-      .update({ floors: nextFloors })
-      .eq('id', selectedBuildingId)
-    if (error && !/floors/i.test(String(error.message || ''))) setMsg(error.message)
-    await loadComplexes()
   }
 
   async function mergeSelected() {
@@ -1532,9 +1639,13 @@ export default function AdminUnitsPage() {
     const st = String(unit.status || '').toLowerCase()
     const sold = st === 'sold'
     const booked = st === 'booked' || st === 'reserved'
-    if (sold) return `${base} ${size} ${hover} ${ring} bg-red-200 text-red-900 border-red-300`
-    if (booked) return `${base} ${size} ${hover} ${ring} bg-amber-200 text-amber-900 border-amber-300`
-    return `${base} ${size} ${hover} ${ring} bg-green-200 text-green-900 border-green-300`
+    const closed = st === 'closed'
+    const commercial = Boolean(unit.is_commercial)
+    const commRing = commercial ? 'ring-2 ring-violet-500 ring-inset' : ''
+    if (sold) return `${base} ${size} ${hover} ${ring} ${commRing} bg-red-200 text-red-900 border-red-300`
+    if (booked) return `${base} ${size} ${hover} ${ring} ${commRing} bg-amber-200 text-amber-900 border-amber-300`
+    if (closed) return `${base} ${size} ${hover} ${ring} ${commRing} bg-gray-300 text-gray-500 border-gray-400`
+    return `${base} ${size} ${hover} ${ring} ${commRing} bg-green-200 text-green-900 border-green-300`
   }
 
   function toggleMergeSelection(unit) {
@@ -1733,6 +1844,7 @@ export default function AdminUnitsPage() {
                           П{r.entrance}
                         </div>
                         {hoveredEntranceHeader === r.entrance ? (
+                          <>
                           <button
                             type="button"
                             disabled={busy}
@@ -1743,6 +1855,7 @@ export default function AdminUnitsPage() {
                           >
                             🗑
                           </button>
+                          </>
                         ) : null}
                       </div>
                       <div
@@ -1947,7 +2060,9 @@ export default function AdminUnitsPage() {
                                           title={`№${u.number ?? '—'} · ${u.rooms ?? '—'}к · ${u.area ?? '—'}м² · ${u.price ?? '—'} ₽`}
                                         >
                                           <span className="flex flex-col items-center justify-center text-center leading-tight">
+                                            {u.is_commercial && <span className="text-[9px] font-bold opacity-70">КП</span>}
                                             <span>{u.number ?? `#${globalPos}`}</span>
+                                            {u.price > 0 && <span className="text-[8px] opacity-60">{shortPrice(u.price)}</span>}
                                           </span>
                                         </div>
                                       </DraggableUnit>
@@ -2010,19 +2125,32 @@ export default function AdminUnitsPage() {
                             }
 
                             chunk.push(
-                              <button
+                              <div
                                 key={`add-${f}-${r.entrance}`}
-                                type="button"
-                                className="h-16 w-16 self-center rounded border border-slate-700 bg-slate-900 text-sm text-slate-200 hover:bg-slate-800"
+                                className="flex gap-1 self-center"
                                 style={{ gridColumn: r.size + 1, gridRow: rowIdx }}
-                                onClick={() => {
-                                  const pos = firstFreePositionInRange(f, r)
-                                  if (!pos) return
-                                  openEditor(f, pos)
-                                }}
                               >
-                                +
-                              </button>
+                                <button
+                                  type="button"
+                                  className="h-16 w-8 rounded border border-slate-700 bg-slate-900 text-sm text-slate-200 hover:bg-slate-800 disabled:opacity-40"
+                                  disabled={!isEditMode}
+                                  onClick={() => addColumnToEntrance(r.entrance - 1)}
+                                  title="Добавить колонку"
+                                >
+                                  +
+                                </button>
+                                {r.size > 1 && (
+                                  <button
+                                    type="button"
+                                    className="h-16 w-8 rounded border border-rose-800/50 bg-slate-900 text-sm text-rose-300 hover:bg-rose-950/40 disabled:opacity-40"
+                                    disabled={!isEditMode}
+                                    onClick={() => removeColumnFromEntrance(r.entrance - 1)}
+                                    title="Убрать колонку"
+                                  >
+                                    -
+                                  </button>
+                                )}
+                              </div>
                             )
 
                             return chunk
@@ -2052,12 +2180,6 @@ export default function AdminUnitsPage() {
             </div>
           </div>
           </DndContext>
-          {commercialUnitsForCards.length > 0 ? (
-            <CommercialPremisesSection
-              units={commercialUnitsForCards}
-              variant="admin"
-            />
-          ) : null}
         </div>
       )}
 
@@ -2231,6 +2353,7 @@ export default function AdminUnitsPage() {
         uploadUnitMedia={uploadUnitMedia}
         removeUnitMedia={removeUnitMedia}
         mediaBusy={mediaBusy}
+        mediaError={msg}
       />
     </AdminLayout>
   )
