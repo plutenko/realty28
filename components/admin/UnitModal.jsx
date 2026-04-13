@@ -188,25 +188,32 @@ export default function UnitModal({
                     нет файла
                   </div>
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  disabled={mediaBusy}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    e.target.value = ''
-                    if (!file) return
-                    await uploadUnitMedia('unit_layout', file, activeCell.unit.id)
-                  }}
-                  className="block w-full text-sm text-slate-200 file:mr-2 file:rounded file:border-0 file:bg-slate-700 file:px-3 file:py-1.5"
-                />
-                <button
-                  type="button"
-                  className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
-                  onClick={() => removeUnitMedia('unit_layout', activeCell.unit.id)}
-                >
-                  Удалить фото
-                </button>
+                <div className="flex items-center gap-2">
+                  <label className="cursor-pointer rounded bg-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-600">
+                    Загрузить
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={mediaBusy}
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        e.target.value = ''
+                        if (!file) return
+                        await uploadUnitMedia('unit_layout', file, activeCell.unit.id)
+                      }}
+                    />
+                  </label>
+                  {activeCell.unit?.layout_image_url && (
+                    <button
+                      type="button"
+                      className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
+                      onClick={() => removeUnitMedia('unit_layout', activeCell.unit.id)}
+                    >
+                      Удалить
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 <div className="text-xs text-slate-400">Внутренний визуал / ремонт</div>
@@ -222,25 +229,32 @@ export default function UnitModal({
                     нет файла
                   </div>
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  disabled={mediaBusy}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    e.target.value = ''
-                    if (!file) return
-                    await uploadUnitMedia('unit_finish', file, activeCell.unit.id)
-                  }}
-                  className="block w-full text-sm text-slate-200 file:mr-2 file:rounded file:border-0 file:bg-slate-700 file:px-3 file:py-1.5"
-                />
-                <button
-                  type="button"
-                  className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
-                  onClick={() => removeUnitMedia('unit_finish', activeCell.unit.id)}
-                >
-                  Удалить фото
-                </button>
+                <div className="flex items-center gap-2">
+                  <label className="cursor-pointer rounded bg-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-600">
+                    Загрузить
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={mediaBusy}
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        e.target.value = ''
+                        if (!file) return
+                        await uploadUnitMedia('unit_finish', file, activeCell.unit.id)
+                      }}
+                    />
+                  </label>
+                  {activeCell.unit?.finish_image_url && (
+                    <button
+                      type="button"
+                      className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
+                      onClick={() => removeUnitMedia('unit_finish', activeCell.unit.id)}
+                    >
+                      Удалить
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
