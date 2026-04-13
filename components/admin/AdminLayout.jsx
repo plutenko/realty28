@@ -12,6 +12,7 @@ const links = [
   { href: '/admin/collections', label: 'Подборки', icon: '📋' },
   { href: '/admin/sources', label: 'Источники', icon: '🔗' },
   { href: '/admin/users', label: 'Пользователи', icon: '👥' },
+  { href: '/admin/security', label: 'Безопасность', icon: '🔒' },
 ]
 
 export default function AdminLayout({ children, title }) {
@@ -21,7 +22,7 @@ export default function AdminLayout({ children, title }) {
 
   async function handleSignOut() {
     await signOut()
-    router.push('/admin/login')
+    router.push('/login')
   }
 
   return (

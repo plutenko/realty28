@@ -36,7 +36,7 @@ export default function ResetPasswordPage() {
       return
     }
     setSuccess(true)
-    setTimeout(() => router.replace('/admin/login'), 2000)
+    setTimeout(() => router.replace('/login'), 2000)
   }
 
   return (
