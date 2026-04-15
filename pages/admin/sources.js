@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabaseClient'
 const SOURCE_TYPES = [
   { value: 'google_sheets', label: 'Google Таблица' },
   { value: 'profitbase',    label: 'Profitbase' },
+  { value: 'macrocrm',      label: 'MacroCRM' },
   { value: 'csv',           label: 'CSV файл' },
 ]
 
@@ -21,6 +22,7 @@ const DEVELOPER_PARSER_OPTIONS = [
 function resolvedParserType(sourceType, developerParser) {
   const t = String(sourceType || '').toLowerCase()
   if (t === 'profitbase') return 'profitbase'
+  if (t === 'macrocrm') return 'macrocrm'
   if (t === 'google_sheets') {
     const p = String(developerParser || 'default').toLowerCase()
     return p === 'sodruzhestvo' ? 'sodruzhestvo' : 'default'
@@ -1314,9 +1316,16 @@ export default function AdminSourcesPage() {
               placeholder={
                 type === 'google_sheets'
                   ? 'Откройте нужный лист в таблице и скопируйте URL (с #gid=…)'
+                  : type === 'macrocrm'
+                  ? 'домен|house_id, например: ленинград28.рф|8730378'
                   : 'https://...'
               }
             />
+            {type === 'macrocrm' ? (
+              <p className="mt-2 text-xs text-slate-400">
+                Формат: <code className="text-slate-200">домен|house_id</code>. House ID берётся из виджета шахматки (api.macroserver.ru).
+              </p>
+            ) : null}
             {type === 'google_sheets' ? (
               /[#&?]gid=\d+/i.test(url) ? (
                 <p className="mt-2 text-xs text-emerald-400">
