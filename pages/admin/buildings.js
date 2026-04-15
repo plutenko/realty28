@@ -11,6 +11,7 @@ export default function AdminBuildingsPage() {
   const [handoverStatus, setHandoverStatus] = useState('planned')
   const [handoverQuarter, setHandoverQuarter] = useState('')
   const [handoverYear, setHandoverYear] = useState('')
+  const [address, setAddress] = useState('')
   const [editId, setEditId] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
@@ -51,12 +52,14 @@ export default function AdminBuildingsPage() {
           ? String(r.handover_year)
           : ''
       )
+      setAddress(r.address ?? '')
     } else {
       setName('')
       setComplexId('')
       setHandoverStatus('planned')
       setHandoverQuarter('')
       setHandoverYear('')
+      setAddress('')
     }
   }, [editId, rows])
 
@@ -75,6 +78,7 @@ export default function AdminBuildingsPage() {
           : null,
       handover_year:
         handoverStatus === 'planned' && handoverYear ? Number(handoverYear) : null,
+      address: address.trim() || null,
     }
 
     let error = null
@@ -83,7 +87,7 @@ export default function AdminBuildingsPage() {
       : supabase.from('buildings').insert(payload)
     const fullRes = await q
     error = fullRes.error
-    if (error && /handover_status|handover_quarter|handover_year/i.test(String(error.message || ''))) {
+    if (error && /handover_status|handover_quarter|handover_year|address/i.test(String(error.message || ''))) {
       const fallbackPayload = {
         name: payload.name,
         complex_id: payload.complex_id,
@@ -198,6 +202,17 @@ export default function AdminBuildingsPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-slate-400">
+            Адрес (точный для сданных, пересечение улиц для строящихся)
+          </label>
+          <input
+            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+            placeholder="например: ул. Ленина, 10 или ул. Ленина / ул. Пушкина"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
           />
         </div>
         <div>

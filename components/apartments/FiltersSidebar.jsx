@@ -494,7 +494,10 @@ export default function FiltersSidebar({
                                   }
                                   className="accent-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                                 />
-                                <span className="truncate">{b.name}</span>
+                                <span className="truncate">
+                                  {b.name}
+                                  {b.address ? ` (${b.address})` : ''}
+                                </span>
                               </div>
                               <span className="shrink-0 text-xs text-gray-400">
                                 ({bCount})

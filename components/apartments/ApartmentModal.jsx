@@ -154,6 +154,11 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
                 </>
               ) : null}
             </p>
+            {b?.address ? (
+              <p className="text-xs text-gray-500 mt-0.5">
+                📍 {b.address}
+              </p>
+            ) : null}
           </div>
           <div className="flex items-center gap-3">
             <span

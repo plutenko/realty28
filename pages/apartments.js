@@ -180,17 +180,18 @@ export default function ApartmentsPage() {
       const cn = u?.building?.complex?.name
       const bid = u?.building?.id
       const bn = u?.building?.name
+      const addr = u?.building?.address
       if (!cn || !bid) continue
       if (!byComplex.has(cn)) byComplex.set(cn, new Map())
       const m = byComplex.get(cn)
-      if (!m.has(bid)) m.set(bid, bn ? String(bn).trim() : 'Корпус')
+      if (!m.has(bid)) m.set(bid, { name: bn ? String(bn).trim() : 'Корпус', address: addr || null })
     }
     return uniqueComplexes
       .filter((cn) => byComplex.has(cn))
       .map((complexName) => {
         const m = byComplex.get(complexName)
         const buildings = [...m.entries()]
-          .map(([id, name]) => ({ id, name }))
+          .map(([id, v]) => ({ id, name: v.name, address: v.address }))
           .sort((a, b) =>
             String(a.name).localeCompare(String(b.name), 'ru', { numeric: true })
           )

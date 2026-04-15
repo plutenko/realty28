@@ -111,6 +111,7 @@ export default function SummaryPage() {
           developer: d?.name || '—',
           complex: c?.name || '—',
           building: b?.name || '—',
+          address: b?.address || '',
           handover: handoverLabel(b),
           available: available.length,
           roomEntries,
@@ -169,7 +170,14 @@ export default function SummaryPage() {
                     >
                       <td className="px-4 py-3 text-gray-800">{sameDev ? '' : r.developer}</td>
                       <td className="px-4 py-3 text-gray-800">{sameComplex ? '' : r.complex}</td>
-                      <td className="px-4 py-3 text-gray-800 font-medium">{r.building}</td>
+                      <td className="px-4 py-3 text-gray-800 font-medium">
+                        {r.building}
+                        {r.address ? (
+                          <div className="text-xs font-normal text-gray-500 mt-0.5">
+                            {r.address}
+                          </div>
+                        ) : null}
+                      </td>
                       <td className="px-4 py-3 text-gray-600">{r.handover}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`font-semibold ${r.available > 0 ? 'text-green-600' : 'text-gray-400'}`}>
