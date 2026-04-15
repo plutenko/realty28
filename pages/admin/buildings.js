@@ -284,7 +284,7 @@ export default function AdminBuildingsPage() {
           </h2>
           {complexes.map(([complexName, buildings]) => (
             <div key={complexName} className="mb-6">
-              <h3 className="mb-2 text-sm font-semibold text-orange-300">{complexName}</h3>
+              <h3 className="mb-2 text-sm font-semibold text-white">{complexName}</h3>
               <div className="overflow-x-auto rounded-xl border border-slate-800">
                 <table className="w-full table-fixed text-left text-sm">
                   <colgroup>
