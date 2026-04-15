@@ -273,18 +273,26 @@ export default function AdminBuildingsPage() {
         <div key={complexName} className="mb-6">
           <h3 className="mb-2 text-sm font-semibold text-orange-300">{complexName}</h3>
           <div className="overflow-x-auto rounded-xl border border-slate-800">
-            <table className="w-full text-left text-sm">
+            <table className="w-full table-fixed text-left text-sm">
+              <colgroup>
+                <col className="w-1/4" />
+                <col className="w-2/5" />
+                <col className="w-1/6" />
+                <col className="w-40" />
+              </colgroup>
               <thead className="border-b border-slate-800 bg-slate-900/80">
                 <tr>
                   <th className="p-3">Название</th>
+                  <th className="p-3">Адрес</th>
                   <th className="p-3">Сдача</th>
-                  <th className="p-3 w-40"></th>
+                  <th className="p-3"></th>
                 </tr>
               </thead>
               <tbody>
                 {buildings.map((r) => (
                   <tr key={r.id} className={`border-b border-slate-800/80 ${editId === r.id ? 'bg-blue-950/30' : ''}`}>
                     <td className="p-3 font-medium">{r.name}</td>
+                    <td className="p-3 text-slate-300 truncate">{r.address || <span className="text-slate-600">—</span>}</td>
                     <td className="p-3 text-slate-300">{formatHandover(r)}</td>
                     <td className="p-3">
                       <button
