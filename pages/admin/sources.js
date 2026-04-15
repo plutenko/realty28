@@ -1381,7 +1381,7 @@ export default function AdminSourcesPage() {
                       <tr key={`g-${entry.__group}`} className="bg-slate-900/60">
                         <td
                           colSpan={6}
-                          className="px-3 py-2 text-sm font-semibold text-amber-400"
+                          className="px-3 py-2 text-sm font-bold uppercase tracking-wide text-amber-400"
                         >
                           {entry.__group}
                           <span className="ml-2 text-amber-400/60">
