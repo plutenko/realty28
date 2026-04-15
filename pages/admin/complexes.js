@@ -148,6 +148,7 @@ export default function AdminComplexesPage() {
               <th className="p-3">Название</th>
               <th className="p-3">Город</th>
               <th className="p-3">Застройщик</th>
+              <th className="p-3">Сайт</th>
               <th className="p-3">Комиссия</th>
               <th className="p-3 w-40"></th>
             </tr>
@@ -169,6 +170,20 @@ export default function AdminComplexesPage() {
                 <td className="p-3 font-medium">{r.name}</td>
                 <td className="p-3">{r.city || '—'}</td>
                 <td className="p-3">{r.developers?.name || '—'}</td>
+                <td className="p-3">
+                  {r.website_url ? (
+                    <a
+                      href={r.website_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline"
+                    >
+                      {(() => { try { return new URL(r.website_url).hostname } catch { return 'ссылка' } })()}
+                    </a>
+                  ) : (
+                    <span className="text-slate-600">—</span>
+                  )}
+                </td>
                 <td className="p-3 text-xs text-slate-300">
                   {r.realtor_commission_type === 'percent'
                     ? `${r.realtor_commission_value ?? 0}% от цены`
