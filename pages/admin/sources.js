@@ -1305,6 +1305,56 @@ export default function AdminSourcesPage() {
               </div>
             </details>
           </div>
+        ) : type === 'macrocrm' ? (
+          (() => {
+            const [macroDomain, macroHouseId] = (() => {
+              const raw = String(url || '').trim()
+              if (!raw) return ['', '']
+              if (raw.includes('|')) {
+                const [d, h] = raw.split('|', 2).map((s) => s.trim())
+                return [d, h]
+              }
+              if (/^\d+$/.test(raw)) return ['', raw]
+              return [raw, '']
+            })()
+            const joinUrl = (d, h) => {
+              const dd = (d || '').trim()
+              const hh = (h || '').trim()
+              if (!dd && !hh) return ''
+              if (!dd) return hh
+              return `${dd}|${hh}`
+            }
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400">Домен виджета</label>
+                  <input
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                    value={macroDomain}
+                    onChange={(e) => setUrl(joinUrl(e.target.value, macroHouseId))}
+                    placeholder="ленинград28.рф"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Если пусто — используется <code className="text-slate-200">ленинград28.рф</code>.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400">House ID</label>
+                  <input
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                    value={macroHouseId}
+                    onChange={(e) => setUrl(joinUrl(macroDomain, e.target.value.replace(/\D+/g, '')))}
+                    required
+                    placeholder="8730378"
+                    inputMode="numeric"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Число дома из виджета MacroCRM (api.macroserver.ru).
+                  </p>
+                </div>
+              </div>
+            )
+          })()
         ) : (
           <div>
             <label className="block text-xs text-slate-400">URL</label>
@@ -1316,16 +1366,9 @@ export default function AdminSourcesPage() {
               placeholder={
                 type === 'google_sheets'
                   ? 'Откройте нужный лист в таблице и скопируйте URL (с #gid=…)'
-                  : type === 'macrocrm'
-                  ? 'house_id (например: 8730378) или домен|house_id'
                   : 'https://...'
               }
             />
-            {type === 'macrocrm' ? (
-              <p className="mt-2 text-xs text-slate-400">
-                Только цифры — домен <code className="text-slate-200">ленинград28.рф</code> подставится автоматически. Для другого ЖК — формат <code className="text-slate-200">домен|house_id</code>.
-              </p>
-            ) : null}
             {type === 'google_sheets' ? (
               /[#&?]gid=\d+/i.test(url) ? (
                 <p className="mt-2 text-xs text-emerald-400">
