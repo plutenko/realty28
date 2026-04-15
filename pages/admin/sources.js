@@ -984,117 +984,9 @@ export default function AdminSourcesPage() {
         </div>
       ) : null}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-800 bg-slate-900/80">
-            <tr>
-              <th className="p-3">ЖК / Дом</th>
-              <th className="p-3">Источник</th>
-              <th className="p-3">URL</th>
-              <th className="p-3">Парсер</th>
-              <th className="p-3">Последняя синхронизация</th>
-              <th className="w-28 p-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {busy ? (
-              <tr>
-                <td className="p-3 text-slate-400" colSpan={6}>
-                  Загрузка...
-                </td>
-              </tr>
-            ) : rows.length === 0 ? (
-              <tr>
-                <td className="p-3 text-slate-400" colSpan={6}>
-                  Источников пока нет
-                </td>
-              </tr>
-            ) : (
-              rows.map((r) => {
-                const ownerComplex =
-                  complexes.find((cx) =>
-                    (cx.buildings ?? []).some((b) => b.id === r.building_id)
-                  ) || null
-                const ownerBuilding =
-                  ownerComplex?.buildings?.find((b) => b.id === r.building_id) || null
-                const displaySourceType = sourceTypeForForm(r.type, r.parser_type)
-                const showDeveloperParserCol = displaySourceType === 'google_sheets'
-                return (
-                <tr key={r.id} className="border-b border-slate-800/80">
-                  <td className="p-3 font-medium">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        disabled={syncing}
-                        onClick={() => runSyncOne(r)}
-                        title="Синхронизировать"
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/40 disabled:cursor-not-allowed disabled:opacity-40 transition"
-                      >
-                        {syncingSourceId === r.id ? (
-                          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
-                        ) : (
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
-                        )}
-                      </button>
-                      <span>{ownerComplex?.name || '—'} · {ownerBuilding?.name || '—'}</span>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${sourceTypeBadgeClass(displaySourceType)}`}
-                    >
-                      {sourceTypeLabel(displaySourceType)}
-                    </span>
-                  </td>
-                  <td className="max-w-xs truncate p-3 text-xs text-slate-300">
-                    {r.type === 'profitbase'
-                      ? `house_id: ${r.url || '—'}`
-                      : r.url}
-                  </td>
-                  <td className="p-3">
-                    {showDeveloperParserCol ? (
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${developerParserBadgeClass(r.parser_type)}`}
-                      >
-                        {developerParserLabel(r.parser_type)}
-                      </span>
-                    ) : (
-                      <span className="text-slate-500">—</span>
-                    )}
-                  </td>
-                  <td className="p-3 text-xs text-slate-400">
-                    <div>{formatSyncSummaryLine(r)}</div>
-                    {r.last_sync_error ? (
-                      <div className="mt-1 text-[11px] text-rose-400">{String(r.last_sync_error)}</div>
-                    ) : null}
-                  </td>
-                  <td className="p-3">
-                    <button
-                      type="button"
-                      onClick={() => setEditId(r.id)}
-                      className="mr-2 text-blue-400 hover:underline"
-                    >
-                      Изм.
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onDelete(r.id)}
-                      className="text-rose-400 hover:underline"
-                    >
-                      Уд.
-                    </button>
-                  </td>
-                </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-
       <form
         onSubmit={onSubmit}
-        className="mt-8 space-y-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-6"
+        className="mb-8 space-y-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-6"
       >
         <h2 className="text-lg font-semibold">
           {editId ? 'Редактирование источника' : 'Новый источник'}
@@ -1423,6 +1315,114 @@ export default function AdminSourcesPage() {
           {editId ? 'Сохранить' : 'Создать'}
         </button>
       </form>
+      <div className="overflow-x-auto rounded-xl border border-slate-800">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-slate-800 bg-slate-900/80">
+            <tr>
+              <th className="p-3">ЖК / Дом</th>
+              <th className="p-3">Источник</th>
+              <th className="p-3">URL</th>
+              <th className="p-3">Парсер</th>
+              <th className="p-3">Последняя синхронизация</th>
+              <th className="w-28 p-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {busy ? (
+              <tr>
+                <td className="p-3 text-slate-400" colSpan={6}>
+                  Загрузка...
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
+              <tr>
+                <td className="p-3 text-slate-400" colSpan={6}>
+                  Источников пока нет
+                </td>
+              </tr>
+            ) : (
+              rows.map((r) => {
+                const ownerComplex =
+                  complexes.find((cx) =>
+                    (cx.buildings ?? []).some((b) => b.id === r.building_id)
+                  ) || null
+                const ownerBuilding =
+                  ownerComplex?.buildings?.find((b) => b.id === r.building_id) || null
+                const displaySourceType = sourceTypeForForm(r.type, r.parser_type)
+                const showDeveloperParserCol = displaySourceType === 'google_sheets'
+                return (
+                <tr key={r.id} className="border-b border-slate-800/80">
+                  <td className="p-3 font-medium">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={syncing}
+                        onClick={() => runSyncOne(r)}
+                        title="Синхронизировать"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/40 disabled:cursor-not-allowed disabled:opacity-40 transition"
+                      >
+                        {syncingSourceId === r.id ? (
+                          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
+                        ) : (
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
+                        )}
+                      </button>
+                      <span>{ownerComplex?.name || '—'} · {ownerBuilding?.name || '—'}</span>
+                    </div>
+                  </td>
+                  <td className="p-3">
+                    <span
+                      className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${sourceTypeBadgeClass(displaySourceType)}`}
+                    >
+                      {sourceTypeLabel(displaySourceType)}
+                    </span>
+                  </td>
+                  <td className="max-w-xs truncate p-3 text-xs text-slate-300">
+                    {r.type === 'profitbase'
+                      ? `house_id: ${r.url || '—'}`
+                      : r.url}
+                  </td>
+                  <td className="p-3">
+                    {showDeveloperParserCol ? (
+                      <span
+                        className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${developerParserBadgeClass(r.parser_type)}`}
+                      >
+                        {developerParserLabel(r.parser_type)}
+                      </span>
+                    ) : (
+                      <span className="text-slate-500">—</span>
+                    )}
+                  </td>
+                  <td className="p-3 text-xs text-slate-400">
+                    <div>{formatSyncSummaryLine(r)}</div>
+                    {r.last_sync_error ? (
+                      <div className="mt-1 text-[11px] text-rose-400">{String(r.last_sync_error)}</div>
+                    ) : null}
+                  </td>
+                  <td className="p-3">
+                    <button
+                      type="button"
+                      onClick={() => setEditId(r.id)}
+                      className="mr-2 text-blue-400 hover:underline"
+                    >
+                      Изм.
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(r.id)}
+                      className="text-rose-400 hover:underline"
+                    >
+                      Уд.
+                    </button>
+                  </td>
+                </tr>
+                )
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
     </AdminLayout>
   )
 }
