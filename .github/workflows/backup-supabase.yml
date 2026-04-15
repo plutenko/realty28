@@ -1,0 +1,45 @@
+name: Supabase Daily Backup
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Dump database
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          STAMP=$(date -u +%Y%m%d-%H%M%S)
+          mkdir -p backup
+          pg_dump "$DATABASE_URL" \
+            --no-owner --no-privileges \
+            --format=custom \
+            --file="backup/supabase-${STAMP}.dump"
+          pg_dump "$DATABASE_URL" \
+            --no-owner --no-privileges \
+            --format=plain \
+            --file="backup/supabase-${STAMP}.sql"
+          gzip backup/supabase-${STAMP}.sql
+          ls -lh backup/
+          echo "STAMP=${STAMP}" >> $GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-backup-${{ env.STAMP }}
+          path: backup/
+          retention-days: 90
+          compression-level: 9
