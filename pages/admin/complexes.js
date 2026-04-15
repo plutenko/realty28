@@ -33,6 +33,7 @@ export default function AdminComplexesPage() {
   const [developerId, setDeveloperId] = useState('')
   const [commissionType, setCommissionType] = useState('none')
   const [commissionValue, setCommissionValue] = useState('')
+  const [websiteUrl, setWebsiteUrl] = useState('')
   const [editId, setEditId] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
@@ -74,12 +75,14 @@ export default function AdminComplexesPage() {
       setCommissionValue(
         r.realtor_commission_value != null ? String(r.realtor_commission_value) : ''
       )
+      setWebsiteUrl(r.website_url ?? '')
     } else {
       setName('')
       setCity('')
       setDeveloperId('')
       setCommissionType('none')
       setCommissionValue('')
+      setWebsiteUrl('')
     }
   }, [editId, rows])
 
@@ -97,6 +100,7 @@ export default function AdminComplexesPage() {
         commissionType === 'none' || commissionValue === ''
           ? null
           : Number(commissionValue),
+      website_url: websiteUrl.trim() || null,
     }
     const q = editId
       ? supabase.from('complexes').update(payload).eq('id', editId)
@@ -227,6 +231,16 @@ export default function AdminComplexesPage() {
             className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
             value={city}
             onChange={(e) => setCity(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-slate-400">Сайт ЖК</label>
+          <input
+            type="url"
+            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+            placeholder="https://..."
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
           />
         </div>
         <div>

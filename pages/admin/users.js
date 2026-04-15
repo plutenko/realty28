@@ -235,7 +235,6 @@ export default function UsersPage() {
               >
                 <option value="realtor">Риелтор</option>
                 <option value="manager">Руководитель</option>
-                <option value="admin">Администратор</option>
               </select>
             </div>
           </div>
@@ -376,7 +375,7 @@ export default function UsersPage() {
                       {!u.role && <option value="">без профиля</option>}
                       <option value="realtor">Риелтор</option>
                       <option value="manager">Руководитель</option>
-                      <option value="admin">Администратор</option>
+                      {u.role === 'admin' && <option value="admin">Администратор</option>}
                     </select>
                   </td>
                   <td className="px-4 py-3 text-slate-400">

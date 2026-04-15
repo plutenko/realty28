@@ -49,8 +49,8 @@ export default async function handler(req, res) {
     if (!email || !password || !role) {
       return res.status(400).json({ error: 'email, password и role обязательны' })
     }
-    if (!['admin', 'realtor', 'manager'].includes(role)) {
-      return res.status(400).json({ error: 'role должен быть admin, realtor или manager' })
+    if (!['realtor', 'manager'].includes(role)) {
+      return res.status(400).json({ error: 'role должен быть realtor или manager' })
     }
 
     const { data: { user }, error: createError } = await supabase.auth.admin.createUser({
@@ -78,6 +78,9 @@ export default async function handler(req, res) {
     if (!id) return res.status(400).json({ error: 'id обязателен' })
 
     if (role || name !== undefined) {
+      if (role && !['realtor', 'manager'].includes(role)) {
+        return res.status(400).json({ error: 'Нельзя назначать роль admin' })
+      }
       const updates = {}
       if (role) updates.role = role
       if (name !== undefined) updates.name = name
