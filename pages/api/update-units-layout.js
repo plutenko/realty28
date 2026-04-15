@@ -36,13 +36,48 @@ export default async function handler(req, res) {
       }
     }
 
+    // Авто-привязка новых ручных квартир к MacroCRM-источнику дома:
+    // если у здания ровно один macrocrm source — подставим source_id и external_id=manual-<number>.
+    // Это позволяет синку отслеживать статус (с нашим исключением `manual-` для sold-mark).
+    const buildingIds = [
+      ...new Set(
+        upsert
+          .filter((u) => !String(u?.id || '').trim() && u?.building_id)
+          .map((u) => u.building_id)
+      ),
+    ]
+    const sourceByBuilding = new Map()
+    if (buildingIds.length) {
+      const { data: src } = await supabase
+        .from('sources')
+        .select('id, building_id, type')
+        .in('building_id', buildingIds)
+        .eq('type', 'macrocrm')
+      for (const s of src ?? []) {
+        if (!sourceByBuilding.has(s.building_id)) {
+          sourceByBuilding.set(s.building_id, s.id)
+        }
+      }
+    }
+
     if (upsert.length) {
+      const now = new Date().toISOString()
       const rows = upsert.map((u) => {
+        const isNew = !String(u?.id || '').trim()
+        let sourceId = u.source_id ?? null
+        let externalId = u.external_id ?? null
+        if (isNew && !sourceId && u.building_id) {
+          const autoSrc = sourceByBuilding.get(u.building_id)
+          if (autoSrc && u.number != null) {
+            sourceId = autoSrc
+            externalId = `manual-${u.number}`
+          }
+        }
         const row = {
           id: ensureUnitId(u.id),
           building_id: u.building_id ?? null,
-          source_id: u.source_id ?? null,
-          external_id: u.external_id ?? null,
+          source_id: sourceId,
+          external_id: externalId,
           number: u.number ?? null,
           floor: u.floor ?? null,
           entrance: u.entrance ?? null,
@@ -62,6 +97,9 @@ export default async function handler(req, res) {
         // Only include image fields if explicitly provided — don't overwrite with null
         if ('layout_image_url' in u) row.layout_image_url = u.layout_image_url ?? null
         if ('finish_image_url' in u) row.finish_image_url = u.finish_image_url ?? null
+        // Для новых ручных квартир с source_id — проставляем last_seen_at в будущее,
+        // чтобы ближайший синк не пометил их как sold.
+        if (isNew && sourceId) row.last_seen_at = now
         return row
       })
 
