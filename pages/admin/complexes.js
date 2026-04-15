@@ -178,7 +178,7 @@ export default function AdminComplexesPage() {
                       rel="noopener noreferrer"
                       className="text-blue-400 hover:underline"
                     >
-                      {(() => { try { return new URL(r.website_url).hostname } catch { return 'ссылка' } })()}
+                      {String(r.website_url).replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/.*$/, '')}
                     </a>
                   ) : (
                     <span className="text-slate-600">—</span>
