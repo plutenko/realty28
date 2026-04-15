@@ -142,15 +142,23 @@ export default function AdminBuildingsPage() {
     return '—'
   }
 
-  // Group buildings by complex
-  const grouped = (() => {
-    const map = new Map()
+  // Group buildings by developer → complex
+  const groupedByDev = (() => {
+    const byDev = new Map()
     for (const r of rows) {
+      const devName = r.complexes?.developers?.name || '— без застройщика —'
       const cName = r.complexes?.name || '—'
-      if (!map.has(cName)) map.set(cName, [])
-      map.get(cName).push(r)
+      if (!byDev.has(devName)) byDev.set(devName, new Map())
+      const byComplex = byDev.get(devName)
+      if (!byComplex.has(cName)) byComplex.set(cName, [])
+      byComplex.get(cName).push(r)
     }
-    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ru'))
+    return [...byDev.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0], 'ru'))
+      .map(([dev, byComplex]) => [
+        dev,
+        [...byComplex.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ru')),
+      ])
   })()
 
   return (
@@ -269,52 +277,59 @@ export default function AdminBuildingsPage() {
         </button>
       </form>
 
-      {grouped.map(([complexName, buildings]) => (
-        <div key={complexName} className="mb-6">
-          <h3 className="mb-2 text-sm font-semibold text-orange-300">{complexName}</h3>
-          <div className="overflow-x-auto rounded-xl border border-slate-800">
-            <table className="w-full table-fixed text-left text-sm">
-              <colgroup>
-                <col className="w-1/4" />
-                <col className="w-2/5" />
-                <col className="w-1/6" />
-                <col className="w-40" />
-              </colgroup>
-              <thead className="border-b border-slate-800 bg-slate-900/80">
-                <tr>
-                  <th className="p-3">Название</th>
-                  <th className="p-3">Адрес</th>
-                  <th className="p-3">Сдача</th>
-                  <th className="p-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {buildings.map((r) => (
-                  <tr key={r.id} className={`border-b border-slate-800/80 ${editId === r.id ? 'bg-blue-950/30' : ''}`}>
-                    <td className="p-3 font-medium">{r.name}</td>
-                    <td className="p-3 text-slate-300 truncate">{r.address || <span className="text-slate-600">—</span>}</td>
-                    <td className="p-3 text-slate-300">{formatHandover(r)}</td>
-                    <td className="p-3">
-                      <button
-                        type="button"
-                        onClick={() => setEditId(r.id)}
-                        className="mr-2 text-blue-400 hover:underline"
-                      >
-                        Изменить
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDelete(r.id)}
-                        className="text-rose-400 hover:underline"
-                      >
-                        Удалить
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {groupedByDev.map(([devName, complexes]) => (
+        <div key={devName} className="mb-8">
+          <h2 className="mb-3 text-base font-bold uppercase tracking-wide text-amber-400">
+            {devName}
+          </h2>
+          {complexes.map(([complexName, buildings]) => (
+            <div key={complexName} className="mb-6">
+              <h3 className="mb-2 text-sm font-semibold text-orange-300">{complexName}</h3>
+              <div className="overflow-x-auto rounded-xl border border-slate-800">
+                <table className="w-full table-fixed text-left text-sm">
+                  <colgroup>
+                    <col className="w-1/4" />
+                    <col className="w-2/5" />
+                    <col className="w-1/6" />
+                    <col className="w-40" />
+                  </colgroup>
+                  <thead className="border-b border-slate-800 bg-slate-900/80">
+                    <tr>
+                      <th className="p-3">Название</th>
+                      <th className="p-3">Адрес</th>
+                      <th className="p-3">Сдача</th>
+                      <th className="p-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {buildings.map((r) => (
+                      <tr key={r.id} className={`border-b border-slate-800/80 ${editId === r.id ? 'bg-blue-950/30' : ''}`}>
+                        <td className="p-3 font-medium">{r.name}</td>
+                        <td className="p-3 text-slate-300 truncate">{r.address || <span className="text-slate-600">—</span>}</td>
+                        <td className="p-3 text-slate-300">{formatHandover(r)}</td>
+                        <td className="p-3">
+                          <button
+                            type="button"
+                            onClick={() => setEditId(r.id)}
+                            className="mr-2 text-blue-400 hover:underline"
+                          >
+                            Изменить
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDelete(r.id)}
+                            className="text-rose-400 hover:underline"
+                          >
+                            Удалить
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
         </div>
       ))}
     </AdminLayout>
