@@ -1317,13 +1317,13 @@ export default function AdminSourcesPage() {
                 type === 'google_sheets'
                   ? 'Откройте нужный лист в таблице и скопируйте URL (с #gid=…)'
                   : type === 'macrocrm'
-                  ? 'домен|house_id, например: ленинград28.рф|8730378'
+                  ? 'house_id (например: 8730378) или домен|house_id'
                   : 'https://...'
               }
             />
             {type === 'macrocrm' ? (
               <p className="mt-2 text-xs text-slate-400">
-                Формат: <code className="text-slate-200">домен|house_id</code>. House ID берётся из виджета шахматки (api.macroserver.ru).
+                Только цифры — домен <code className="text-slate-200">ленинград28.рф</code> подставится автоматически. Для другого ЖК — формат <code className="text-slate-200">домен|house_id</code>.
               </p>
             ) : null}
             {type === 'google_sheets' ? (
