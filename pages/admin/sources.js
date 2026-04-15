@@ -398,6 +398,8 @@ export default function AdminSourcesPage() {
         `
         id,
         name,
+        developer_id,
+        developers ( id, name ),
         buildings (
           id,
           name
@@ -1341,16 +1343,58 @@ export default function AdminSourcesPage() {
                 </td>
               </tr>
             ) : (
-              rows.map((r) => {
-                const ownerComplex =
-                  complexes.find((cx) =>
-                    (cx.buildings ?? []).some((b) => b.id === r.building_id)
-                  ) || null
-                const ownerBuilding =
-                  ownerComplex?.buildings?.find((b) => b.id === r.building_id) || null
-                const displaySourceType = sourceTypeForForm(r.type, r.parser_type)
-                const showDeveloperParserCol = displaySourceType === 'google_sheets'
-                return (
+              (() => {
+                const enriched = rows.map((r) => {
+                  const ownerComplex =
+                    complexes.find((cx) =>
+                      (cx.buildings ?? []).some((b) => b.id === r.building_id)
+                    ) || null
+                  const ownerBuilding =
+                    ownerComplex?.buildings?.find((b) => b.id === r.building_id) || null
+                  const devName = ownerComplex?.developers?.name || '— без застройщика —'
+                  return { r, ownerComplex, ownerBuilding, devName }
+                })
+                const byDev = new Map()
+                for (const e of enriched) {
+                  if (!byDev.has(e.devName)) byDev.set(e.devName, [])
+                  byDev.get(e.devName).push(e)
+                }
+                const devNames = [...byDev.keys()].sort((a, b) =>
+                  a.localeCompare(b, 'ru')
+                )
+                const flat = []
+                for (const dev of devNames) {
+                  flat.push({ __group: dev, count: byDev.get(dev).length })
+                  const items = byDev
+                    .get(dev)
+                    .slice()
+                    .sort((x, y) => {
+                      const an = `${x.ownerComplex?.name || ''} · ${x.ownerBuilding?.name || ''}`
+                      const bn = `${y.ownerComplex?.name || ''} · ${y.ownerBuilding?.name || ''}`
+                      return an.localeCompare(bn, 'ru')
+                    })
+                  for (const it of items) flat.push(it)
+                }
+                return flat.map((entry) => {
+                  if (entry.__group) {
+                    return (
+                      <tr key={`g-${entry.__group}`} className="bg-slate-900/60">
+                        <td
+                          colSpan={6}
+                          className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-300"
+                        >
+                          {entry.__group}
+                          <span className="ml-2 text-slate-500">
+                            · {entry.count}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  }
+                  const { r, ownerComplex, ownerBuilding } = entry
+                  const displaySourceType = sourceTypeForForm(r.type, r.parser_type)
+                  const showDeveloperParserCol = displaySourceType === 'google_sheets'
+                  return (
                 <tr key={r.id} className="border-b border-slate-800/80">
                   <td className="p-3 font-medium">
                     <div className="flex items-center gap-2">
@@ -1416,8 +1460,9 @@ export default function AdminSourcesPage() {
                     </button>
                   </td>
                 </tr>
-                )
-              })
+                  )
+                })
+              })()
             )}
           </tbody>
         </table>
