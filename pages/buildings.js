@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { LayoutGrid, List } from 'lucide-react'
-import { supabase } from '../lib/supabaseClient'
 import AccordionSection from '../components/AccordionSection'
 import CatalogTabs from '../components/CatalogTabs'
 import BuildingChessboard, {
   mapUnitsToChessboardApartments,
 } from '../components/BuildingChessboard'
-import { getComplexesWithNestedUnits } from '../lib/supabaseQueries'
+import { fetchComplexesFromApi } from '../lib/fetchUnitsFromApi'
 
 const normalize = (str) =>
   (str || '')
@@ -222,10 +221,9 @@ export default function BuildingsPage() {
 
   useEffect(() => {
     async function load() {
-      if (!supabase) return
       setBusy(true)
       setError('')
-      const { data, error: err } = await getComplexesWithNestedUnits(supabase)
+      const { data, error: err } = await fetchComplexesFromApi()
       if (err) {
         setError(err.message || 'Ошибка загрузки')
         setComplexes([])

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
-import { getAllUnitsViaComplexes } from '../lib/supabaseQueries'
+import { fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
 import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
 
@@ -76,9 +75,8 @@ export default function SummaryPage() {
   const [busy, setBusy] = useState(true)
 
   useEffect(() => {
-    if (!supabase) return
     ;(async () => {
-      const { data: allUnits } = await getAllUnitsViaComplexes(supabase)
+      const { data: allUnits } = await fetchUnitsFromApi()
       const byBuilding = new Map()
       for (const u of allUnits ?? []) {
         const bid = u.building?.id

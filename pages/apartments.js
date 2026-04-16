@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { LayoutGrid, List } from 'lucide-react'
-import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
-import { getAllUnitsViaComplexes } from '../lib/supabaseQueries'
+import { fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
 import FiltersSidebar from '../components/apartments/FiltersSidebar'
 import ApartmentCard from '../components/apartments/ApartmentCard'
 import ApartmentModal from '../components/apartments/ApartmentModal'
@@ -120,16 +119,11 @@ export default function ApartmentsPage() {
 
   useEffect(() => {
     async function load() {
-      if (!supabase) {
-        setError('Supabase не настроен')
-        setUnits([])
-        return
-      }
       setBusy(true)
       setError('')
 
       try {
-        const { data, error: err } = await getAllUnitsViaComplexes(supabase)
+        const { data, error: err } = await fetchUnitsFromApi()
         if (err) {
           setError(err.message || 'Ошибка загрузки')
           setUnits([])
