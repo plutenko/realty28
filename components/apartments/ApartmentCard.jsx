@@ -116,6 +116,15 @@ function entranceFromPosition(position, unitsPerEntrance) {
   return null
 }
 
+function formatHandover(b) {
+  const s = b?.handover_status
+  if (s === 'completed') return 'Сдан'
+  const q = b?.handover_quarter
+  const y = b?.handover_year
+  if (!y) return null
+  return q ? `${q} кв. ${y}` : `${y}`
+}
+
 export default function ApartmentCard({ unit, collectionView = false, listView = false }) {
   const [contactsOpen, setContactsOpen] = useState(false)
   const b = unit?.building
@@ -168,6 +177,11 @@ export default function ApartmentCard({ unit, collectionView = false, listView =
           <div className="truncate text-sm text-gray-600">
             Застройщик: {d?.name ?? '—'}
           </div>
+          {formatHandover(b) && (
+            <div className="truncate text-sm text-gray-600">
+              Сдача: {formatHandover(b)}
+            </div>
+          )}
         </div>
 
         <div
