@@ -3,6 +3,16 @@ import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../lib/authContext'
 
+function getBrowserId() {
+  const key = 'domovoy_browser_id'
+  let id = localStorage.getItem(key)
+  if (!id) {
+    id = crypto.randomUUID()
+    localStorage.setItem(key, id)
+  }
+  return id
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const { user, profile, loading } = useAuth()
@@ -49,7 +59,7 @@ export default function LoginPage() {
       } catch {}
     }
     poll()
-    pollingRef.current = setInterval(poll, 3000)
+    pollingRef.current = setInterval(poll, 2000)
     return () => {
       stopped = true
       if (pollingRef.current) clearInterval(pollingRef.current)
@@ -58,9 +68,18 @@ export default function LoginPage() {
   }, [pendingToken])
 
   async function finalizeLogin() {
-    try {
-      const { data: { session: s } } = await supabase.auth.getSession()
-      if (s) {
+    const dest =
+      pendingRole === 'admin'
+        ? '/admin'
+        : pendingRole === 'manager'
+        ? '/manager'
+        : '/buildings'
+
+    // Логируем событие входа в фоне — не блокируем редирект
+    ;(async () => {
+      try {
+        const { data: { session: s } } = await supabase.auth.getSession()
+        if (!s) return
         const deviceLabel = [
           navigator.platform || '',
           screen.width && screen.height ? `${screen.width}×${screen.height}` : '',
@@ -78,15 +97,9 @@ export default function LoginPage() {
           const { sessionId } = await evRes.json()
           if (sessionId) localStorage.setItem('domovoy_sid', sessionId)
         }
-      }
-    } catch {}
+      } catch {}
+    })()
 
-    const dest =
-      pendingRole === 'admin'
-        ? '/admin'
-        : pendingRole === 'manager'
-        ? '/manager'
-        : '/buildings'
     router.replace(dest)
   }
 
@@ -126,6 +139,7 @@ export default function LoginPage() {
           screen: screen.width && screen.height ? `${screen.width}x${screen.height}` : '',
           platform: navigator.platform || '',
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+          browserId: getBrowserId(),
         }),
       })
       const deviceData = await deviceRes.json()
