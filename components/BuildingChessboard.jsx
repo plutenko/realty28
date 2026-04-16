@@ -236,7 +236,7 @@ function isAnchorCell(apt, f, p, maxPos) {
   return sf <= 1 ? f0 === f && p0 === p : fTop === f && p0 === p
 }
 
-function ApartmentCard({ apt, className = '' }) {
+function ApartmentCard({ apt, className = '', onClick = null }) {
   const sold = apt.status === 'sold'
   const booked = apt.status === 'booked'
   const closed = apt.status === 'closed'
@@ -266,8 +266,9 @@ function ApartmentCard({ apt, className = '' }) {
     <div
       className={`flex h-full min-h-0 flex-col justify-between overflow-hidden rounded p-2 text-xs transition hover:scale-[1.02] ${
         sf > 1 ? 'min-h-[calc(12rem+0.5rem)] py-2' : 'min-h-[6rem]'
-      } ${statusClass} ${borderClass} ${className}`}
+      } ${statusClass} ${borderClass} ${className} ${onClick ? 'cursor-pointer' : ''}`}
       title={`${commercial ? 'Коммерция · ' : ''}№${ap.number ?? '—'} · ${areaStr} м² · ${formatPriceRub(apt.price)} ₽`}
+      onClick={onClick}
     >
       <div className="flex justify-between text-[10px]">
         <span>{commercial ? 'КП' : `${ap.rooms}К`}</span>
@@ -356,6 +357,7 @@ export default function BuildingChessboard({
   unitsPerFloor = 4,
   unitsPerEntrance = null,
   floorPlanByFloor = null,
+  onUnitClick = null,
 }) {
   const { gridApartments, commercialUnits } = useMemo(() => {
     const grid = []
@@ -671,7 +673,7 @@ export default function BuildingChessboard({
             }}
             className="min-h-0 min-w-0"
           >
-            <ApartmentCard apt={apt} />
+            <ApartmentCard apt={apt} onClick={onUnitClick && apt.status === 'available' ? () => onUnitClick(apt) : null} />
           </div>
         )
       } else {

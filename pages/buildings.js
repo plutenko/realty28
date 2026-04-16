@@ -6,6 +6,7 @@ import BuildingChessboard, {
   mapUnitsToChessboardApartments,
 } from '../components/BuildingChessboard'
 import { fetchComplexesFromApi } from '../lib/fetchUnitsFromApi'
+import ApartmentModal from '../components/apartments/ApartmentModal'
 
 const normalize = (str) =>
   (str || '')
@@ -206,6 +207,7 @@ export default function BuildingsPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [selectedBuilding, setSelectedBuilding] = useState(null)
+  const [selectedUnit, setSelectedUnit] = useState(null)
   const [viewMode, setViewMode] = useState('grid')
 
   useEffect(() => {
@@ -362,6 +364,39 @@ export default function BuildingsPage() {
       apartments: b.units ?? [],
       floorPlanUrl: b.floorPlanUrl ?? null,
       floorPlanByFloor: b.floorPlanByFloor ?? {},
+      _complex: c,
+      _building: b,
+    })
+  }
+
+  function handleUnitClick(apt) {
+    const c = selectedBuilding?._complex
+    const b = selectedBuilding?._building
+    const developer = getComplexDeveloper(c)
+    const rawUnit = (b?.units ?? []).find(u => u.id === apt.id) || {}
+    setSelectedUnit({
+      ...rawUnit,
+      ...apt,
+      price_per_meter: apt.pricePerMeter ?? rawUnit.price_per_meter,
+      building: {
+        id: b?.id,
+        name: b?.name,
+        address: b?.address,
+        floors: b?.floors,
+        units_per_floor: b?.units_per_floor,
+        units_per_entrance: b?.units_per_entrance,
+        handover_status: b?.handover_status,
+        handover_quarter: b?.handover_quarter,
+        handover_year: b?.handover_year,
+        complex: {
+          id: c?.id,
+          name: c?.name,
+          website_url: c?.website_url,
+          realtor_commission_type: c?.realtor_commission_type,
+          realtor_commission_value: c?.realtor_commission_value,
+          developer,
+        },
+      },
     })
   }
 
@@ -412,6 +447,7 @@ export default function BuildingsPage() {
               unitsPerFloor={selectedBuilding.unitsPerFloor ?? 4}
               unitsPerEntrance={selectedBuilding.unitsPerEntrance ?? null}
               floorPlanByFloor={selectedBuilding.floorPlanByFloor ?? {}}
+              onUnitClick={handleUnitClick}
             />
           </div>
         </div>
@@ -532,6 +568,10 @@ export default function BuildingsPage() {
             )}
           </div>
         </div>
+      )}
+
+      {selectedUnit && (
+        <ApartmentModal unit={selectedUnit} onClose={() => setSelectedUnit(null)} />
       )}
     </div>
   )
