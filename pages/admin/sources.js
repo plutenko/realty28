@@ -1032,7 +1032,14 @@ export default function AdminSourcesPage() {
           <select
             className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
             value={buildingId}
-            onChange={(e) => setBuildingId(e.target.value)}
+            onChange={(e) => {
+              setBuildingId(e.target.value)
+              if (type === 'fsk' && e.target.value) {
+                const b = buildingsBySelectedComplex.find(x => x.id === e.target.value)
+                const slug = (url || '').split('|')[0]
+                if (slug && b?.name) setUrl(`${slug}|${b.name}`)
+              }
+            }}
             required
           >
             <option value="">— не выбрано —</option>
@@ -1253,39 +1260,23 @@ export default function AdminSourcesPage() {
             )
           })()
         ) : type === 'fsk' ? (
-          (() => {
-            const [fskSlug, fskCorpus] = (url || '').split('|').map(s => s.trim())
-            const joinFsk = (s, c) => c ? `${s}|${c}` : s
-            return (
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs text-slate-400">Slug ЖК на fsk.ru</label>
-                  <input
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-                    value={fskSlug || ''}
-                    onChange={(e) => setUrl(joinFsk(e.target.value.trim(), fskCorpus))}
-                    required
-                    placeholder="flabellum"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">
-                    Из URL: fsk.ru/<b>flabellum</b>/flats
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400">Номер корпуса (опционально)</label>
-                  <input
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-                    value={fskCorpus || ''}
-                    onChange={(e) => setUrl(joinFsk(fskSlug || '', e.target.value.trim()))}
-                    placeholder="2.3"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">
-                    Если не указан — загрузятся все корпуса ЖК.
-                  </p>
-                </div>
-              </div>
-            )
-          })()
+          <div>
+            <label className="block text-xs text-slate-400">Slug ЖК на fsk.ru</label>
+            <input
+              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              value={(url || '').split('|')[0]}
+              onChange={(e) => {
+                const selectedB = buildingsBySelectedComplex.find(b => b.id === buildingId)
+                const corpus = selectedB?.name || ''
+                setUrl(corpus ? `${e.target.value.trim()}|${corpus}` : e.target.value.trim())
+              }}
+              required
+              placeholder="flabellum"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Из URL: fsk.ru/<b>flabellum</b>/flats. Корпус берётся из выбранного дома автоматически.
+            </p>
+          </div>
         ) : (
           <div>
             <label className="block text-xs text-slate-400">URL</label>
