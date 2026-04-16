@@ -140,20 +140,19 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
             </h2>
             <p className="text-sm text-gray-500">
               {c?.name ?? '—'} · {b?.name ?? '—'}
-              {c?.website_url ? (
-                <>
-                  {' · '}
-                  <a
-                    href={c.website_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    сайт ЖК
-                  </a>
-                </>
-              ) : null}
             </p>
+            {c?.website_url ? (
+              <p className="text-sm mt-0.5">
+                <a
+                  href={c.website_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  {c.website_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                </a>
+              </p>
+            ) : null}
             {b?.address ? (
               <p className="text-xs text-gray-500 mt-0.5">
                 📍 {b.address}
