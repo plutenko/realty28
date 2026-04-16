@@ -87,6 +87,15 @@ function entranceFromPosition(position, unitsPerEntrance) {
   return null
 }
 
+function formatHandover(b) {
+  const s = b?.handover_status
+  if (s === 'completed') return 'Сдан'
+  const q = b?.handover_quarter
+  const y = b?.handover_year
+  if (!y) return null
+  return q ? `${q} кв. ${y}` : `${y}`
+}
+
 export default function ApartmentModal({ unit, onClose, onAddToCollection, isSelected, collectionView = false }) {
   const [zoomedSrc, setZoomedSrc] = useState(null)
   const b = unit?.building
@@ -151,6 +160,11 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
                 >
                   {c.website_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                 </a>
+              </p>
+            ) : null}
+            {formatHandover(b) ? (
+              <p className="text-xs text-gray-500 mt-0.5">
+                Сдача: {formatHandover(b)}
               </p>
             ) : null}
             {b?.address ? (
