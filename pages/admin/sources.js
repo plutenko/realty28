@@ -8,6 +8,7 @@ const SOURCE_TYPES = [
   { value: 'google_sheets', label: 'Google Таблица' },
   { value: 'profitbase',    label: 'Profitbase' },
   { value: 'macrocrm',      label: 'MacroCRM' },
+  { value: 'fsk',           label: 'ФСК (fsk.ru)' },
   { value: 'csv',           label: 'CSV файл' },
 ]
 
@@ -23,6 +24,7 @@ function resolvedParserType(sourceType, developerParser) {
   const t = String(sourceType || '').toLowerCase()
   if (t === 'profitbase') return 'profitbase'
   if (t === 'macrocrm') return 'macrocrm'
+  if (t === 'fsk') return 'fsk'
   if (t === 'google_sheets') {
     const p = String(developerParser || 'default').toLowerCase()
     return p === 'sodruzhestvo' ? 'sodruzhestvo' : 'default'
@@ -298,6 +300,7 @@ function sourceTypeBadgeClass(t) {
   const v = String(t || '').toLowerCase()
   if (v === 'google_sheets' || v === 'google') return 'bg-teal-600/25 text-teal-200 ring-1 ring-teal-500/40'
   if (v === 'profitbase') return 'bg-blue-600/25 text-blue-200 ring-1 ring-blue-500/40'
+  if (v === 'fsk') return 'bg-purple-600/25 text-purple-200 ring-1 ring-purple-500/40'
   return 'bg-slate-700/80 text-slate-300 ring-1 ring-slate-600/50'
 }
 
@@ -1249,6 +1252,40 @@ export default function AdminSourcesPage() {
               </div>
             )
           })()
+        ) : type === 'fsk' ? (
+          (() => {
+            const [fskSlug, fskCorpus] = (url || '').split('|').map(s => s.trim())
+            const joinFsk = (s, c) => c ? `${s}|${c}` : s
+            return (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-slate-400">Slug ЖК на fsk.ru</label>
+                  <input
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                    value={fskSlug || ''}
+                    onChange={(e) => setUrl(joinFsk(e.target.value.trim(), fskCorpus))}
+                    required
+                    placeholder="flabellum"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Из URL: fsk.ru/<b>flabellum</b>/flats
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400">Номер корпуса (опционально)</label>
+                  <input
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                    value={fskCorpus || ''}
+                    onChange={(e) => setUrl(joinFsk(fskSlug || '', e.target.value.trim()))}
+                    placeholder="2.3"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Если не указан — загрузятся все корпуса ЖК.
+                  </p>
+                </div>
+              </div>
+            )
+          })()
         ) : (
           <div>
             <label className="block text-xs text-slate-400">URL</label>
@@ -1424,6 +1461,8 @@ export default function AdminSourcesPage() {
                   <td className="max-w-xs truncate p-3 text-xs text-slate-300">
                     {r.type === 'profitbase'
                       ? `house_id: ${r.url || '—'}`
+                      : r.type === 'fsk'
+                      ? `fsk.ru/${(r.url || '').split('|')[0]}${(r.url || '').includes('|') ? ' · корпус ' + (r.url || '').split('|')[1] : ''}`
                       : r.url}
                   </td>
                   <td className="p-3">
