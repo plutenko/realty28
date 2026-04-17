@@ -6,7 +6,7 @@ import {
   sendToGroup,
   formatMention,
 } from '../../../lib/reportsTelegram'
-import { looksLikeReport, parseReport } from '../../../lib/reportsParser'
+import { classifyMessage, parseReport, parseAbsence } from '../../../lib/reportsParser'
 import {
   getReportsSettings,
   fillTemplate,
@@ -70,7 +70,8 @@ async function handleMessage(supabase, message, { edited }) {
   const settings = await getReportsSettings(supabase)
   if (!settings) return
 
-  if (!looksLikeReport(text, settings)) return
+  const kind = classifyMessage(text, settings)
+  if (kind === 'none') return
 
   const fromId = String(message.from.id)
   const chatId = message.chat.id
@@ -97,7 +98,6 @@ async function handleMessage(supabase, message, { edited }) {
   // Момент отправки сообщения (unix timestamp от Telegram). Для edited_message — edit_date.
   const ts = message.edit_date || message.date
   const now = ts ? new Date(ts * 1000) : new Date()
-  const parsed = parseReport(text, settings, now)
 
   const displayName = profile.name || message.from.first_name || 'участник'
   const mention = formatMention(
@@ -110,13 +110,58 @@ async function handleMessage(supabase, message, { edited }) {
     settings.mention_mode
   )
 
-  // Предыдущий реплай-ошибка на это же сообщение (если был)
+  // Предыдущий реплай-ошибка/hint на это же сообщение
   const { data: priorError } = await supabase
     .from('report_error_replies')
     .select('error_reply_message_id')
     .eq('chat_id', chatId)
     .eq('chat_message_id', messageId)
     .maybeSingle()
+  const priorErrorReplyId = priorError?.error_reply_message_id || null
+
+  if (kind === 'template') {
+    // Шаблон с метриками, но без маркера "Отчёт" — мягкий реплай-подсказка без реакции
+    await applyTemplateHint(supabase, {
+      chatId,
+      messageId,
+      settings,
+      mention,
+      priorErrorReplyId,
+    })
+    return
+  }
+
+  if (kind === 'absence') {
+    const abs = parseAbsence(text, settings, now)
+    if (!abs.ok) {
+      await applyInvalidReport(supabase, {
+        chatId,
+        messageId,
+        profile,
+        parsed: abs,
+        settings,
+        displayName,
+        mention,
+        edited,
+        rawText: text,
+        priorErrorReplyId,
+      })
+      return
+    }
+    await applyAbsence(supabase, {
+      chatId,
+      messageId,
+      profile,
+      abs,
+      settings,
+      rawText: text,
+      priorErrorReplyId,
+    })
+    return
+  }
+
+  // kind === 'report'
+  const parsed = parseReport(text, settings, now)
 
   if (!parsed.ok) {
     await applyInvalidReport(supabase, {
@@ -129,7 +174,7 @@ async function handleMessage(supabase, message, { edited }) {
       mention,
       edited,
       rawText: text,
-      priorErrorReplyId: priorError?.error_reply_message_id || null,
+      priorErrorReplyId,
     })
     return
   }
@@ -142,8 +187,71 @@ async function handleMessage(supabase, message, { edited }) {
     settings,
     edited,
     rawText: text,
-    priorErrorReplyId: priorError?.error_reply_message_id || null,
+    priorErrorReplyId,
   })
+}
+
+async function applyTemplateHint(supabase, ctx) {
+  const { chatId, messageId, settings, mention, priorErrorReplyId } = ctx
+  const msgs = settings.messages || {}
+  const hint = fillTemplate(
+    msgs.hint_template_no_marker ||
+      '💡 {name}, похоже на отчёт. Добавь первой строкой «Отчёт DD.MM» чтобы я записал.',
+    { name: mention }
+  )
+  if (priorErrorReplyId) {
+    await deleteMessage(chatId, priorErrorReplyId).catch(() => {})
+  }
+  const reply = await sendMessage(chatId, hint, {
+    replyToMessageId: messageId,
+    parseMode: 'HTML',
+  })
+  const replyId = reply?.result?.message_id || null
+  if (replyId) {
+    await supabase.from('report_error_replies').upsert(
+      { chat_id: chatId, chat_message_id: messageId, error_reply_message_id: replyId },
+      { onConflict: 'chat_id,chat_message_id' }
+    )
+  }
+  // Реакция НЕ ставим — это просто подсказка, не принятый/отклонённый отчёт
+}
+
+async function applyAbsence(supabase, ctx) {
+  const { chatId, messageId, profile, abs, settings, rawText, priorErrorReplyId } = ctx
+
+  const row = {
+    user_id: profile.id,
+    date_from: abs.dateFrom,
+    date_to: abs.dateTo,
+    chat_id: chatId,
+    chat_message_id: messageId,
+    error_reply_message_id: null,
+    is_valid: true,
+    absence_type: abs.absenceType,
+    raw_text: rawText,
+    extra: {},
+    updated_at: new Date().toISOString(),
+    // метрики не заполняем — человек не работал
+  }
+
+  const { error } = await supabase
+    .from('daily_reports')
+    .upsert(row, { onConflict: 'user_id,date_from,date_to' })
+  if (error) {
+    console.error('[reports-webhook] absence upsert error', error)
+    return
+  }
+
+  if (priorErrorReplyId) {
+    await deleteMessage(chatId, priorErrorReplyId).catch(() => {})
+    await supabase
+      .from('report_error_replies')
+      .delete()
+      .eq('chat_id', chatId)
+      .eq('chat_message_id', messageId)
+  }
+
+  await setMessageReaction(chatId, messageId, settings.reaction_accepted || '👌').catch(() => {})
 }
 
 async function applyValidReport(supabase, ctx) {
@@ -159,6 +267,7 @@ async function applyValidReport(supabase, ctx) {
     chat_message_id: messageId,
     error_reply_message_id: null,
     is_valid: true,
+    absence_type: null,
     raw_text: rawText,
     extra: parsed.extra || {},
     updated_at: new Date().toISOString(),
