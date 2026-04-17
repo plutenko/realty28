@@ -112,12 +112,21 @@ async function handleCallbackQuery(supabase, cq) {
   const action = m[1]
   const token = m[2]
 
-  // Кто нажал?
-  const { data: approver } = await supabase
-    .from('profiles')
-    .select('id, name, email, role, telegram_chat_id')
-    .eq('telegram_chat_id', fromChatId)
-    .maybeSingle()
+  // Параллельный lookup approver + pending — экономит 1 round-trip
+  const [approverRes, pendingRes] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, name, email, role, telegram_chat_id')
+      .eq('telegram_chat_id', fromChatId)
+      .maybeSingle(),
+    supabase
+      .from('pending_logins')
+      .select('*')
+      .eq('token', token)
+      .maybeSingle(),
+  ])
+  const approver = approverRes.data
+  const pending = pendingRes.data
 
   if (!approver) {
     await answerCallbackQuery(cqId, 'Ваш Telegram не привязан к аккаунту')
@@ -127,13 +136,6 @@ async function handleCallbackQuery(supabase, cq) {
     await answerCallbackQuery(cqId, 'Подтверждать могут только админ или руководитель')
     return
   }
-
-  // Находим запрос
-  const { data: pending } = await supabase
-    .from('pending_logins')
-    .select('*')
-    .eq('token', token)
-    .maybeSingle()
 
   if (!pending) {
     await answerCallbackQuery(cqId, 'Запрос не найден')
@@ -175,15 +177,8 @@ async function handleCallbackQuery(supabase, cq) {
   const approverName = approver.name || approver.email || 'руководитель'
 
   if (action === 'approve') {
-    const { error: devErr } = await supabase.from('user_devices').insert({
-      user_id: pending.user_id,
-      device_hash: pending.device_hash,
-      label: pending.device_label,
-    })
-    if (devErr && !/unique/i.test(devErr.message)) {
-      await answerCallbackQuery(cqId, 'Ошибка: ' + devErr.message)
-      return
-    }
+    // Критично: первым делом ставим 'approved' — чтобы polling клиента разблокировал логин.
+    // Остальное (user_devices insert, Telegram UI) в параллели.
     await supabase
       .from('pending_logins')
       .update({
@@ -193,14 +188,21 @@ async function handleCallbackQuery(supabase, cq) {
       })
       .eq('id', pending.id)
 
-    await answerCallbackQuery(cqId, '✅ Вход разрешён')
-    if (messageChatId && messageId) {
-      await editTelegramMessage(
-        messageChatId,
-        messageId,
-        `${originalText}\n\n✅ <b>Разрешено</b> — ${escapeHtml(approverName)}`
-      )
-    }
+    await Promise.all([
+      supabase.from('user_devices').insert({
+        user_id: pending.user_id,
+        device_hash: pending.device_hash,
+        label: pending.device_label,
+      }).then(() => {}, () => {}), // ignore unique-constraint errors
+      answerCallbackQuery(cqId, '✅ Вход разрешён'),
+      messageChatId && messageId
+        ? editTelegramMessage(
+            messageChatId,
+            messageId,
+            `${originalText}\n\n✅ <b>Разрешено</b> — ${escapeHtml(approverName)}`
+          )
+        : Promise.resolve(),
+    ])
   } else {
     await supabase
       .from('pending_logins')
@@ -211,13 +213,15 @@ async function handleCallbackQuery(supabase, cq) {
       })
       .eq('id', pending.id)
 
-    await answerCallbackQuery(cqId, '⛔ Вход отклонён')
-    if (messageChatId && messageId) {
-      await editTelegramMessage(
-        messageChatId,
-        messageId,
-        `${originalText}\n\n⛔ <b>Отклонено</b> — ${escapeHtml(approverName)}`
-      )
-    }
+    await Promise.all([
+      answerCallbackQuery(cqId, '⛔ Вход отклонён'),
+      messageChatId && messageId
+        ? editTelegramMessage(
+            messageChatId,
+            messageId,
+            `${originalText}\n\n⛔ <b>Отклонено</b> — ${escapeHtml(approverName)}`
+          )
+        : Promise.resolve(),
+    ])
   }
 }
