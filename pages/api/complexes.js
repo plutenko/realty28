@@ -29,6 +29,12 @@ export default async function handler(req, res) {
       .order('name')
 
     if (cErr) throw cErr
+    const excludeStatuses = new Set(['sold', 'booked', 'reserved', 'closed'])
+    for (const c of complexes ?? []) {
+      for (const b of c.buildings ?? []) {
+        b.units = (b.units ?? []).filter(u => !excludeStatuses.has(String(u.status ?? '').toLowerCase()))
+      }
+    }
     const rows = complexes ?? []
     const ids = rows.map(c => c.id)
 
