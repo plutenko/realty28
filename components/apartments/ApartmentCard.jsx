@@ -117,8 +117,6 @@ function entranceFromPosition(position, unitsPerEntrance) {
 }
 
 function pricePerM2(unit) {
-  const ppm = Number(unit?.price_per_meter)
-  if (Number.isFinite(ppm) && ppm > 0) return ppm
   const price = Number(unit?.price)
   const area = Number(unit?.area)
   if (Number.isFinite(price) && Number.isFinite(area) && area > 0) {
