@@ -210,6 +210,9 @@ export default function ApartmentCard({ unit, collectionView = false, listView =
 
       <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
         <div>
+          № квартиры: <span className="font-semibold text-gray-900">{unit?.number ?? '—'}</span>
+        </div>
+        <div>
           Комнаты: <span className="font-semibold text-gray-900">{formatRooms(unit?.rooms)}</span>
         </div>
         <div>
