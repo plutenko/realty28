@@ -94,8 +94,9 @@ async function handleMessage(supabase, message, { edited }) {
     return
   }
 
-  // Парсим
-  const now = new Date()
+  // Момент отправки сообщения (unix timestamp от Telegram). Для edited_message — edit_date.
+  const ts = message.edit_date || message.date
+  const now = ts ? new Date(ts * 1000) : new Date()
   const parsed = parseReport(text, settings, now)
 
   const displayName = profile.name || message.from.first_name || 'участник'
@@ -231,21 +232,28 @@ function buildErrorText(errors, settings, vars) {
   if (!errors || !errors.length) return null
   const msgs = settings.messages || {}
   const e = errors[0]
+  const base = { ...vars, value: e.value }
   switch (e.type) {
     case 'no_date':
       return fillTemplate(msgs.error_no_date, vars)
     case 'bad_date':
-      return fillTemplate(msgs.error_bad_date, { ...vars, value: e.value })
+      return fillTemplate(msgs.error_bad_date, base)
     case 'future':
-      return fillTemplate(msgs.error_future, { ...vars, value: e.value })
+      return fillTemplate(msgs.error_future, base)
+    case 'too_early':
+      return fillTemplate(msgs.error_too_early, { ...base, open_at: e.open_at })
     case 'too_old':
-      return fillTemplate(msgs.error_too_old, {
-        ...vars,
-        value: e.value,
-        days: e.days,
-      })
+      return fillTemplate(msgs.error_too_old, { ...base, close_at: e.close_at })
     case 'range_inverted':
-      return fillTemplate(msgs.error_range_inverted, { ...vars, value: e.value })
+      return fillTemplate(msgs.error_range_inverted, base)
+    case 'range_too_wide':
+      return fillTemplate(msgs.error_range_too_wide, {
+        ...base,
+        max_days: e.max_days,
+        actual_days: e.actual_days,
+      })
+    case 'range_not_weekend_only':
+      return fillTemplate(msgs.error_range_not_weekend, base)
     default:
       return null
   }
