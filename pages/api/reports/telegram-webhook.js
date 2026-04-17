@@ -109,6 +109,14 @@ async function handleMessage(supabase, message, { edited }) {
     settings.mention_mode
   )
 
+  // Предыдущий реплай-ошибка на это же сообщение (если был)
+  const { data: priorError } = await supabase
+    .from('report_error_replies')
+    .select('error_reply_message_id')
+    .eq('chat_id', chatId)
+    .eq('chat_message_id', messageId)
+    .maybeSingle()
+
   if (!parsed.ok) {
     await applyInvalidReport(supabase, {
       chatId,
@@ -120,11 +128,11 @@ async function handleMessage(supabase, message, { edited }) {
       mention,
       edited,
       rawText: text,
+      priorErrorReplyId: priorError?.error_reply_message_id || null,
     })
     return
   }
 
-  // Всё ок — апсёрт + реакция 👌 + удалить предыдущий error-reply если был
   await applyValidReport(supabase, {
     chatId,
     messageId,
@@ -133,22 +141,14 @@ async function handleMessage(supabase, message, { edited }) {
     settings,
     edited,
     rawText: text,
+    priorErrorReplyId: priorError?.error_reply_message_id || null,
   })
 }
 
 async function applyValidReport(supabase, ctx) {
-  const { chatId, messageId, profile, parsed, settings, rawText } = ctx
+  const { chatId, messageId, profile, parsed, settings, rawText, priorErrorReplyId } = ctx
 
   const metricCols = pickDailyReportColumns(parsed.metrics)
-
-  // Если уже был отчёт на тот же диапазон — найдём его error_reply_message_id для удаления
-  const { data: existing } = await supabase
-    .from('daily_reports')
-    .select('id, error_reply_message_id, chat_message_id')
-    .eq('user_id', profile.id)
-    .eq('date_from', parsed.dateFrom)
-    .eq('date_to', parsed.dateTo)
-    .maybeSingle()
 
   const row = {
     user_id: profile.id,
@@ -172,9 +172,14 @@ async function applyValidReport(supabase, ctx) {
     return
   }
 
-  // Удалить старый реплай-ошибку (если был)
-  if (existing?.error_reply_message_id) {
-    await deleteMessage(chatId, existing.error_reply_message_id).catch(() => {})
+  // Удалить предыдущий реплай-ошибку (если был) и запись о нём
+  if (priorErrorReplyId) {
+    await deleteMessage(chatId, priorErrorReplyId).catch(() => {})
+    await supabase
+      .from('report_error_replies')
+      .delete()
+      .eq('chat_id', chatId)
+      .eq('chat_message_id', messageId)
   }
 
   // Поставить реакцию "принят"
@@ -182,46 +187,44 @@ async function applyValidReport(supabase, ctx) {
 }
 
 async function applyInvalidReport(supabase, ctx) {
-  const { chatId, messageId, profile, parsed, settings, displayName, mention, rawText } = ctx
+  const { chatId, messageId, settings, mention, priorErrorReplyId } = ctx
 
-  const errorText = buildErrorText(parsed.errors, settings, { name: mention })
+  const errorText = buildErrorText(ctx.parsed.errors, settings, { name: mention })
   if (!errorText) return
 
-  // Проверим есть ли уже запись: для невалидного отчёта диапазон неизвестен, поэтому ищем по chat_message_id
-  const { data: existingByMsg } = await supabase
-    .from('daily_reports')
-    .select('id, error_reply_message_id, date_from, date_to')
-    .eq('chat_message_id', messageId)
-    .eq('chat_id', chatId)
-    .maybeSingle()
-
-  if (existingByMsg?.error_reply_message_id) {
-    await deleteMessage(chatId, existingByMsg.error_reply_message_id).catch(() => {})
+  // Снять предыдущий реплай-ошибку, если был
+  if (priorErrorReplyId) {
+    await deleteMessage(chatId, priorErrorReplyId).catch(() => {})
   }
 
-  // Отправим новый реплай с причиной
+  // Отправить новый реплай и запомнить его id
   const reply = await sendMessage(chatId, errorText, {
     replyToMessageId: messageId,
     parseMode: 'HTML',
   })
   const replyId = reply?.result?.message_id || null
 
+  if (replyId) {
+    await supabase.from('report_error_replies').upsert(
+      {
+        chat_id: chatId,
+        chat_message_id: messageId,
+        error_reply_message_id: replyId,
+      },
+      { onConflict: 'chat_id,chat_message_id' }
+    )
+  }
+
+  // Если для этого же сообщения был валидный отчёт раньше (редко, но возможно при edit валид → невалид),
+  // помечаем как невалидный в daily_reports
+  await supabase
+    .from('daily_reports')
+    .update({ is_valid: false, updated_at: new Date().toISOString() })
+    .eq('chat_id', chatId)
+    .eq('chat_message_id', messageId)
+
   // Реакция "не принят"
   await setMessageReaction(chatId, messageId, settings.reaction_rejected || '🤔').catch(() => {})
-
-  // Если была прошлая запись под этим сообщением — обновим её error_reply_message_id
-  if (existingByMsg) {
-    await supabase
-      .from('daily_reports')
-      .update({
-        is_valid: false,
-        error_reply_message_id: replyId,
-        raw_text: rawText,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', existingByMsg.id)
-  }
-  // Если не было — не создаём запись с null в date_from/date_to (NOT NULL constraint). Просто оставляем реплай в чате.
 }
 
 function buildErrorText(errors, settings, vars) {
