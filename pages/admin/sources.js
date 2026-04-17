@@ -9,6 +9,7 @@ const SOURCE_TYPES = [
   { value: 'profitbase',    label: 'Profitbase' },
   { value: 'macrocrm',      label: 'MacroCRM' },
   { value: 'fsk',           label: 'ФСК (fsk.ru)' },
+  { value: 'pik',           label: 'ПИК (pik.ru)' },
   { value: 'csv',           label: 'CSV файл' },
 ]
 
@@ -25,6 +26,7 @@ function resolvedParserType(sourceType, developerParser) {
   if (t === 'profitbase') return 'profitbase'
   if (t === 'macrocrm') return 'macrocrm'
   if (t === 'fsk') return 'fsk'
+  if (t === 'pik') return 'pik'
   if (t === 'google_sheets') {
     const p = String(developerParser || 'default').toLowerCase()
     return p === 'sodruzhestvo' ? 'sodruzhestvo' : 'default'
@@ -301,6 +303,7 @@ function sourceTypeBadgeClass(t) {
   if (v === 'google_sheets' || v === 'google') return 'bg-teal-600/25 text-teal-200 ring-1 ring-teal-500/40'
   if (v === 'profitbase') return 'bg-blue-600/25 text-blue-200 ring-1 ring-blue-500/40'
   if (v === 'fsk') return 'bg-purple-600/25 text-purple-200 ring-1 ring-purple-500/40'
+  if (v === 'pik') return 'bg-orange-600/25 text-orange-200 ring-1 ring-orange-500/40'
   return 'bg-slate-700/80 text-slate-300 ring-1 ring-slate-600/50'
 }
 
@@ -1034,10 +1037,10 @@ export default function AdminSourcesPage() {
             value={buildingId}
             onChange={(e) => {
               setBuildingId(e.target.value)
-              if (type === 'fsk' && e.target.value) {
+              if ((type === 'fsk' || type === 'pik') && e.target.value) {
                 const b = buildingsBySelectedComplex.find(x => x.id === e.target.value)
-                const slug = (url || '').split('|')[0]
-                if (slug && b?.name) setUrl(`${slug}|${b.name}`)
+                const head = (url || '').split('|')[0]
+                if (head && b?.name) setUrl(`${head}|${b.name}`)
               }
             }}
             required
@@ -1277,6 +1280,26 @@ export default function AdminSourcesPage() {
               Из URL: fsk.ru/<b>flabellum</b>/flats. Корпус берётся из выбранного дома автоматически.
             </p>
           </div>
+        ) : type === 'pik' ? (
+          <div>
+            <label className="block text-xs text-slate-400">ID ЖК на pik.ru (block id)</label>
+            <input
+              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              value={(url || '').split('|')[0]}
+              onChange={(e) => {
+                const selectedB = buildingsBySelectedComplex.find(b => b.id === buildingId)
+                const corpusName = selectedB?.name || ''
+                const id = e.target.value.trim().replace(/\D+/g, '')
+                setUrl(corpusName ? `${id}|${corpusName}` : id)
+              }}
+              required
+              placeholder="1888"
+              inputMode="numeric"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Найти на странице ЖК: pik.ru/search/&lt;город&gt;/&lt;slug&gt; → в __NEXT_DATA__. Для Зея парк: <b>1888</b>. Имя корпуса берётся из выбранного дома (должно точно совпадать с PIK, например "Корпус 1").
+            </p>
+          </div>
         ) : (
           <div>
             <label className="block text-xs text-slate-400">URL</label>
@@ -1453,7 +1476,9 @@ export default function AdminSourcesPage() {
                     {r.type === 'profitbase'
                       ? `house_id: ${r.url || '—'}`
                       : r.type === 'fsk'
-                      ? `fsk.ru/${(r.url || '').split('|')[0]}${(r.url || '').includes('|') ? ' · корпус ' + (r.url || '').split('|')[1] : ''}`
+                      ? `fsk.ru/${(r.url || '').split('|')[0]}${(r.url || '').includes('|') ? ' · ' + (r.url || '').split('|')[1] : ''}`
+                      : r.type === 'pik'
+                      ? `block: ${(r.url || '').split('|')[0]}${(r.url || '').includes('|') ? ' · ' + (r.url || '').split('|')[1] : ''}`
                       : r.url}
                   </td>
                   <td className="p-3">
