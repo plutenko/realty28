@@ -1037,7 +1037,7 @@ export default function AdminSourcesPage() {
             value={buildingId}
             onChange={(e) => {
               setBuildingId(e.target.value)
-              if ((type === 'fsk' || type === 'pik') && e.target.value) {
+              if (type === 'fsk' && e.target.value) {
                 const b = buildingsBySelectedComplex.find(x => x.id === e.target.value)
                 const head = (url || '').split('|')[0]
                 if (head && b?.name) setUrl(`${head}|${b.name}`)
@@ -1281,25 +1281,41 @@ export default function AdminSourcesPage() {
             </p>
           </div>
         ) : type === 'pik' ? (
-          <div>
-            <label className="block text-xs text-slate-400">ID ЖК на pik.ru (block id)</label>
-            <input
-              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
-              value={(url || '').split('|')[0]}
-              onChange={(e) => {
-                const selectedB = buildingsBySelectedComplex.find(b => b.id === buildingId)
-                const corpusName = selectedB?.name || ''
-                const id = e.target.value.trim().replace(/\D+/g, '')
-                setUrl(corpusName ? `${id}|${corpusName}` : id)
-              }}
-              required
-              placeholder="1888"
-              inputMode="numeric"
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              Найти на странице ЖК: pik.ru/search/&lt;город&gt;/&lt;slug&gt; → в __NEXT_DATA__. Для Зея парк: <b>1888</b>. Имя корпуса берётся из выбранного дома (должно точно совпадать с PIK, например "Корпус 1").
-            </p>
-          </div>
+          (() => {
+            const [pathPart, bulkIdPart] = (url || '').split('|').map(s => s.trim())
+            const joinPik = (path, bulk) => (path && bulk) ? `${path}|${bulk}` : (path || bulk || '')
+            return (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-slate-400">Город/slug ЖК на pik.ru</label>
+                  <input
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                    value={pathPart || ''}
+                    onChange={(e) => setUrl(joinPik(e.target.value.trim(), bulkIdPart))}
+                    required
+                    placeholder="blagoveshchensk/zeyapark"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Из URL: pik.ru/search/<b>blagoveshchensk/zeyapark</b>
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400">ID корпуса (bulk)</label>
+                  <input
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                    value={bulkIdPart || ''}
+                    onChange={(e) => setUrl(joinPik(pathPart, e.target.value.trim().replace(/\D+/g, '')))}
+                    required
+                    placeholder="9357"
+                    inputMode="numeric"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Из URL: pik.ru/search/.../?bulk=<b>9357</b>. Для Зея парка: корпус 1=9357, корпус 2=9260, корпус 3=9262, корпус 4=9358, корпус 7=9703.
+                  </p>
+                </div>
+              </div>
+            )
+          })()
         ) : (
           <div>
             <label className="block text-xs text-slate-400">URL</label>
