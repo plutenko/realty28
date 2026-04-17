@@ -116,6 +116,17 @@ function entranceFromPosition(position, unitsPerEntrance) {
   return null
 }
 
+function pricePerM2(unit) {
+  const ppm = Number(unit?.price_per_meter)
+  if (Number.isFinite(ppm) && ppm > 0) return ppm
+  const price = Number(unit?.price)
+  const area = Number(unit?.area)
+  if (Number.isFinite(price) && Number.isFinite(area) && area > 0) {
+    return Math.round(price / area)
+  }
+  return null
+}
+
 function formatHandover(b) {
   const s = b?.handover_status
   if (s === 'completed') return 'Сдан'
@@ -229,6 +240,9 @@ export default function ApartmentCard({ unit, collectionView = false, listView =
         </div>
         <div>
           Цена: <span className="font-semibold text-gray-900">{formatPriceRub(unit?.price)} ₽</span>
+        </div>
+        <div>
+          Цена за м²: <span className="font-semibold text-gray-900">{formatPriceRub(pricePerM2(unit))} ₽</span>
         </div>
       </div>
       {!collectionView && (
