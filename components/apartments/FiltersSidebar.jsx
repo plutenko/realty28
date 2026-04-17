@@ -103,10 +103,15 @@ export default function FiltersSidebar({
   selectedHandoverKeys,
   handoverCountsByKey,
   onToggleHandover,
+  ppmRanges,
+  selectedPpmRanges,
+  ppmCounts,
+  onTogglePpmRange,
 }) {
   const [openSections, setOpenSections] = useState({
     price: true,
     handover: true,
+    ppm: true,
     rooms: true,
     floor: true,
     area: true,
@@ -237,6 +242,40 @@ export default function FiltersSidebar({
           ) : (
             <p className="text-xs text-gray-400">Нет данных</p>
           )}
+        </div>
+      </FilterBlock>
+
+      <FilterBlock
+        title="Цена за м²"
+        open={openSections.ppm}
+        onToggle={() => toggleSection('ppm')}
+      >
+        <div className="space-y-1 text-left">
+          {(ppmRanges ?? []).map((r, idx) => {
+            const count = ppmCounts?.[idx] ?? 0
+            const checked = selectedPpmRanges?.includes(idx)
+            const disabled = count === 0 && !checked
+            return (
+              <label
+                key={r.label}
+                className={`flex cursor-pointer items-center justify-between gap-3 rounded-md px-1 py-1 transition hover:bg-gray-50 ${
+                  disabled ? 'opacity-40' : ''
+                }`}
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={() => onTogglePpmRange(idx)}
+                    className="accent-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                  />
+                  <span className="truncate text-sm text-gray-900">{r.label}</span>
+                </div>
+                <span className="shrink-0 text-sm text-gray-400">({count})</span>
+              </label>
+            )
+          })}
         </div>
       </FilterBlock>
 

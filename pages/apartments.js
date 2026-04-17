@@ -25,6 +25,31 @@ const areaRanges = [
   { label: '70+ м²', min: 70, max: Infinity },
 ]
 
+const ppmRanges = [
+  { label: 'До 150 000 ₽/м²', min: 0, max: 150000 },
+  { label: '150 – 180 тыс ₽/м²', min: 150000, max: 180000 },
+  { label: '180 – 220 тыс ₽/м²', min: 180000, max: 220000 },
+  { label: '220 – 260 тыс ₽/м²', min: 220000, max: 260000 },
+  { label: '260+ тыс ₽/м²', min: 260000, max: Infinity },
+]
+
+function unitPpm(u) {
+  const price = Number(u?.price)
+  const area = Number(u?.area)
+  if (Number.isFinite(price) && Number.isFinite(area) && area > 0) return price / area
+  return null
+}
+
+function unitMatchesPpmRanges(u, selectedIdx) {
+  if (!selectedIdx?.length) return true
+  const ppm = unitPpm(u)
+  if (ppm == null) return false
+  return selectedIdx.some((i) => {
+    const r = ppmRanges[i]
+    return r && ppm >= r.min && ppm < r.max
+  })
+}
+
 /** area в БД может быть строкой — ручной ввод «От / До» */
 function unitAreaMatches(u, areaFrom, areaTo) {
   const a = Number(u.area)
@@ -82,6 +107,7 @@ export default function ApartmentsPage() {
   /** UUID корпусов (литер); OR с выбранным целиком ЖК */
   const [selectedBuildingIds, setSelectedBuildingIds] = useState([])
   const [selectedHandoverKeys, setSelectedHandoverKeys] = useState([])
+  const [selectedPpmRanges, setSelectedPpmRanges] = useState([])
   const selectedComplexesRef = useRef(selectedComplexes)
   const selectedBuildingIdsRef = useRef(selectedBuildingIds)
   useEffect(() => {
@@ -241,6 +267,7 @@ export default function ApartmentsPage() {
         (selectedDevelopers.length === 0 || selectedDevelopers.includes(devName)) &&
         unitMatchesComplexBuildingFilter(u, selectedComplexes, selectedBuildingIds) &&
         (selectedHandoverKeys.length === 0 || selectedHandoverKeys.includes(handoverKey)) &&
+        unitMatchesPpmRanges(u, selectedPpmRanges) &&
         (floorFrom == null || floorVal >= floorFrom) &&
         (floorTo == null || floorVal <= floorTo) &&
         unitAreaMatches(u, areaFrom, areaTo)
@@ -252,6 +279,7 @@ export default function ApartmentsPage() {
     selectedComplexes,
     selectedBuildingIds,
     selectedHandoverKeys,
+    selectedPpmRanges,
     floorFrom,
     floorTo,
     areaFrom,
@@ -268,6 +296,7 @@ export default function ApartmentsPage() {
         notSold &&
         (selectedDevelopers.length === 0 || selectedDevelopers.includes(devName)) &&
         unitMatchesComplexBuildingFilter(u, selectedComplexes, selectedBuildingIds) &&
+        unitMatchesPpmRanges(u, selectedPpmRanges) &&
         (floorFrom == null || floorVal >= floorFrom) &&
         (floorTo == null || floorVal <= floorTo) &&
         unitAreaMatches(u, areaFrom, areaTo)
@@ -278,6 +307,7 @@ export default function ApartmentsPage() {
     selectedDevelopers,
     selectedComplexes,
     selectedBuildingIds,
+    selectedPpmRanges,
     floorFrom,
     floorTo,
     areaFrom,
@@ -492,6 +522,66 @@ export default function ApartmentsPage() {
     selectedAreaRanges,
   ])
 
+  const baseFilteredNoPpm = useMemo(() => {
+    return (units ?? []).filter((u) => {
+      const devName = u?.building?.complex?.developer?.name
+      const floorVal = u?.floor ?? 0
+      const st = String(u?.status ?? '').toLowerCase()
+      const notSold = st !== 'sold' && st !== 'booked' && st !== 'reserved' && st !== 'closed'
+      const handoverKey = getHandoverKeyForUnit(u)
+      return (
+        notSold &&
+        (selectedDevelopers.length === 0 || selectedDevelopers.includes(devName)) &&
+        unitMatchesComplexBuildingFilter(u, selectedComplexes, selectedBuildingIds) &&
+        (selectedHandoverKeys.length === 0 || selectedHandoverKeys.includes(handoverKey)) &&
+        (floorFrom == null || floorVal >= floorFrom) &&
+        (floorTo == null || floorVal <= floorTo) &&
+        unitAreaMatches(u, areaFrom, areaTo)
+      )
+    })
+  }, [
+    units,
+    selectedDevelopers,
+    selectedComplexes,
+    selectedBuildingIds,
+    selectedHandoverKeys,
+    floorFrom,
+    floorTo,
+    areaFrom,
+    areaTo,
+  ])
+
+  const ppmCounts = useMemo(() => {
+    return ppmRanges.map((r) =>
+      baseFilteredNoPpm.filter((u) => {
+        const ppm = unitPpm(u)
+        if (ppm == null) return false
+        const p = Number(u?.price ?? 0)
+        const pMatches =
+          p >= priceMin &&
+          p <= priceMax &&
+          (selectedPriceRanges.length === 0 ||
+            selectedPriceRanges.some((idx) => priceOkForIndex(u, idx)))
+        const matchRoom = roomsOk(u, selectedRooms)
+        const matchAreaQuick = unitAreaQuickRangesMatch(u, selectedAreaRanges)
+        return pMatches && matchRoom && matchAreaQuick && ppm >= r.min && ppm < r.max
+      }).length
+    )
+  }, [
+    baseFilteredNoPpm,
+    priceMin,
+    priceMax,
+    selectedPriceRanges,
+    selectedRooms,
+    selectedAreaRanges,
+  ])
+
+  const togglePpmRange = (idx) => {
+    setSelectedPpmRanges((prev) =>
+      prev.includes(idx) ? prev.filter((x) => x !== idx) : [...prev, idx]
+    )
+  }
+
   const filtered = useMemo(() => {
     return (units ?? []).filter((u) => {
       const devName = u?.building?.complex?.developer?.name
@@ -528,6 +618,7 @@ export default function ApartmentsPage() {
         matchPriceRanges &&
         matchRooms &&
         matchTwoLevel &&
+        unitMatchesPpmRanges(u, selectedPpmRanges) &&
         (floorFrom == null || (u?.floor ?? 0) >= floorFrom) &&
         (floorTo == null || (u?.floor ?? 0) <= floorTo) &&
         unitAreaMatches(u, areaFrom, areaTo) &&
@@ -540,6 +631,7 @@ export default function ApartmentsPage() {
     selectedComplexes,
     selectedBuildingIds,
     selectedHandoverKeys,
+    selectedPpmRanges,
     priceMin,
     priceMax,
     selectedPriceRanges,
@@ -786,6 +878,10 @@ export default function ApartmentsPage() {
             selectedHandoverKeys={selectedHandoverKeys}
             handoverCountsByKey={handoverCountsByKey}
             onToggleHandover={toggleHandover}
+            ppmRanges={ppmRanges}
+            selectedPpmRanges={selectedPpmRanges}
+            ppmCounts={ppmCounts}
+            onTogglePpmRange={togglePpmRange}
             floorFrom={floorFrom}
             floorTo={floorTo}
             onFloorFromChange={setFloorFrom}
