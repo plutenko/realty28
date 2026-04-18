@@ -1,0 +1,26 @@
+name: Reports — вечернее напоминание
+
+on:
+  schedule:
+    # 20:00 Asia/Yakutsk = 11:00 UTC
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: 'dry-run (не шлёт в чат)'
+        type: boolean
+        default: false
+
+jobs:
+  reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger reports reminder
+        run: |
+          DRY=""
+          if [ "${{ github.event.inputs.dry }}" = "true" ]; then DRY="?dry=1"; fi
+          curl -sS -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "https://domovoy28.ru/api/reports/cron/reminder${DRY}" \
+            | tee /tmp/out.json
+          grep -q '"ok":true' /tmp/out.json

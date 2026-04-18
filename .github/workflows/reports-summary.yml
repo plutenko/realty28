@@ -1,0 +1,26 @@
+name: Reports — утренняя сводка
+
+on:
+  schedule:
+    # 09:30 Asia/Yakutsk = 00:30 UTC
+    - cron: '30 0 * * *'
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: 'dry-run (не шлёт в чат)'
+        type: boolean
+        default: false
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger reports summary
+        run: |
+          DRY=""
+          if [ "${{ github.event.inputs.dry }}" = "true" ]; then DRY="?dry=1"; fi
+          curl -sS -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "https://domovoy28.ru/api/reports/cron/summary${DRY}" \
+            | tee /tmp/out.json
+          grep -q '"ok":true' /tmp/out.json
