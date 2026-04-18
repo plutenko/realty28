@@ -169,12 +169,9 @@ function getFloorsDescending(floorsCount, apartments) {
     return []
   }
 
-  const bottom =
-    apartments.length > 0 &&
-    Number.isFinite(minFromData) &&
-    minFromData !== Infinity
-      ? minFromData
-      : 1
+  // Всегда начинаем с 1-го этажа, чтобы сетка дома отображала все этажи,
+  // даже если на нижних нет квартир в продаже.
+  const bottom = 1
 
   const out = []
   for (let f = top; f >= bottom; f -= 1) {
