@@ -225,7 +225,7 @@ export default function ApartmentCard({ unit, collectionView = false, listView =
           Комнаты: <span className="font-semibold text-gray-900">{formatRooms(unit?.rooms)}</span>
         </div>
         <div>
-          Этаж: <span className="font-semibold text-gray-900">{unit?.floor ?? '—'}</span>
+          Этаж: <span className="font-semibold text-gray-900">{unit?.floor ?? '—'}{b?.floors ? ` из ${b.floors}` : ''}</span>
         </div>
         <div>
           Подъезд:{' '}

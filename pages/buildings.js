@@ -619,6 +619,7 @@ function BuildingCatalogCard({
           <h3 className="text-lg font-semibold text-gray-900">{complexTitle}</h3>
           <p className="text-sm font-medium text-gray-700">{buildingTitle}</p>
           <p className="text-xs text-gray-500">{developerLabel || '—'}</p>
+          {b?.floors ? <p className="text-xs text-gray-500">{b.floors} этажей</p> : null}
           <div className="mt-2 text-lg font-semibold text-blue-600">
             {priceLine}
           </div>
@@ -663,6 +664,7 @@ function BuildingCatalogCard({
         <h3 className="text-lg font-semibold text-gray-900">{complexTitle}</h3>
         <p className="mt-0.5 text-sm font-medium text-gray-700">{buildingTitle}</p>
         <p className="mt-1 text-xs text-gray-500">{developerLabel || '—'}</p>
+        {b?.floors ? <p className="mt-1 text-xs text-gray-500">{b.floors} этажей</p> : null}
 
         <div className="mt-3 text-lg font-semibold text-blue-600">
           {priceLine}

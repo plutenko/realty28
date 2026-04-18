@@ -246,7 +246,7 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
           {/* Details grid */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <DetailItem label="Комнаты" value={formatRooms(unit?.rooms)} />
-            <DetailItem label="Этаж" value={unit?.floor ?? '—'} />
+            <DetailItem label="Этаж" value={`${unit?.floor ?? '—'}${b?.floors ? ` из ${b.floors}` : ''}`} />
             <DetailItem label="Подъезд" value={entrance ?? '—'} />
             <DetailItem label="Площадь" value={`${unit?.area ?? '—'} м²`} />
             <DetailItem label="Номер кв." value={unit?.number ?? '—'} />
