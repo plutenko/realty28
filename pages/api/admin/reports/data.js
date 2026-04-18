@@ -112,7 +112,7 @@ export default async function handler(req, res) {
   const [realtorsRes, reportsRes] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, name, email, role, submits_reports, telegram_user_id')
+      .select('id, name, email, role, submits_reports, telegram_user_id, is_active')
       .in('role', ['realtor', 'manager'])
       .eq('submits_reports', true)
       .order('name'),
@@ -129,18 +129,46 @@ export default async function handler(req, res) {
 
   // Агрегируем по риелтору
   const byUser = new Map()
+
+  // Сначала — все активные (они должны быть в списке даже если ничего не прислали)
   for (const r of realtorsRes.data || []) {
+    if (r.is_active === false) continue
     byUser.set(r.id, {
       id: r.id,
       name: r.name,
       email: r.email,
       role: r.role,
+      is_active: true,
       submits_reports: r.submits_reports,
       bound: !!r.telegram_user_id,
       reports_count: 0,
-      absence: null, // {type, from, to}
+      absence: null,
       metrics: Object.fromEntries(METRIC_KEYS.map((k) => [k, 0])),
     })
+  }
+
+  // Подтягиваем имена уволенных с отчётами в этом периоде
+  const reportUserIds = new Set((reportsRes.data || []).map((r) => r.user_id))
+  const missingIds = [...reportUserIds].filter((id) => !byUser.has(id))
+  if (missingIds.length) {
+    const { data: firedUsers } = await supabase
+      .from('profiles')
+      .select('id, name, email, role, is_active')
+      .in('id', missingIds)
+    for (const r of firedUsers || []) {
+      byUser.set(r.id, {
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        is_active: r.is_active !== false,
+        submits_reports: false,
+        bound: false,
+        reports_count: 0,
+        absence: null,
+        metrics: Object.fromEntries(METRIC_KEYS.map((k) => [k, 0])),
+      })
+    }
   }
 
   for (const rep of reportsRes.data || []) {

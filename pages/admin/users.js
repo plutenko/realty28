@@ -64,6 +64,7 @@ export default function UsersPage() {
   const [editPwd, setEditPwd]     = useState(null) // { id, value, show }
   const [editPwdSaved, setEditPwdSaved] = useState(null) // { id, value }
   const [deleting, setDeleting]   = useState(null)
+  const [showFired, setShowFired] = useState(false)
 
   const loadUsers = useCallback(async () => {
     setLoading(true)
@@ -110,8 +111,8 @@ export default function UsersPage() {
     }
   }
 
-  async function handleDelete(id) {
-    if (!confirm('Удалить пользователя?')) return
+  async function handleFire(id, name) {
+    if (!confirm(`Уволить ${name || 'пользователя'}? История отчётов сохранится, вход будет недоступен.`)) return
     setDeleting(id)
     try {
       await apiFetch('DELETE', `/api/admin/users?id=${id}`)
@@ -120,6 +121,15 @@ export default function UsersPage() {
       alert(e.message)
     } finally {
       setDeleting(null)
+    }
+  }
+
+  async function handleReinstate(id) {
+    try {
+      await apiFetch('PATCH', '/api/admin/users', { id, is_active: true })
+      await loadUsers()
+    } catch (e) {
+      alert(e.message)
     }
   }
 
@@ -153,12 +163,23 @@ export default function UsersPage() {
         <p className="text-sm text-slate-400">
           Управление доступом риелторов и администраторов
         </p>
-        <button
-          onClick={() => { setShowForm(v => !v); setFormError('') }}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 transition"
-        >
-          + Добавить пользователя
-        </button>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-xs text-slate-400">
+            <input
+              type="checkbox"
+              checked={showFired}
+              onChange={(e) => setShowFired(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-700 bg-slate-800"
+            />
+            Показывать уволенных
+          </label>
+          <button
+            onClick={() => { setShowForm(v => !v); setFormError('') }}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 transition"
+          >
+            + Добавить пользователя
+          </button>
+        </div>
       </div>
 
       {showForm && (
@@ -350,10 +371,13 @@ export default function UsersPage() {
                   </td>
                 </tr>
               )}
-              {users.map(u => (
-                <tr key={u.id} className="border-b border-slate-800/60 hover:bg-slate-900/40">
+              {users.filter(u => showFired || u.is_active !== false).map(u => (
+                <tr key={u.id} className={`border-b border-slate-800/60 hover:bg-slate-900/40 ${u.is_active === false ? 'opacity-50' : ''}`}>
                   <td className="px-4 py-3">
-                    <div className="font-medium text-white">{u.name || '—'}</div>
+                    <div className="font-medium text-white">
+                      {u.name || '—'}
+                      {u.is_active === false && <span className="ml-2 rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] text-red-300">уволен</span>}
+                    </div>
                     <div className="text-xs text-slate-500">{u.email ?? '—'}</div>
                   </td>
                   <td className="px-4 py-3">
@@ -432,13 +456,22 @@ export default function UsersPage() {
                           Сменить пароль
                         </button>
                       )}
-                      <button
-                        onClick={() => handleDelete(u.id)}
-                        disabled={deleting === u.id}
-                        className="rounded-lg px-2 py-1 text-xs text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition"
-                      >
-                        {deleting === u.id ? '...' : 'Удалить'}
-                      </button>
+                      {u.is_active === false ? (
+                        <button
+                          onClick={() => handleReinstate(u.id)}
+                          className="rounded-lg px-2 py-1 text-xs text-emerald-400 hover:bg-emerald-500/10 transition"
+                        >
+                          Восстановить
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleFire(u.id, u.name)}
+                          disabled={deleting === u.id}
+                          className="rounded-lg px-2 py-1 text-xs text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition"
+                        >
+                          {deleting === u.id ? '...' : 'Уволить'}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

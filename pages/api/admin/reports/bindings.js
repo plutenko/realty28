@@ -20,8 +20,9 @@ export default async function handler(req, res) {
     const [realtorsRes, membersRes] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, name, email, role, submits_reports, telegram_user_id')
+        .select('id, name, email, role, submits_reports, telegram_user_id, is_active')
         .in('role', ['realtor', 'manager'])
+        .eq('is_active', true)
         .order('name'),
       supabase
         .from('telegram_chat_members')

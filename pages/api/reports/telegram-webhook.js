@@ -80,18 +80,21 @@ async function handleMessage(supabase, message, { edited }) {
   // Ищем риелтора по telegram_user_id
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, name, email, role, telegram_user_id, submits_reports')
+    .select('id, name, email, role, telegram_user_id, submits_reports, is_active')
     .eq('telegram_user_id', fromId)
     .maybeSingle()
 
   if (!profile) {
-    // Автор не привязан — молча запоминаем в chat_members, оповещаем админа (1 раз при первом сообщении)
     await notifyAdminUnknownUser(supabase, settings, message.from)
     return
   }
 
+  if (profile.is_active === false) {
+    // Уволенный — не принимаем отчёты молча
+    return
+  }
+
   if (!profile.submits_reports) {
-    // В профиле сказано не принимать отчёты (директор/менеджер/сам не шлёт)
     return
   }
 

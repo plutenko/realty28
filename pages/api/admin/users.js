@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, role, name, email')
+      .select('id, role, name, email, is_active, fired_at')
 
     const profileMap = Object.fromEntries((profiles ?? []).map(p => [p.id, p]))
 
@@ -38,6 +38,8 @@ export default async function handler(req, res) {
       last_sign_in_at: u.last_sign_in_at,
       role: profileMap[u.id]?.role ?? null,
       name: profileMap[u.id]?.name ?? null,
+      is_active: profileMap[u.id]?.is_active ?? true,
+      fired_at: profileMap[u.id]?.fired_at ?? null,
     }))
 
     return res.status(200).json(result)
@@ -72,18 +74,24 @@ export default async function handler(req, res) {
     return res.status(201).json({ id: user.id, email, role, name })
   }
 
-  // PATCH — изменить имя/роль/пароль
+  // PATCH — изменить имя/роль/пароль/активность
   if (req.method === 'PATCH') {
-    const { id, role, name, password } = req.body
+    const { id, role, name, password, is_active } = req.body
     if (!id) return res.status(400).json({ error: 'id обязателен' })
 
-    if (role || name !== undefined) {
-      if (role && !['realtor', 'manager'].includes(role)) {
+    const updates = {}
+    if (role) {
+      if (!['realtor', 'manager'].includes(role)) {
         return res.status(400).json({ error: 'Нельзя назначать роль admin' })
       }
-      const updates = {}
-      if (role) updates.role = role
-      if (name !== undefined) updates.name = name
+      updates.role = role
+    }
+    if (name !== undefined) updates.name = name
+    if (typeof is_active === 'boolean') {
+      updates.is_active = is_active
+      updates.fired_at = is_active ? null : new Date().toISOString()
+    }
+    if (Object.keys(updates).length > 0) {
       const { error } = await supabase.from('profiles').update(updates).eq('id', id)
       if (error) return res.status(500).json({ error: error.message })
     }
@@ -96,16 +104,20 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true })
   }
 
-  // DELETE — удалить пользователя
+  // DELETE — "уволить" (soft-delete профиля, auth-юзер остаётся).
+  // Хард-удаление убрано — оно бы каскадом снесло исторические daily_reports.
   if (req.method === 'DELETE') {
     const { id } = req.query
     if (!id) return res.status(400).json({ error: 'id обязателен' })
 
     if (id === caller.id) {
-      return res.status(400).json({ error: 'Нельзя удалить свой аккаунт' })
+      return res.status(400).json({ error: 'Нельзя уволить свой аккаунт' })
     }
 
-    const { error } = await supabase.auth.admin.deleteUser(id)
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_active: false, fired_at: new Date().toISOString() })
+      .eq('id', id)
     if (error) return res.status(500).json({ error: error.message })
 
     return res.status(200).json({ ok: true })

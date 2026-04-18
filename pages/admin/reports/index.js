@@ -198,6 +198,9 @@ export default function ReportsIndex() {
                   <tr key={r.id} className="border-b border-slate-800/60 hover:bg-slate-900/40">
                     <td className="sticky left-0 bg-slate-950/80 px-4 py-2 text-white whitespace-nowrap">
                       {r.name || '—'}
+                      {r.is_active === false && (
+                        <span className="ml-2 rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] text-red-300">уволен</span>
+                      )}
                       {r.reports_count > 1 && (
                         <span className="ml-2 text-xs text-slate-500">({r.reports_count} отчётов)</span>
                       )}
