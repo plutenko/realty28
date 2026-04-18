@@ -126,8 +126,8 @@ function pricePerM2(unit) {
 }
 
 function formatHandover(b) {
-  const s = b?.handover_status
-  if (s === 'completed') return 'Сдан'
+  const s = String(b?.handover_status || '').toLowerCase()
+  if (s === 'completed' || s === 'delivered' || s === 'сдан') return 'Сдан'
   const q = b?.handover_quarter
   const y = b?.handover_year
   if (!y) return null
