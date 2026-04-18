@@ -163,6 +163,12 @@ export default function ReportsIndex() {
         >
           Связки
         </Link>
+        <Link
+          href="/admin/reports/settings"
+          className="rounded-md border border-slate-800 bg-slate-900 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
+        >
+          Настройки
+        </Link>
         <button
           onClick={handlePeriodText}
           disabled={!data}
