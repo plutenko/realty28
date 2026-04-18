@@ -45,6 +45,16 @@ export default async function handler(req, res) {
 
   const period = computeSummaryPeriod(nowLocal, settings)
 
+  // Сводка актуальна только если вчера был ask_day (иначе сводить нечего).
+  // Исключение — когда вчера было Вс, computeSummaryPeriod вернёт батч за Пт-Вс: ask_days уже содержит Sun.
+  const DOW_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+  const [py, pm, pd] = period.to.split('-').map(Number)
+  const targetDow = DOW_NAMES[new Date(Date.UTC(py, pm - 1, pd)).getUTCDay()]
+  const askDays = new Set(settings.ask_days || [])
+  if (!askDays.has(targetDow)) {
+    return res.status(200).json({ ok: true, skipped: 'target_day_not_ask', target: period.to, dow: targetDow })
+  }
+
   // Активные риелторы
   const { data: realtors } = await supabase
     .from('profiles')
