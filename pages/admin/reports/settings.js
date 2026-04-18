@@ -188,7 +188,7 @@ export default function SettingsPage() {
             onChange={(e) => patch({ max_range_days: parseInt(e.target.value, 10) || 3 })} />
         </div>
         <div className="md:col-span-2">
-          <Label>Какие дни разрешены в диапазоне (>1 дня)</Label>
+          <Label>Какие дни разрешены в диапазоне (больше 1 дня)</Label>
           <div className="flex gap-2">
             {DOW_NUM.map((d) => (
               <label key={d.n} className={`flex cursor-pointer items-center gap-1 rounded-lg border px-3 py-2 text-sm ${rangeAllowed.has(d.n) ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-slate-700 bg-slate-800 text-slate-400'}`}>
