@@ -13,7 +13,7 @@ const links = [
   { href: '/admin/sources', label: 'Источники', icon: '🔗' },
   { href: '/admin/users', label: 'Пользователи', icon: '👥' },
   { href: '/admin/security', label: 'Безопасность', icon: '🔒' },
-  { href: '/admin/reports/bindings', label: 'Отчёты', icon: '📝' },
+  { href: '/admin/reports', label: 'Отчёты', icon: '📝' },
 ]
 
 export default function AdminLayout({ children, title }) {
