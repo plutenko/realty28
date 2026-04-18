@@ -9,6 +9,7 @@ const cards = [
   { href: '/admin/sources', label: 'Источники', icon: '🔗', desc: 'Google Sheets, Profitbase' },
   { href: '/admin/users', label: 'Пользователи', icon: '👥', desc: 'Риелторы и менеджеры' },
   { href: '/admin/security', label: 'Безопасность', icon: '🔒', desc: 'Устройства и Telegram' },
+  { href: '/admin/reports/bindings', label: 'Отчёты: связки', icon: '🔗', desc: 'Привязка риелторов к Telegram' },
 ]
 
 export default function AdminHomePage() {
