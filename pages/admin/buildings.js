@@ -12,6 +12,7 @@ export default function AdminBuildingsPage() {
   const [handoverQuarter, setHandoverQuarter] = useState('')
   const [handoverYear, setHandoverYear] = useState('')
   const [address, setAddress] = useState('')
+  const [floors, setFloors] = useState('')
   const [editId, setEditId] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
@@ -53,6 +54,7 @@ export default function AdminBuildingsPage() {
           : ''
       )
       setAddress(r.address ?? '')
+      setFloors(r.floors != null ? String(r.floors) : '')
     } else {
       setName('')
       setComplexId('')
@@ -60,6 +62,7 @@ export default function AdminBuildingsPage() {
       setHandoverQuarter('')
       setHandoverYear('')
       setAddress('')
+      setFloors('')
     }
   }, [editId, rows])
 
@@ -79,6 +82,7 @@ export default function AdminBuildingsPage() {
       handover_year:
         handoverStatus === 'planned' && handoverYear ? Number(handoverYear) : null,
       address: address.trim() || null,
+      floors: floors && Number(floors) > 0 ? Number(floors) : null,
     }
 
     let error = null
@@ -224,6 +228,18 @@ export default function AdminBuildingsPage() {
           />
         </div>
         <div>
+          <label className="block text-xs text-slate-400">Этажей в доме</label>
+          <input
+            type="number"
+            min="1"
+            max="100"
+            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+            placeholder="например: 16"
+            value={floors}
+            onChange={(e) => setFloors(e.target.value)}
+          />
+        </div>
+        <div>
           <label className="block text-xs text-slate-400">Статус дома</label>
           <select
             className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
@@ -265,8 +281,7 @@ export default function AdminBuildingsPage() {
           </div>
         ) : null}
         <p className="text-xs text-slate-500">
-          Этажи, подъезды и квартиры настраиваются на странице «Квартиры» (интерактивная
-          шахматка).
+          Подъезды и квартиры настраиваются на странице «Квартиры» (интерактивная шахматка).
         </p>
         <button
           type="submit"
