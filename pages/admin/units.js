@@ -1904,7 +1904,13 @@ export default function AdminUnitsPage() {
 
                         <div className="flex w-40 shrink-0 flex-col justify-center gap-0.5">
                           <div className="flex items-center gap-1">
-                            <label className="flex-1 cursor-pointer rounded border border-slate-700 bg-slate-900 px-2 py-1 text-center text-[11px] leading-tight text-slate-200 hover:bg-slate-800">
+                            <label
+                              className={`flex-1 cursor-pointer rounded border px-2 py-1 text-center text-[11px] leading-tight ${
+                                planUrl
+                                  ? 'border-emerald-700 bg-emerald-950/40 text-emerald-200 hover:bg-emerald-900/40'
+                                  : 'border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800'
+                              }`}
+                            >
                               <input
                                 type="file"
                                 accept="image/*"
@@ -1917,15 +1923,22 @@ export default function AdminUnitsPage() {
                                   await uploadFloorPlanForFloor(f, file)
                                 }}
                               />
-                              Загрузить план
+                              {planUrl ? '✓ План загружен' : 'Загрузить план'}
                             </label>
                             {planUrl ? (
                               <button
                                 type="button"
-                                className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] leading-tight text-slate-200 hover:bg-slate-800"
+                                className="shrink-0 overflow-hidden rounded border border-emerald-700 bg-white p-0.5 hover:border-emerald-400"
+                                style={{ width: 28, height: 28 }}
+                                title="Посмотреть план"
                                 onClick={() => setPlanModal({ floor: f, url: planUrl })}
                               >
-                                План
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={planUrl}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
                               </button>
                             ) : null}
                           </div>
