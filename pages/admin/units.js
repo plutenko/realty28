@@ -2354,6 +2354,7 @@ export default function AdminUnitsPage() {
         removeUnitMedia={removeUnitMedia}
         mediaBusy={mediaBusy}
         mediaError={msg}
+        floorPlanUrl={activeCell?.unit?.floor != null ? floorPlanUrls?.[activeCell.unit.floor] : null}
       />
     </AdminLayout>
   )

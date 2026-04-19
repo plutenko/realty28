@@ -12,6 +12,7 @@ export default function UnitModal({
   removeUnitMedia,
   mediaBusy,
   mediaError,
+  floorPlanUrl,
 }) {
   const [pasteTarget, setPasteTarget] = useState('unit_layout')
 
@@ -258,6 +259,19 @@ export default function UnitModal({
               </div>
             </div>
           )}
+          {activeCell.unit?.floor != null && floorPlanUrl ? (
+            <div className="mt-4 space-y-2">
+              <div className="text-xs text-slate-400">
+                Поэтажный план — этаж {activeCell.unit.floor}
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={floorPlanUrl}
+                alt=""
+                className="w-full rounded-lg border border-slate-700 bg-white object-contain"
+              />
+            </div>
+          ) : null}
           {mediaBusy ? <p className="mt-2 text-xs text-slate-500">Загрузка…</p> : null}
           {mediaError ? (
             <p className="mt-2 rounded bg-rose-900/40 px-2 py-1 text-xs text-rose-200">
