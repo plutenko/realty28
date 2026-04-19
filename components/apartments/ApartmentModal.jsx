@@ -97,6 +97,9 @@ function formatHandover(b) {
 }
 
 export default function ApartmentModal({ unit, onClose, onAddToCollection, isSelected, collectionView = false, floorPlanUrl = null }) {
+  // Источник URL поэтажного плана: поле unit.floor_plan_url (из /api/units)
+  // или переданный prop (для страниц, где поле ещё не подключено).
+  const effectiveFloorPlanUrl = unit?.floor_plan_url || floorPlanUrl
   const [zoomedSrc, setZoomedSrc] = useState(null)
   const b = unit?.building
   const c = b?.complex
@@ -215,7 +218,7 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
           )}
 
           {/* Floor plan (поэтажный план) */}
-          {floorPlanUrl && unit?.floor != null && (
+          {effectiveFloorPlanUrl && unit?.floor != null && (
             <div>
               <h3 className="mb-2 text-sm font-semibold text-gray-700">
                 Поэтажный план — этаж {unit.floor}
@@ -223,10 +226,10 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={floorPlanUrl}
+                  src={effectiveFloorPlanUrl}
                   alt={`Поэтажный план, этаж ${unit.floor}`}
                   className="mx-auto max-h-[400px] cursor-zoom-in object-contain p-2"
-                  onClick={() => setZoomedSrc(floorPlanUrl)}
+                  onClick={() => setZoomedSrc(effectiveFloorPlanUrl)}
                   title="Нажмите чтобы увеличить"
                 />
               </div>

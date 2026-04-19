@@ -43,6 +43,27 @@ export default async function handler(req, res) {
     }
 
     const buildingIds = [...buildingCtx.keys()]
+
+    // Поэтажные планы — ключ (building_id, floor_level) -> url.
+    // Один запрос на все здания, группируем в Map для O(1) лукапа.
+    const floorPlanMap = new Map()
+    if (buildingIds.length > 0) {
+      const { data: plRows, error: plErr } = await supabase
+        .from('images')
+        .select('entity_id, floor_level, url, id')
+        .eq('entity_type', 'building_floor_level_plan')
+        .in('entity_id', buildingIds)
+        .order('id', { ascending: false })
+      if (plErr && !/floor_level|column|schema cache/i.test(String(plErr.message || ''))) {
+        throw plErr
+      }
+      for (const r of plRows ?? []) {
+        if (r.floor_level == null) continue
+        const key = `${r.entity_id}::${r.floor_level}`
+        if (!floorPlanMap.has(key)) floorPlanMap.set(key, r.url)
+      }
+    }
+
     const flat = []
     const PAGE = 1000
     let from = 0
@@ -59,8 +80,11 @@ export default async function handler(req, res) {
       for (const u of units ?? []) {
         const ctx = buildingCtx.get(u.building_id)
         if (!ctx) continue
+        const floor_plan_url =
+          u.floor != null ? floorPlanMap.get(`${u.building_id}::${u.floor}`) ?? null : null
         flat.push({
           ...u,
+          floor_plan_url,
           building: {
             ...ctx.building,
             complex: { ...ctx.complex, developer: ctx.developer },
