@@ -2,8 +2,8 @@ name: Reports — вечернее напоминание
 
 on:
   schedule:
-    # 20:00 Asia/Yakutsk = 11:00 UTC
-    - cron: '0 11 * * *'
+    # 19:45 Asia/Yakutsk = 10:45 UTC (чуть раньше, т.к. GH Actions часто опаздывает на top-of-hour)
+    - cron: '45 10 * * *'
   workflow_dispatch:
     inputs:
       dry:
