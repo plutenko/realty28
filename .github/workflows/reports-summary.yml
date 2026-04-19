@@ -1,9 +1,8 @@
 name: Reports — утренняя сводка
 
 on:
-  schedule:
-    # 09:15 Asia/Yakutsk = 00:15 UTC (чуть раньше, т.к. GH Actions часто опаздывает на top-of-hour)
-    - cron: '15 0 * * *'
+  # Регулярный запуск переведён на cron-job.org (jobId 7502797, 09:30 Asia/Yakutsk).
+  # GH Actions оставлен только как ручной fallback через workflow_dispatch.
   workflow_dispatch:
     inputs:
       dry:
