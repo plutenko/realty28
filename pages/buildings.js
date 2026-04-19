@@ -208,6 +208,46 @@ export default function BuildingsPage() {
   const [error, setError] = useState('')
   const [selectedBuilding, setSelectedBuilding] = useState(null)
   const [selectedUnit, setSelectedUnit] = useState(null)
+  const [selectedUnits, setSelectedUnits] = useState([])
+  const [creatingCollection, setCreatingCollection] = useState(false)
+
+  function toggleSelectedUnit(unitId) {
+    if (!unitId) return
+    setSelectedUnits((prev) =>
+      prev.includes(unitId) ? prev.filter((x) => x !== unitId) : [...prev, unitId]
+    )
+  }
+
+  async function createSelection() {
+    if (!selectedUnits.length) {
+      alert('Сначала выберите квартиры')
+      return
+    }
+    const title = window.prompt('Название подборки')?.trim()
+    if (!title) return
+    const clientName = window.prompt('Имя клиента')?.trim()
+    try {
+      setCreatingCollection(true)
+      const res = await fetch('/api/collections/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          clientName: clientName || null,
+          selectedUnits,
+          createdBy: null,
+        }),
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body?.error || 'Не удалось создать подборку')
+      alert('Подборка создана')
+      setSelectedUnits([])
+    } catch (e) {
+      alert(`Ошибка: ${e?.message || e}`)
+    } finally {
+      setCreatingCollection(false)
+    }
+  }
   const [viewMode, setViewMode] = useState('grid')
 
   useEffect(() => {
@@ -571,8 +611,41 @@ export default function BuildingsPage() {
       )}
 
       {selectedUnit && (
-        <ApartmentModal unit={selectedUnit} onClose={() => setSelectedUnit(null)} />
+        <ApartmentModal
+          unit={selectedUnit}
+          onClose={() => setSelectedUnit(null)}
+          onAddToCollection={toggleSelectedUnit}
+          isSelected={selectedUnits.includes(selectedUnit.id)}
+          floorPlanUrl={
+            selectedBuilding?.floorPlanByFloor?.[selectedUnit.floor] ||
+            selectedBuilding?.floorPlanUrl ||
+            null
+          }
+        />
       )}
+
+      {selectedUnits.length > 0 ? (
+        <div className="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-3 shadow-lg">
+          <span className="text-sm text-slate-700">
+            В подборке: <b>{selectedUnits.length}</b>
+          </span>
+          <button
+            type="button"
+            onClick={createSelection}
+            disabled={creatingCollection}
+            className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {creatingCollection ? 'Создаём…' : 'Создать подборку'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedUnits([])}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+          >
+            Очистить
+          </button>
+        </div>
+      ) : null}
     </div>
   )
 }

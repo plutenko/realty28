@@ -96,7 +96,7 @@ function formatHandover(b) {
   return q ? `${q} кв. ${y}` : `${y}`
 }
 
-export default function ApartmentModal({ unit, onClose, onAddToCollection, isSelected, collectionView = false }) {
+export default function ApartmentModal({ unit, onClose, onAddToCollection, isSelected, collectionView = false, floorPlanUrl = null }) {
   const [zoomedSrc, setZoomedSrc] = useState(null)
   const b = unit?.building
   const c = b?.complex
@@ -208,6 +208,25 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
                   alt="Планировка"
                   className="mx-auto max-h-[400px] cursor-zoom-in object-contain p-2"
                   onClick={() => setZoomedSrc(unit.layout_image_url)}
+                  title="Нажмите чтобы увеличить"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Floor plan (поэтажный план) */}
+          {floorPlanUrl && unit?.floor != null && (
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-gray-700">
+                Поэтажный план — этаж {unit.floor}
+              </h3>
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={floorPlanUrl}
+                  alt={`Поэтажный план, этаж ${unit.floor}`}
+                  className="mx-auto max-h-[400px] cursor-zoom-in object-contain p-2"
+                  onClick={() => setZoomedSrc(floorPlanUrl)}
                   title="Нажмите чтобы увеличить"
                 />
               </div>
