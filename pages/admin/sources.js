@@ -10,6 +10,7 @@ const SOURCE_TYPES = [
   { value: 'macrocrm',      label: 'MacroCRM' },
   { value: 'fsk',           label: 'ФСК (fsk.ru)' },
   { value: 'pik',           label: 'ПИК (pik.ru)' },
+  { value: 'amurstroy',     label: 'Амурстрой (as-dv.ru)' },
   { value: 'csv',           label: 'CSV файл' },
 ]
 
@@ -1280,6 +1281,41 @@ export default function AdminSourcesPage() {
               Из URL: fsk.ru/<b>flabellum</b>/flats. Корпус берётся из выбранного дома автоматически.
             </p>
           </div>
+        ) : type === 'amurstroy' ? (
+          (() => {
+            const [projectSlug, literPart] = (url || '').split('|').map(s => s.trim())
+            const joinAs = (slug, liter) => (slug && liter) ? `${slug}|${liter}` : (slug || liter || '')
+            return (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-slate-400">Slug проекта на as-dv.ru</label>
+                  <input
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                    value={projectSlug || ''}
+                    onChange={(e) => setUrl(joinAs(e.target.value.trim(), literPart))}
+                    required
+                    placeholder="zeyskiy-bulvar"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Из URL: as-dv.ru/projects/<b>zeyskiy-bulvar</b>/
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400">Код литера</label>
+                  <input
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                    value={literPart || ''}
+                    onChange={(e) => setUrl(joinAs(projectSlug, e.target.value.trim()))}
+                    required
+                    placeholder="1.1"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Точно как на сайте застройщика, например: 1.1, 1.3, 2.1, 2.3. ВНИМАНИЕ: у литеров 1.1 и 1.3 (готовые дома) цен на сайте застройщика нет — они будут пустыми.
+                  </p>
+                </div>
+              </div>
+            )
+          })()
         ) : type === 'pik' ? (
           (() => {
             const [pathPart, bulkIdPart] = (url || '').split('|').map(s => s.trim())
