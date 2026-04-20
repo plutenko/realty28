@@ -1215,35 +1215,52 @@ export default function AdminSourcesPage() {
           </div>
         ) : type === 'macrocrm' ? (
           (() => {
-            const [macroDomain, macroHouseId] = (() => {
+            // Формат URL: "host|domain|house_id" (3 части, для SberCRM) или
+            // "domain|house_id" (2 части, default api.macroserver.ru).
+            const [macroHost, macroDomain, macroHouseId] = (() => {
               const raw = String(url || '').trim()
-              if (!raw) return ['', '']
+              if (!raw) return ['', '', '']
               if (raw.includes('|')) {
-                const [d, h] = raw.split('|', 2).map((s) => s.trim())
-                return [d, h]
+                const parts = raw.split('|').map((s) => s.trim())
+                if (parts.length >= 3) return [parts[0], parts[1], parts[2]]
+                return ['', parts[0], parts[1] || '']
               }
-              if (/^\d+$/.test(raw)) return ['', raw]
-              return [raw, '']
+              if (/^\d+$/.test(raw)) return ['', '', raw]
+              return ['', raw, '']
             })()
-            const joinUrl = (d, h) => {
+            const joinUrl = (host, d, h) => {
+              const hhost = (host || '').trim()
               const dd = (d || '').trim()
               const hh = (h || '').trim()
-              if (!dd && !hh) return ''
-              if (!dd) return hh
-              return `${dd}|${hh}`
+              if (!hhost && !dd && !hh) return ''
+              if (!hhost) return dd ? `${dd}|${hh}` : hh
+              return `${hhost}|${dd}|${hh}`
             }
             return (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400">API host</label>
+                  <input
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                    value={macroHost}
+                    onChange={(e) => setUrl(joinUrl(e.target.value, macroDomain, macroHouseId))}
+                    placeholder="api.macroserver.ru"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Пусто = <code className="text-slate-200">api.macroserver.ru</code> (Ленинград).
+                    Для Клевер/Амурком: <code className="text-slate-200">api.macro.sbercrm.com</code>.
+                  </p>
+                </div>
                 <div>
                   <label className="block text-xs text-slate-400">Домен виджета</label>
                   <input
                     className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
                     value={macroDomain}
-                    onChange={(e) => setUrl(joinUrl(e.target.value, macroHouseId))}
+                    onChange={(e) => setUrl(joinUrl(macroHost, e.target.value, macroHouseId))}
                     placeholder="ленинград28.рф"
                   />
                   <p className="mt-1 text-xs text-slate-500">
-                    Если пусто — используется <code className="text-slate-200">ленинград28.рф</code>.
+                    Пусто = <code className="text-slate-200">ленинград28.рф</code>. Для Клевер: <code className="text-slate-200">amurcom.ru</code>.
                   </p>
                 </div>
                 <div>
@@ -1251,13 +1268,13 @@ export default function AdminSourcesPage() {
                   <input
                     className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
                     value={macroHouseId}
-                    onChange={(e) => setUrl(joinUrl(macroDomain, e.target.value.replace(/\D+/g, '')))}
+                    onChange={(e) => setUrl(joinUrl(macroHost, macroDomain, e.target.value.replace(/\D+/g, '')))}
                     required
                     placeholder="8730378"
                     inputMode="numeric"
                   />
                   <p className="mt-1 text-xs text-slate-500">
-                    Число дома из виджета MacroCRM (api.macroserver.ru).
+                    Число дома из виджета. Клевер: <code className="text-slate-200">7000977</code>.
                   </p>
                 </div>
               </div>
