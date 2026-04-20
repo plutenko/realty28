@@ -6,7 +6,7 @@ async function requireAdmin(req, supabase) {
   const { data: { user }, error } = await supabase.auth.getUser(token)
   if (error || !user) return null
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  return profile?.role === 'admin' ? user : null
+  return profile?.role === 'admin' || profile?.role === 'manager' ? user : null
 }
 
 export default async function handler(req, res) {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import Link from 'next/link'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/authContext'
 import CatalogTabs from '../../components/CatalogTabs'
@@ -153,6 +154,22 @@ export default function ManagerPage() {
             <span>Риелторов: <span className="font-semibold text-gray-800">{data.realtors.length}</span></span>
             <span>Подборок: <span className="font-semibold text-gray-800">{totalCollections}</span></span>
           </div>
+        </div>
+
+        {/* Быстрый доступ к отчётам и привязкам Telegram */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Link
+            href="/admin/reports"
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          >
+            📝 Отчёты команды
+          </Link>
+          <Link
+            href="/admin/reports/bindings"
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          >
+            🔗 Привязки Telegram
+          </Link>
         </div>
 
         {error && (
