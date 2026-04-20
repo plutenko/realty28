@@ -26,6 +26,8 @@ export default function LoginPage() {
   const [pendingLabel, setPendingLabel] = useState('')
   const [pendingRole, setPendingRole] = useState(null)
   const [deviceChecking, setDeviceChecking] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendError, setResendError] = useState('')
   const pollingRef = useRef(null)
 
   useEffect(() => {
@@ -143,7 +145,17 @@ export default function LoginPage() {
         }),
       })
       const deviceData = await deviceRes.json()
-      if (!deviceRes.ok) throw new Error(deviceData?.error || 'Ошибка проверки устройства')
+      // 503 + status='send_failed' — pending_login создан, но Telegram недоступен.
+      // Даём пользователю внятную ошибку и сохраняем токен чтобы кнопка "повторить" могла
+      // переиспользовать тот же pending (resend без плодения дубликатов).
+      if (!deviceRes.ok) {
+        if (deviceData?.status === 'send_failed' && deviceData?.token) {
+          setPendingToken(deviceData.token)
+          setPendingLabel(deviceData.label || '')
+          setResendError(deviceData.error || 'Не удалось уведомить руководителя')
+        }
+        throw new Error(deviceData?.error || 'Ошибка проверки устройства')
+      }
 
       if (deviceData.status === 'approved') {
         setPendingRole(profileData.role)
@@ -155,6 +167,7 @@ export default function LoginPage() {
       if (deviceData.status === 'pending') {
         setPendingToken(deviceData.token)
         setPendingLabel(deviceData.label || '')
+        setResendError('')
         setDeviceChecking(false)
         // Не логаутим — нужна активная сессия для finalizeLogin
       }
@@ -162,6 +175,39 @@ export default function LoginPage() {
       setError(err.message || 'Ошибка входа')
       setSubmitting(false)
       setDeviceChecking(false)
+    }
+  }
+
+  async function handleResend() {
+    setResendError('')
+    setResending(true)
+    try {
+      const { data: { session: s } } = await supabase.auth.getSession()
+      if (!s) throw new Error('Сессия истекла, войдите заново')
+      const res = await fetch('/api/auth/check-device', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${s.access_token}`,
+        },
+        body: JSON.stringify({
+          screen: screen.width && screen.height ? `${screen.width}x${screen.height}` : '',
+          platform: navigator.platform || '',
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+          browserId: getBrowserId(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setResendError(data?.error || 'Не удалось отправить повторно')
+      } else {
+        // Endpoint переиспользует активный pending, так что token прежний; просто ресет баннера
+        setResendError('')
+      }
+    } catch (e) {
+      setResendError(e.message || 'Ошибка сети')
+    } finally {
+      setResending(false)
     }
   }
 
@@ -194,13 +240,28 @@ export default function LoginPage() {
             <div className="mt-4 rounded-lg bg-slate-800 px-3 py-2 text-xs text-slate-300">
               Устройство: {pendingLabel}
             </div>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="mt-5 text-sm text-slate-400 hover:text-white"
-            >
-              Отменить
-            </button>
+            {resendError && (
+              <div className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400 border border-red-500/20">
+                {resendError}
+              </div>
+            )}
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+              >
+                {resending ? 'Отправляем…' : 'Отправить повторно'}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="text-sm text-slate-400 hover:text-white"
+              >
+                Отменить
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-800 bg-slate-900 p-6">

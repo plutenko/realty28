@@ -57,18 +57,35 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, status: 'approved' })
   }
 
-  // Новое устройство — создаём pending_login
-  const pendingToken = crypto.randomBytes(24).toString('hex')
-  const { error: insErr } = await supabase.from('pending_logins').insert({
-    user_id: user.id,
-    device_hash: deviceHash,
-    device_label: label,
-    token: pendingToken,
-    status: 'pending',
-  })
-  if (insErr) {
-    console.error('[check-device] insert error', insErr)
-    return res.status(500).json({ error: 'Не удалось создать запрос на подтверждение' })
+  // Если для этого юзера+устройства уже висит свежий pending — переиспользуем его
+  // (чтобы кнопка "Отправить повторно" в UI не плодила дубликаты), иначе создаём новый
+  let pendingToken
+  const { data: activePending } = await supabase
+    .from('pending_logins')
+    .select('token, expires_at')
+    .eq('user_id', user.id)
+    .eq('device_hash', deviceHash)
+    .eq('status', 'pending')
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (activePending?.token) {
+    pendingToken = activePending.token
+  } else {
+    pendingToken = crypto.randomBytes(24).toString('hex')
+    const { error: insErr } = await supabase.from('pending_logins').insert({
+      user_id: user.id,
+      device_hash: deviceHash,
+      device_label: label,
+      token: pendingToken,
+      status: 'pending',
+    })
+    if (insErr) {
+      console.error('[check-device] insert error', insErr)
+      return res.status(500).json({ error: 'Не удалось создать запрос на подтверждение' })
+    }
   }
 
   // Отправляем уведомление в Telegram админам и менеджерам
@@ -88,6 +105,20 @@ export default async function handler(req, res) {
 
   const sent = await broadcastToRoles(supabase, ['admin', 'manager'], message, { replyMarkup })
   const sentCount = sent.filter((s) => s.ok).length
+
+  // Если никому не дошло — ретраи в sendTelegramMessage не помогли (глубокий network issue
+  // или сообщение улетело но ни у одного получателя нет chat_id). Честно говорим клиенту
+  // что не удалось, он покажет ошибку и кнопку "Попробовать снова". Pending оставляем —
+  // админ всё равно может одобрить вручную через /admin/security или заново нажать resend.
+  if (sentCount === 0) {
+    console.error('[check-device] broadcast delivered to 0 recipients', { sent })
+    return res.status(503).json({
+      error: 'Не удалось отправить запрос руководителю в Telegram. Попробуйте ещё раз через минуту.',
+      status: 'send_failed',
+      token: pendingToken,
+      label,
+    })
+  }
 
   return res.status(200).json({
     ok: true,
