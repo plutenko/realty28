@@ -39,6 +39,7 @@ export default async function handler(req, res) {
     const message = update.message || update.edited_message
     if (message?.chat && message?.from && !message.from.is_bot) {
       await rememberChatMember(supabase, message.from)
+      await rememberTextMentions(supabase, message)
       await handleMessage(supabase, message, { edited: Boolean(update.edited_message) })
     }
   } catch (e) {
@@ -61,6 +62,25 @@ async function rememberChatMember(supabase, from) {
       },
       { onConflict: 'telegram_user_id' }
     )
+}
+
+// Пользователи без @username прилетают в message.entities как text_mention —
+// это позволяет админу «представить» их боту, упомянув в чате, без их собственного сообщения.
+async function rememberTextMentions(supabase, message) {
+  const entities = [...(message.entities || []), ...(message.caption_entities || [])]
+  const mentions = entities
+    .filter((e) => e?.type === 'text_mention' && e.user && !e.user.is_bot)
+    .map((e) => e.user)
+  if (!mentions.length) return
+  const nowIso = new Date().toISOString()
+  const rows = mentions.map((u) => ({
+    telegram_user_id: String(u.id),
+    username: u.username || null,
+    first_name: u.first_name || null,
+    last_name: u.last_name || null,
+    last_seen_at: nowIso,
+  }))
+  await supabase.from('telegram_chat_members').upsert(rows, { onConflict: 'telegram_user_id' })
 }
 
 async function handleMessage(supabase, message, { edited }) {
