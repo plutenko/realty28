@@ -13,7 +13,24 @@ BEGIN
   END IF;
 END $$;
 
--- Партиальный уникальный индекс: только строки с external_id.
-CREATE UNIQUE INDEX IF NOT EXISTS units_source_external_id_key
-  ON public.units (source_id, external_id)
-  WHERE external_id IS NOT NULL;
+-- Используем обычный UNIQUE CONSTRAINT (а не partial index), потому что
+-- PostgREST в on_conflict умеет только constraints, не partial indexes.
+-- В PostgreSQL в UNIQUE два NULL-значения считаются различными, поэтому
+-- строки с external_id IS NULL между собой не конфликтуют — ограничение
+-- фактически работает как partial WHERE external_id IS NOT NULL.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'units_source_external_id_key'
+  ) THEN
+    -- если от старой попытки остался partial index — удалим
+    IF EXISTS (
+      SELECT 1 FROM pg_indexes
+      WHERE schemaname = 'public' AND indexname = 'units_source_external_id_key'
+    ) THEN
+      EXECUTE 'DROP INDEX public.units_source_external_id_key';
+    END IF;
+    ALTER TABLE public.units
+      ADD CONSTRAINT units_source_external_id_key UNIQUE (source_id, external_id);
+  END IF;
+END $$;
