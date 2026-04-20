@@ -188,12 +188,21 @@ async function handleCallbackQuery(supabase, cq) {
       })
       .eq('id', pending.id)
 
+    const nowIso = new Date().toISOString()
     await Promise.all([
-      supabase.from('user_devices').insert({
-        user_id: pending.user_id,
-        device_hash: pending.device_hash,
-        label: pending.device_label,
-      }).then(() => {}, () => {}), // ignore unique-constraint errors
+      // upsert, а не insert — иначе повторный approve того же устройства не обновит
+      // last_approved_at и приведёт к бесконечному циклу подтверждений (check-device видит
+      // last_approved_at=null через approveStillValid → снова создаёт pending).
+      supabase.from('user_devices').upsert(
+        {
+          user_id: pending.user_id,
+          device_hash: pending.device_hash,
+          label: pending.device_label,
+          last_approved_at: nowIso,
+          last_used_at: nowIso,
+        },
+        { onConflict: 'user_id,device_hash' }
+      ).then(({ error }) => { if (error) console.error('[telegram-webhook] user_devices upsert error:', error) }),
       answerCallbackQuery(cqId, '✅ Вход разрешён'),
       messageChatId && messageId
         ? editTelegramMessage(
