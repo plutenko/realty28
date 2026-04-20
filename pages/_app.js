@@ -35,10 +35,15 @@ function AuthGuard({ children }) {
 
     const role = profile?.role
 
-    // Только admin в /admin/*
+    // Только admin в /admin/*, кроме /admin/reports — туда пускаем и manager
     if (path.startsWith(ADMIN_PREFIX) && role !== 'admin') {
-      router.replace('/login')
-      return
+      const managerReports =
+        role === 'manager' &&
+        (path === '/admin/reports' || path.startsWith('/admin/reports/'))
+      if (!managerReports) {
+        router.replace('/login')
+        return
+      }
     }
 
     // Только manager и admin в /manager/*
