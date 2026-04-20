@@ -35,18 +35,24 @@ export default async function handler(req, res) {
 
   const update = req.body || {}
 
-  try {
-    const message = update.message || update.edited_message
-    if (message?.chat && message?.from && !message.from.is_bot) {
-      await rememberChatMember(supabase, message.from)
-      await rememberTextMentions(supabase, message)
-      await handleMessage(supabase, message, { edited: Boolean(update.edited_message) })
-    }
-  } catch (e) {
-    console.error('[reports-webhook] error', e)
-  }
+  // Отвечаем Telegram-у СРАЗУ, пока не начали работу. Timeweb-контейнер регулярно ловит
+  // UND_ERR_CONNECT_TIMEOUT к api.telegram.org/supabase.co — полный цикл с ретраями
+  // может занять >10с, Telegram считает webhook упавшим ("Connection timed out") и
+  // мы теряем update. Работу делаем фоном — app long-running express, не serverless.
+  res.status(200).json({ ok: true })
 
-  return res.status(200).json({ ok: true })
+  setImmediate(async () => {
+    try {
+      const message = update.message || update.edited_message
+      if (message?.chat && message?.from && !message.from.is_bot) {
+        await rememberChatMember(supabase, message.from)
+        await rememberTextMentions(supabase, message)
+        await handleMessage(supabase, message, { edited: Boolean(update.edited_message) })
+      }
+    } catch (e) {
+      console.error('[reports-webhook] background error', e)
+    }
+  })
 }
 
 async function rememberChatMember(supabase, from) {

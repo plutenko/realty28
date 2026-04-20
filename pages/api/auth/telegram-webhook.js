@@ -20,73 +20,68 @@ export default async function handler(req, res) {
   const supabase = getSupabaseAdmin()
   if (!supabase) return res.status(200).json({ ok: true })
 
-  // Обработка нажатий inline-кнопок
+  // Отвечаем Telegram-у мгновенно (Connection timed out от Timeweb → терянные updates).
+  // Всё остальное — фоном.
+  res.status(200).json({ ok: true })
+  setImmediate(() => processAuthUpdate(supabase, update).catch(e => {
+    console.error('[auth-webhook] background error', e)
+  }))
+}
+
+async function processAuthUpdate(supabase, update) {
   if (update.callback_query) {
     await handleCallbackQuery(supabase, update.callback_query)
-    return res.status(200).json({ ok: true })
+    return
   }
 
   const message = update.message || update.edited_message
-  if (!message?.chat?.id) return res.status(200).json({ ok: true })
+  if (!message?.chat?.id) return
 
   const chatId = message.chat.id
   const text = String(message.text || '').trim()
 
-  // /start <code>
   const startMatch = text.match(/^\/start(?:\s+(\S+))?$/)
-  if (startMatch) {
-    const code = startMatch[1]
-    if (!code) {
-      await sendTelegramMessage(
-        chatId,
-        `👋 Привет! Это бот для подтверждения входа в систему.\n\n` +
-          `Чтобы привязать этот Telegram к вашему аккаунту:\n` +
-          `1. Откройте админку на сайте\n` +
-          `2. Перейдите в раздел "Профиль" → "Telegram"\n` +
-          `3. Скопируйте уникальную ссылку и откройте её в Telegram`
-      )
-      return res.status(200).json({ ok: true })
-    }
+  if (!startMatch) return
 
-    // Ищем профиль с этим кодом привязки
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, name, email, telegram_link_code')
-      .eq('telegram_link_code', code)
-      .maybeSingle()
-
-    if (!profile) {
-      await sendTelegramMessage(
-        chatId,
-        `❌ Код не найден или истёк. Сгенерируйте новый в админке.`
-      )
-      return res.status(200).json({ ok: true })
-    }
-
-    // Привязываем
-    const { error: updErr } = await supabase
-      .from('profiles')
-      .update({
-        telegram_chat_id: String(chatId),
-        telegram_link_code: null,
-      })
-      .eq('id', profile.id)
-
-    if (updErr) {
-      await sendTelegramMessage(chatId, `❌ Ошибка привязки: ${updErr.message}`)
-      return res.status(200).json({ ok: true })
-    }
-
+  const code = startMatch[1]
+  if (!code) {
     await sendTelegramMessage(
       chatId,
-      `✅ Telegram успешно привязан к аккаунту <b>${escapeHtml(profile.name || profile.email)}</b>.\n\n` +
-        `Теперь вам будут приходить запросы на подтверждение входа риелторов.`
+      `👋 Привет! Это бот для подтверждения входа в систему.\n\n` +
+        `Чтобы привязать этот Telegram к вашему аккаунту:\n` +
+        `1. Откройте админку на сайте\n` +
+        `2. Перейдите в раздел "Профиль" → "Telegram"\n` +
+        `3. Скопируйте уникальную ссылку и откройте её в Telegram`
     )
-    return res.status(200).json({ ok: true })
+    return
   }
 
-  // Игнорируем остальное
-  return res.status(200).json({ ok: true })
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, name, email, telegram_link_code')
+    .eq('telegram_link_code', code)
+    .maybeSingle()
+
+  if (!profile) {
+    await sendTelegramMessage(chatId, `❌ Код не найден или истёк. Сгенерируйте новый в админке.`)
+    return
+  }
+
+  const { error: updErr } = await supabase
+    .from('profiles')
+    .update({ telegram_chat_id: String(chatId), telegram_link_code: null })
+    .eq('id', profile.id)
+
+  if (updErr) {
+    await sendTelegramMessage(chatId, `❌ Ошибка привязки: ${updErr.message}`)
+    return
+  }
+
+  await sendTelegramMessage(
+    chatId,
+    `✅ Telegram успешно привязан к аккаунту <b>${escapeHtml(profile.name || profile.email)}</b>.\n\n` +
+      `Теперь вам будут приходить запросы на подтверждение входа риелторов.`
+  )
 }
 
 function escapeHtml(s) {
