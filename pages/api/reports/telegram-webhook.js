@@ -38,6 +38,18 @@ export default async function handler(req, res) {
   try {
     const message = update.message || update.edited_message
     if (message?.chat && message?.from && !message.from.is_bot) {
+      // TEMP probe — пишем chat_id в служебную строку telegram_chat_members,
+      // чтобы определить chat_id нового боевого чата. Удалить после переключения.
+      await supabase.from('telegram_chat_members').upsert(
+        {
+          telegram_user_id: '__last_chat_id__',
+          first_name: String(message.chat.id),
+          last_name: message.chat.title || null,
+          username: message.chat.type || null,
+          last_seen_at: new Date().toISOString(),
+        },
+        { onConflict: 'telegram_user_id' }
+      )
       await rememberChatMember(supabase, message.from)
       await handleMessage(supabase, message, { edited: Boolean(update.edited_message) })
     }
