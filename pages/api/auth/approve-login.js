@@ -50,14 +50,19 @@ export default async function handler(req, res) {
   }
 
   if (action === 'approve') {
-    // Регистрируем устройство
-    const { error: devErr } = await supabase.from('user_devices').insert({
-      user_id: pending.user_id,
-      device_hash: pending.device_hash,
-      label: pending.device_label,
-    })
-    if (devErr && !/unique/i.test(devErr.message)) {
-      console.error('[approve-login] device insert error', devErr)
+    const nowIso = new Date().toISOString()
+    const { error: devErr } = await supabase.from('user_devices').upsert(
+      {
+        user_id: pending.user_id,
+        device_hash: pending.device_hash,
+        label: pending.device_label,
+        last_approved_at: nowIso,
+        last_used_at: nowIso,
+      },
+      { onConflict: 'user_id,device_hash' }
+    )
+    if (devErr) {
+      console.error('[approve-login] device upsert error', devErr)
       return res.status(500).json({ error: 'Не удалось зарегистрировать устройство' })
     }
 
@@ -66,7 +71,7 @@ export default async function handler(req, res) {
       .update({
         status: 'approved',
         approved_by: user.id,
-        approved_at: new Date().toISOString(),
+        approved_at: nowIso,
       })
       .eq('id', pending.id)
 

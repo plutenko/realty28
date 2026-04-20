@@ -31,11 +31,24 @@ export default async function handler(req, res) {
 
     const profileMap = Object.fromEntries((profiles ?? []).map(p => [p.id, p]))
 
+    // last_used_at из user_devices = реальный последний вход на платформу
+    // (в отличие от auth.last_sign_in_at, которое обновляется даже при незавершённом device-approve)
+    const { data: devicesRaw } = await supabase
+      .from('user_devices')
+      .select('user_id, last_used_at')
+      .order('last_used_at', { ascending: false })
+    const lastPlatformLoginByUser = {}
+    for (const d of devicesRaw ?? []) {
+      if (!lastPlatformLoginByUser[d.user_id]) {
+        lastPlatformLoginByUser[d.user_id] = d.last_used_at
+      }
+    }
+
     const result = users.map(u => ({
       id: u.id,
       email: u.email,
       created_at: u.created_at,
-      last_sign_in_at: u.last_sign_in_at,
+      last_sign_in_at: lastPlatformLoginByUser[u.id] ?? u.last_sign_in_at,
       role: profileMap[u.id]?.role ?? null,
       name: profileMap[u.id]?.name ?? null,
       is_active: profileMap[u.id]?.is_active ?? true,

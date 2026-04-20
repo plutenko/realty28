@@ -334,13 +334,14 @@ export default function AdminSecurityPage() {
                 <th className="p-3">Устройство</th>
                 <th className="p-3">Добавлено</th>
                 <th className="p-3">Последний вход</th>
+                <th className="p-3">Approve</th>
                 <th className="w-28 p-3"></th>
               </tr>
             </thead>
             <tbody>
               {devices.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-4 text-center text-slate-500">
+                  <td colSpan={6} className="p-4 text-center text-slate-500">
                     Устройств пока нет
                   </td>
                 </tr>
@@ -361,6 +362,11 @@ export default function AdminSecurityPage() {
                       </td>
                       <td className="p-3 text-xs text-slate-500">
                         {new Date(d.last_used_at).toLocaleString('ru-RU')}
+                      </td>
+                      <td className="p-3 text-xs text-slate-500">
+                        {d.last_approved_at
+                          ? new Date(d.last_approved_at).toLocaleString('ru-RU')
+                          : '—'}
                       </td>
                       <td className="p-3">
                         <button

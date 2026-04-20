@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import { getSupabaseAdmin } from '../../../lib/supabaseServer'
 import { computeDeviceHash, deviceLabelFromRequest } from '../../../lib/deviceFingerprint'
 import { broadcastToRoles } from '../../../lib/telegram'
+import { approveStillValid } from '../../../lib/workingDay'
 
 /**
  * POST /api/auth/check-device
@@ -40,16 +41,15 @@ export default async function handler(req, res) {
   const deviceHash = computeDeviceHash({ userAgent, clientHints })
   const label = deviceLabelFromRequest({ userAgent, clientHints })
 
-  // Проверяем, зарегистрировано ли уже
+  // Проверяем, зарегистрировано ли уже и свеж ли approve (до 03:00 Asia/Yakutsk следующего дня)
   const { data: existing } = await supabase
     .from('user_devices')
-    .select('id')
+    .select('id, last_approved_at')
     .eq('user_id', user.id)
     .eq('device_hash', deviceHash)
     .maybeSingle()
 
-  if (existing) {
-    // Обновляем last_used_at
+  if (existing && approveStillValid(existing.last_approved_at)) {
     await supabase
       .from('user_devices')
       .update({ last_used_at: new Date().toISOString() })

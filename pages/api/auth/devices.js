@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { data: devices, error } = await supabase
       .from('user_devices')
-      .select('id, user_id, label, created_at, last_used_at')
+      .select('id, user_id, label, created_at, last_used_at, last_approved_at')
       .order('last_used_at', { ascending: false })
     if (error) return res.status(500).json({ error: error.message })
 
