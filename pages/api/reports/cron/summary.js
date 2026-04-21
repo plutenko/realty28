@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from '../../../../lib/supabaseServer'
-import { getReportsSettings } from '../../../../lib/reportsSettings'
+import { getReportsSettings, DAILY_REPORT_COLUMNS } from '../../../../lib/reportsSettings'
 import { sendToGroup } from '../../../../lib/reportsTelegram'
 import {
   localParts,
@@ -67,18 +67,25 @@ export default async function handler(req, res) {
 
   // Отчёты в периоде (включая отсутствия)
   const metricsList = (settings.metrics || []).filter((m) => m.show_in_summary)
-  const dbCols = metricsList.flatMap((m) => {
-    if (m.type === 'shows') return [`${m.key}_count`, `${m.key}_objects`]
-    return [m.key]
-  })
+  // Не все метрики с type='shows' имеют колонку _objects (напр. shows_clients хранит только _count).
+  // Фильтруем по DAILY_REPORT_COLUMNS, иначе PostgREST возвращает 42703 → вся выборка обнуляется.
+  const allowed = new Set(DAILY_REPORT_COLUMNS)
+  const dbCols = metricsList
+    .flatMap((m) => (m.type === 'shows' ? [`${m.key}_count`, `${m.key}_objects`] : [m.key]))
+    .filter((c) => allowed.has(c))
   const cols = ['user_id', 'absence_type', 'date_from', 'date_to', ...new Set(dbCols)].join(', ')
 
-  const { data: reports } = await supabase
+  const { data: reports, error: reportsErr } = await supabase
     .from('daily_reports')
     .select(cols)
     .lte('date_from', period.to)
     .gte('date_to', period.from)
     .eq('is_valid', true)
+  if (reportsErr) {
+    // Лучше упасть, чем отправить в чат «0 из N» с ложным обвинением всех бойцов.
+    console.error('[reports-summary] daily_reports select error', reportsErr, { cols })
+    return res.status(500).json({ error: 'reports_select_failed', message: reportsErr.message })
+  }
 
   const submitted = new Set()
   const absent = [] // { user_id, type, from, to }
