@@ -70,7 +70,7 @@ export default async function handler(req, res) {
     while (true) {
       const { data: units, error: uErr } = await supabase
         .from('units')
-        .select('id, building_id, floor, number, position, entrance, rooms, area, layout_title, layout_image_url, finish_image_url, price, price_per_meter, status, span_columns, span_floors, is_commercial, external_id, source_id')
+        .select('id, building_id, floor, number, position, entrance, rooms, area, layout_title, layout_image_url, finish_image_url, floor_plan_url, price, price_per_meter, status, span_columns, span_floors, is_commercial, external_id, source_id')
         .in('building_id', buildingIds)
         .not('status', 'in', '("sold","booked","reserved","closed")')
         .order('id')
@@ -80,8 +80,11 @@ export default async function handler(req, res) {
       for (const u of units ?? []) {
         const ctx = buildingCtx.get(u.building_id)
         if (!ctx) continue
+        // Приоритет: персональный план квартиры (FSK: SVG этажа с подсветкой
+        // этой квартиры) > общий план этажа из images (MacroCRM/Amurstroy).
         const floor_plan_url =
-          u.floor != null ? floorPlanMap.get(`${u.building_id}::${u.floor}`) ?? null : null
+          u.floor_plan_url ||
+          (u.floor != null ? floorPlanMap.get(`${u.building_id}::${u.floor}`) ?? null : null)
         flat.push({
           ...u,
           floor_plan_url,
