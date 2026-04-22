@@ -39,11 +39,20 @@ export default async function handler(req, res) {
   const nowLocal = localParts(now, settings.timezone || 'Asia/Yakutsk')
   const dry = req.query.dry === '1'
 
-  if (isHoliday(nowLocal.dateIso, settings)) {
+  // Ручная пересборка за конкретный день: ?date=YYYY-MM-DD — не считаем
+  // автоматически «вчера» / batch, а берём именно эту дату (инвалидный отчёт
+  // потом исправили; праздник/ask_day не мешает принудительной переотправке).
+  const forcedDate = typeof req.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)
+    ? req.query.date
+    : null
+
+  if (!forcedDate && isHoliday(nowLocal.dateIso, settings)) {
     return res.status(200).json({ ok: true, skipped: 'holiday' })
   }
 
-  const period = computeSummaryPeriod(nowLocal, settings)
+  const period = forcedDate
+    ? { from: forcedDate, to: forcedDate, isBatch: false }
+    : computeSummaryPeriod(nowLocal, settings)
 
   // Сводка актуальна только если вчера был ask_day (иначе сводить нечего).
   // Исключение — когда вчера было Вс, computeSummaryPeriod вернёт батч за Пт-Вс: ask_days уже содержит Sun.
@@ -51,7 +60,7 @@ export default async function handler(req, res) {
   const [py, pm, pd] = period.to.split('-').map(Number)
   const targetDow = DOW_NAMES[new Date(Date.UTC(py, pm - 1, pd)).getUTCDay()]
   const askDays = new Set(settings.ask_days || [])
-  if (!askDays.has(targetDow)) {
+  if (!forcedDate && !askDays.has(targetDow)) {
     return res.status(200).json({ ok: true, skipped: 'target_day_not_ask', target: period.to, dow: targetDow })
   }
 
