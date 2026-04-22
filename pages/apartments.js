@@ -320,16 +320,28 @@ export default function ApartmentsPage() {
       const floorVal = u?.floor ?? 0
       const st = String(u?.status ?? '').toLowerCase()
       const notSold = st !== 'sold' && st !== 'booked' && st !== 'reserved' && st !== 'closed'
+      const handoverKey = getHandoverKeyForUnit(u)
 
       return (
         notSold &&
         (selectedDevelopers.length === 0 || selectedDevelopers.includes(devName)) &&
+        (selectedHandoverKeys.length === 0 || selectedHandoverKeys.includes(handoverKey)) &&
+        unitMatchesPpmRanges(u, selectedPpmRanges) &&
         (floorFrom == null || floorVal >= floorFrom) &&
         (floorTo == null || floorVal <= floorTo) &&
         unitAreaMatches(u, areaFrom, areaTo)
       )
     })
-  }, [units, selectedDevelopers, floorFrom, floorTo, areaFrom, areaTo])
+  }, [
+    units,
+    selectedDevelopers,
+    selectedHandoverKeys,
+    selectedPpmRanges,
+    floorFrom,
+    floorTo,
+    areaFrom,
+    areaTo,
+  ])
 
   const roomsOk = (u, roomsSelection) => {
     if (roomsSelection.length === 0) return true
