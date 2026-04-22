@@ -11,7 +11,15 @@ const SOURCE_TYPES = [
   { value: 'fsk',           label: 'ФСК (fsk.ru)' },
   { value: 'pik',           label: 'ПИК (pik.ru)' },
   { value: 'amurstroy',     label: 'Амурстрой (as-dv.ru)' },
+  { value: 'lazurnyy_bereg', label: 'Лазурный берег (lazurnyybereg.com)' },
   { value: 'csv',           label: 'CSV файл' },
+]
+
+/** Известные литеры Лазурного берега (lib/lazurLayouts.json) */
+const LAZUR_LITERS = [
+  { value: 'l9',    label: 'Литер 9 (Заводская 4/6, 14 эт., 4 подъезда)' },
+  { value: 'l9oc2', label: 'Литер 9 очередь 2 (15 эт., 1 подъезд)' },
+  { value: 'l10',   label: 'Литер 10 (25 эт., 1 подъезд)' },
 ]
 
 const SOURCE_TYPE_VALUES = new Set(SOURCE_TYPES.map((x) => x.value))
@@ -28,6 +36,8 @@ function resolvedParserType(sourceType, developerParser) {
   if (t === 'macrocrm') return 'macrocrm'
   if (t === 'fsk') return 'fsk'
   if (t === 'pik') return 'pik'
+  if (t === 'amurstroy') return 'amurstroy'
+  if (t === 'lazurnyy_bereg') return 'lazurnyy_bereg'
   if (t === 'google_sheets') {
     const p = String(developerParser || 'default').toLowerCase()
     return p === 'sodruzhestvo' ? 'sodruzhestvo' : 'default'
@@ -305,6 +315,8 @@ function sourceTypeBadgeClass(t) {
   if (v === 'profitbase') return 'bg-blue-600/25 text-blue-200 ring-1 ring-blue-500/40'
   if (v === 'fsk') return 'bg-purple-600/25 text-purple-200 ring-1 ring-purple-500/40'
   if (v === 'pik') return 'bg-orange-600/25 text-orange-200 ring-1 ring-orange-500/40'
+  if (v === 'amurstroy') return 'bg-amber-600/25 text-amber-200 ring-1 ring-amber-500/40'
+  if (v === 'lazurnyy_bereg') return 'bg-cyan-600/25 text-cyan-200 ring-1 ring-cyan-500/40'
   return 'bg-slate-700/80 text-slate-300 ring-1 ring-slate-600/50'
 }
 
@@ -1298,6 +1310,25 @@ export default function AdminSourcesPage() {
               Из URL: fsk.ru/<b>flabellum</b>/flats. Корпус берётся из выбранного дома автоматически.
             </p>
           </div>
+        ) : type === 'lazurnyy_bereg' ? (
+          <div className="space-y-2">
+            <label className="block text-xs text-slate-400">Литер</label>
+            <select
+              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              value={url || ''}
+              onChange={(e) => setUrl(e.target.value)}
+              required
+            >
+              <option value="">— выберите —</option>
+              {LAZUR_LITERS.map((l) => (
+                <option key={l.value} value={l.value}>{l.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-500">
+              Данные тянутся с Tilda Store сайта lazurnyybereg.com. Маппинг
+              slug → storepart/recid/building_id — в lib/lazurLayouts.json.
+            </p>
+          </div>
         ) : type === 'amurstroy' ? (
           (() => {
             const [projectSlug, literPart] = (url || '').split('|').map(s => s.trim())
@@ -1548,6 +1579,8 @@ export default function AdminSourcesPage() {
                       ? `fsk.ru/${(r.url || '').split('|')[0]}${(r.url || '').includes('|') ? ' · ' + (r.url || '').split('|')[1] : ''}`
                       : r.type === 'pik'
                       ? `block: ${(r.url || '').split('|')[0]}${(r.url || '').includes('|') ? ' · ' + (r.url || '').split('|')[1] : ''}`
+                      : r.type === 'lazurnyy_bereg'
+                      ? (LAZUR_LITERS.find((x) => x.value === r.url)?.label || r.url)
                       : r.url}
                   </td>
                   <td className="p-3">

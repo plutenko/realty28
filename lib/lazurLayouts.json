@@ -1,0 +1,3986 @@
+{
+  "l9": {
+    "building_id": "bae1c6a5-a5d5-4358-b016-194c710be4dd",
+    "storepart": "192173273262",
+    "recid": "1628454181",
+    "tab_label": "Сданный 4/6",
+    "floors": 14,
+    "floors_in_data": 14,
+    "entrances": 4,
+    "units_per_floor": 26,
+    "units_per_entrance": [
+      8,
+      8,
+      5,
+      5
+    ],
+    "positions": {
+      "1-14-103": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.3
+      },
+      "1-14-104": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31
+      },
+      "1-14-105": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.49
+      },
+      "1-14-106": {
+        "col": 4,
+        "span_columns": 2,
+        "rooms": 3,
+        "area": 100.7
+      },
+      "1-14-107": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.2
+      },
+      "1-14-108": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62
+      },
+      "1-14-109": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 45.4
+      },
+      "1-13-96": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.6
+      },
+      "1-13-97": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.47
+      },
+      "1-13-98": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.49
+      },
+      "1-13-99": {
+        "col": 4,
+        "span_columns": 2,
+        "rooms": 3,
+        "area": 101.6
+      },
+      "1-13-100": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.3
+      },
+      "1-13-101": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.11
+      },
+      "1-13-102": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 45.5
+      },
+      "1-12-89": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.5
+      },
+      "1-12-90": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.47
+      },
+      "1-12-91": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.6
+      },
+      "1-12-92": {
+        "col": 4,
+        "span_columns": 2,
+        "rooms": 3,
+        "area": 100.64
+      },
+      "1-12-93": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.4
+      },
+      "1-12-94": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.4
+      },
+      "1-12-95": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 45.3
+      },
+      "1-11-81": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.1
+      },
+      "1-11-82": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.47
+      },
+      "1-11-83": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.49
+      },
+      "1-11-84": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.49
+      },
+      "1-11-85": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.21
+      },
+      "1-11-86": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.4
+      },
+      "1-11-87": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.2
+      },
+      "1-11-88": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 45.5
+      },
+      "1-10-73": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.3
+      },
+      "1-10-74": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.47
+      },
+      "1-10-75": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.49
+      },
+      "1-10-76": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.49
+      },
+      "1-10-77": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.21
+      },
+      "1-10-78": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.1
+      },
+      "1-10-79": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.4
+      },
+      "1-10-80": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 45.36
+      },
+      "1-9-65": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.9
+      },
+      "1-9-66": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.78
+      },
+      "1-9-67": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.49
+      },
+      "1-9-68": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.7
+      },
+      "1-9-69": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.21
+      },
+      "1-9-70": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.13
+      },
+      "1-9-71": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.11
+      },
+      "1-9-72": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 45.36
+      },
+      "1-8-57": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "1-8-58": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.42
+      },
+      "1-8-59": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "1-8-60": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "1-8-61": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "1-8-62": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "1-8-63": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.59
+      },
+      "1-8-64": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "1-7-49": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "1-7-50": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.78
+      },
+      "1-7-51": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "1-7-52": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "1-7-53": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "1-7-54": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "1-7-55": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.59
+      },
+      "1-7-56": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "1-6-41": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "1-6-42": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.78
+      },
+      "1-6-43": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "1-6-44": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "1-6-45": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "1-6-46": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "1-6-47": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.59
+      },
+      "1-6-48": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "1-5-33": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "1-5-34": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.43
+      },
+      "1-5-35": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "1-5-36": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "1-5-37": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "1-5-38": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "1-5-39": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.8
+      },
+      "1-5-40": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "1-4-25": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "1-4-26": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.78
+      },
+      "1-4-27": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "1-4-28": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "1-4-29": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "1-4-30": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "1-4-31": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.59
+      },
+      "1-4-32": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "1-3-17": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "1-3-18": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.78
+      },
+      "1-3-19": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "1-3-20": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "1-3-21": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "1-3-22": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "1-3-23": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.59
+      },
+      "1-3-24": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "1-2-9": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "1-2-10": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.78
+      },
+      "1-2-11": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "1-2-12": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "1-2-13": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "1-2-14": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "1-2-15": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.59
+      },
+      "1-2-16": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "1-1-1": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "1-1-2": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.43
+      },
+      "1-1-3": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "1-1-4": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "1-1-5": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "1-1-6": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "1-1-7": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.59
+      },
+      "1-1-8": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "2-14-211": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.3
+      },
+      "2-14-212": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.4
+      },
+      "2-14-213": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.6
+      },
+      "2-14-214": {
+        "col": 4,
+        "span_columns": 2,
+        "rooms": 3,
+        "area": 101
+      },
+      "2-14-215": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.6
+      },
+      "2-14-216": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.5
+      },
+      "2-14-217": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 46
+      },
+      "2-13-204": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60
+      },
+      "2-13-205": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.3
+      },
+      "2-13-206": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.6
+      },
+      "2-13-207": {
+        "col": 4,
+        "span_columns": 2,
+        "rooms": 3,
+        "area": 100.7
+      },
+      "2-13-208": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.4
+      },
+      "2-13-209": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.11
+      },
+      "2-13-210": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 45.3
+      },
+      "2-12-197": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.36
+      },
+      "2-12-198": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.2
+      },
+      "2-12-199": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.5
+      },
+      "2-12-200": {
+        "col": 4,
+        "span_columns": 2,
+        "rooms": 3,
+        "area": 100.64
+      },
+      "2-12-201": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.4
+      },
+      "2-12-202": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.4
+      },
+      "2-12-203": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 45.36
+      },
+      "2-11-189": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.1
+      },
+      "2-11-190": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.47
+      },
+      "2-11-191": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.49
+      },
+      "2-11-192": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.4
+      },
+      "2-11-193": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.6
+      },
+      "2-11-194": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.6
+      },
+      "2-11-195": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62
+      },
+      "2-11-196": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 45.3
+      },
+      "2-10-181": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.36
+      },
+      "2-10-182": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.3
+      },
+      "2-10-183": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.49
+      },
+      "2-10-184": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.3
+      },
+      "2-10-185": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.21
+      },
+      "2-10-186": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.13
+      },
+      "2-10-187": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.3
+      },
+      "2-10-188": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 45.36
+      },
+      "2-9-173": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.36
+      },
+      "2-9-174": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.47
+      },
+      "2-9-175": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.49
+      },
+      "2-9-176": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.49
+      },
+      "2-9-177": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.21
+      },
+      "2-9-178": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.13
+      },
+      "2-9-179": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.5
+      },
+      "2-9-180": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 45.36
+      },
+      "2-8-165": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "2-8-166": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31
+      },
+      "2-8-167": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "2-8-168": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "2-8-169": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "2-8-170": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "2-8-171": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.6
+      },
+      "2-8-172": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "2-7-157": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "2-7-158": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.42
+      },
+      "2-7-159": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "2-7-160": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "2-7-161": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "2-7-162": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "2-7-163": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.59
+      },
+      "2-7-164": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "2-6-149": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "2-6-150": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.42
+      },
+      "2-6-151": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "2-6-152": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "2-6-153": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "2-6-154": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "2-6-155": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.59
+      },
+      "2-6-156": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "2-5-141": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "2-5-142": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.43
+      },
+      "2-5-143": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "2-5-144": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "2-5-145": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "2-5-146": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "2-5-147": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62
+      },
+      "2-5-148": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "2-4-133": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "2-4-134": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.43
+      },
+      "2-4-135": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "2-4-136": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "2-4-137": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "2-4-138": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "2-4-139": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.59
+      },
+      "2-4-140": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "2-3-125": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "2-3-126": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.43
+      },
+      "2-3-127": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "2-3-128": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "2-3-129": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "2-3-130": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "2-3-131": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.59
+      },
+      "2-3-132": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "2-2-117": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "2-2-118": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.43
+      },
+      "2-2-119": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "2-2-120": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "2-2-121": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "2-2-122": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.91
+      },
+      "2-2-123": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.59
+      },
+      "2-2-124": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "2-1-110": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 59.67
+      },
+      "2-1-111": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.43
+      },
+      "2-1-112": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 22.27
+      },
+      "2-1-113": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.93
+      },
+      "2-1-114": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.84
+      },
+      "2-1-115": {
+        "col": 6,
+        "span_columns": 2,
+        "rooms": 3,
+        "area": 79.35
+      },
+      "2-1-116": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 44.85
+      },
+      "3-14-278": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 66.6
+      },
+      "3-14-279": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 35.22
+      },
+      "3-14-280": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.3
+      },
+      "3-14-281": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.4
+      },
+      "3-14-282": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 48.9
+      },
+      "3-13-273": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 66.8
+      },
+      "3-13-274": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 35.22
+      },
+      "3-13-275": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 64.1
+      },
+      "3-13-276": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.8
+      },
+      "3-13-277": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 48.8
+      },
+      "3-12-268": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 65.09
+      },
+      "3-12-269": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 35.22
+      },
+      "3-12-270": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.7
+      },
+      "3-12-271": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.65
+      },
+      "3-12-272": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 48.6
+      },
+      "3-11-263": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 65.09
+      },
+      "3-11-264": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 35.22
+      },
+      "3-11-265": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 63.5
+      },
+      "3-11-266": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.9
+      },
+      "3-11-267": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 48.15
+      },
+      "3-10-258": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 65.09
+      },
+      "3-10-259": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 35.22
+      },
+      "3-10-260": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 63.6
+      },
+      "3-10-261": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 61.6
+      },
+      "3-10-262": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 48.15
+      },
+      "3-9-253": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 65.09
+      },
+      "3-9-254": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 35.22
+      },
+      "3-9-255": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.3
+      },
+      "3-9-256": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.65
+      },
+      "3-9-257": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 48.15
+      },
+      "3-8-248": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 64.33
+      },
+      "3-8-249": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 34.9
+      },
+      "3-8-250": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.4
+      },
+      "3-8-251": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.04
+      },
+      "3-8-252": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 47.66
+      },
+      "3-7-243": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 64.33
+      },
+      "3-7-244": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 34.9
+      },
+      "3-7-245": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.4
+      },
+      "3-7-246": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.04
+      },
+      "3-7-247": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 47.66
+      },
+      "3-6-238": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 64.33
+      },
+      "3-6-239": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 34.9
+      },
+      "3-6-240": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.4
+      },
+      "3-6-241": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.7
+      },
+      "3-6-242": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 47.66
+      },
+      "3-5-233": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 64.33
+      },
+      "3-5-234": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 34.9
+      },
+      "3-5-235": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.4
+      },
+      "3-5-236": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.04
+      },
+      "3-5-237": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 47.66
+      },
+      "3-4-228": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 64.33
+      },
+      "3-4-229": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 34.9
+      },
+      "3-4-230": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.4
+      },
+      "3-4-231": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.04
+      },
+      "3-4-232": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 47.66
+      },
+      "3-3-223": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 64.33
+      },
+      "3-3-224": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 34.9
+      },
+      "3-3-225": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.4
+      },
+      "3-3-226": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.04
+      },
+      "3-3-227": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 47.66
+      },
+      "3-2-218": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 64.33
+      },
+      "3-2-219": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 34.9
+      },
+      "3-2-220": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.4
+      },
+      "3-2-221": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 60.04
+      },
+      "3-2-222": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 47.66
+      },
+      "4-14-343": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 79.26
+      },
+      "4-14-344": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.19
+      },
+      "4-14-345": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.1
+      },
+      "4-14-346": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 55.7
+      },
+      "4-14-347": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.7
+      },
+      "4-13-338": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 79.26
+      },
+      "4-13-339": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.19
+      },
+      "4-13-340": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 58.1
+      },
+      "4-13-341": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 55.8
+      },
+      "4-13-342": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.8
+      },
+      "4-12-333": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 79.26
+      },
+      "4-12-334": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.19
+      },
+      "4-12-335": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 57.7
+      },
+      "4-12-336": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 55.23
+      },
+      "4-12-337": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.8
+      },
+      "4-11-328": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 79.26
+      },
+      "4-11-329": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.19
+      },
+      "4-11-330": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 57.7
+      },
+      "4-11-331": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 55.7
+      },
+      "4-11-332": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.8
+      },
+      "4-10-323": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 79.26
+      },
+      "4-10-324": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.19
+      },
+      "4-10-325": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 57.21
+      },
+      "4-10-326": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 55.23
+      },
+      "4-10-327": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.7
+      },
+      "4-9-318": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 79.26
+      },
+      "4-9-319": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 39.19
+      },
+      "4-9-320": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 57.21
+      },
+      "4-9-321": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 55.23
+      },
+      "4-9-322": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 62.8
+      },
+      "4-8-313": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 78.75
+      },
+      "4-8-314": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.73
+      },
+      "4-8-315": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.58
+      },
+      "4-8-316": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 54.76
+      },
+      "4-8-317": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.74
+      },
+      "4-7-308": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 78.75
+      },
+      "4-7-309": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.73
+      },
+      "4-7-310": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.58
+      },
+      "4-7-311": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 54.76
+      },
+      "4-7-312": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.74
+      },
+      "4-6-303": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 78.75
+      },
+      "4-6-304": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.73
+      },
+      "4-6-305": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.58
+      },
+      "4-6-306": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 54.76
+      },
+      "4-6-307": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.74
+      },
+      "4-5-298": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 78.75
+      },
+      "4-5-299": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.73
+      },
+      "4-5-300": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.58
+      },
+      "4-5-301": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 54.76
+      },
+      "4-5-302": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.74
+      },
+      "4-4-293": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 78.75
+      },
+      "4-4-294": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.73
+      },
+      "4-4-295": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.58
+      },
+      "4-4-296": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 54.76
+      },
+      "4-4-297": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.74
+      },
+      "4-3-288": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 78.75
+      },
+      "4-3-289": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.73
+      },
+      "4-3-290": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.58
+      },
+      "4-3-291": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 54.76
+      },
+      "4-3-292": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.74
+      },
+      "4-2-283": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 78.75
+      },
+      "4-2-284": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 38.73
+      },
+      "4-2-285": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.58
+      },
+      "4-2-286": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 54.76
+      },
+      "4-2-287": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 56.74
+      }
+    }
+  },
+  "l9oc2": {
+    "building_id": "b8ff0df5-d388-40af-9bb1-61ef0b3ba5dd",
+    "storepart": "444729551372",
+    "recid": "1633730321",
+    "tab_label": "Литер 2 (15 эт.)",
+    "floors": 15,
+    "floors_in_data": 15,
+    "entrances": 1,
+    "units_per_floor": 9,
+    "units_per_entrance": [
+      9
+    ],
+    "positions": {
+      "1-15-127": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 48.24
+      },
+      "1-15-128": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 72
+      },
+      "1-15-129": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.37
+      },
+      "1-15-130": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.33
+      },
+      "1-15-131": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.53
+      },
+      "1-15-132": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 50
+      },
+      "1-15-133": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.04
+      },
+      "1-15-134": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 66.04
+      },
+      "1-15-135": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 48.28
+      },
+      "1-14-118": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 48.24
+      },
+      "1-14-119": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 72
+      },
+      "1-14-120": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.37
+      },
+      "1-14-121": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.33
+      },
+      "1-14-122": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.53
+      },
+      "1-14-123": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 50
+      },
+      "1-14-124": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.04
+      },
+      "1-14-125": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 66.04
+      },
+      "1-14-126": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 48.28
+      },
+      "1-13-109": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 48.24
+      },
+      "1-13-110": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 72
+      },
+      "1-13-111": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.37
+      },
+      "1-13-112": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.33
+      },
+      "1-13-113": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.53
+      },
+      "1-13-114": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 50
+      },
+      "1-13-115": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.04
+      },
+      "1-13-116": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 66.04
+      },
+      "1-13-117": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 48.28
+      },
+      "1-12-100": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 48.24
+      },
+      "1-12-101": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 72
+      },
+      "1-12-102": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.37
+      },
+      "1-12-103": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.33
+      },
+      "1-12-104": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.53
+      },
+      "1-12-105": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 50
+      },
+      "1-12-106": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.04
+      },
+      "1-12-107": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 66.04
+      },
+      "1-12-108": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 48.28
+      },
+      "1-11-91": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 48.25
+      },
+      "1-11-92": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 72
+      },
+      "1-11-93": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.37
+      },
+      "1-11-94": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.33
+      },
+      "1-11-95": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.53
+      },
+      "1-11-96": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 50
+      },
+      "1-11-97": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.04
+      },
+      "1-11-98": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 66.04
+      },
+      "1-11-99": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 48.28
+      },
+      "1-10-82": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 48.25
+      },
+      "1-10-83": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 72
+      },
+      "1-10-84": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 31.37
+      },
+      "1-10-85": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.33
+      },
+      "1-10-86": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.53
+      },
+      "1-10-87": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 50
+      },
+      "1-10-88": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.04
+      },
+      "1-10-89": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 66.04
+      },
+      "1-10-90": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 48.28
+      },
+      "1-9-73": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-9-74": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 71.54
+      },
+      "1-9-75": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.93
+      },
+      "1-9-76": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.09
+      },
+      "1-9-77": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.12
+      },
+      "1-9-78": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 49.59
+      },
+      "1-9-79": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.53
+      },
+      "1-9-80": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 65.38
+      },
+      "1-9-81": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-8-64": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-8-65": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 71.54
+      },
+      "1-8-66": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.93
+      },
+      "1-8-67": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.09
+      },
+      "1-8-68": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.12
+      },
+      "1-8-69": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 49.59
+      },
+      "1-8-70": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.53
+      },
+      "1-8-71": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 65.38
+      },
+      "1-8-72": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-7-55": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-7-56": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 71.54
+      },
+      "1-7-57": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.93
+      },
+      "1-7-58": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.09
+      },
+      "1-7-59": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.12
+      },
+      "1-7-60": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 49.59
+      },
+      "1-7-61": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.53
+      },
+      "1-7-62": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 65.38
+      },
+      "1-7-63": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-6-46": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-6-47": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 71.54
+      },
+      "1-6-48": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.93
+      },
+      "1-6-49": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.09
+      },
+      "1-6-50": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.12
+      },
+      "1-6-51": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 49.59
+      },
+      "1-6-52": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.53
+      },
+      "1-6-53": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 65.38
+      },
+      "1-6-54": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-5-37": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-5-38": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 71.54
+      },
+      "1-5-39": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.93
+      },
+      "1-5-40": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.09
+      },
+      "1-5-41": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.12
+      },
+      "1-5-42": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 49.59
+      },
+      "1-5-43": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.53
+      },
+      "1-5-44": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 65.38
+      },
+      "1-5-45": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-4-28": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-4-29": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 71.54
+      },
+      "1-4-30": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.93
+      },
+      "1-4-31": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.09
+      },
+      "1-4-32": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.12
+      },
+      "1-4-33": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 49.59
+      },
+      "1-4-34": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.53
+      },
+      "1-4-35": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 65.38
+      },
+      "1-4-36": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-3-19": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-3-20": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 71.54
+      },
+      "1-3-21": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.93
+      },
+      "1-3-22": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.09
+      },
+      "1-3-23": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.12
+      },
+      "1-3-24": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 49.59
+      },
+      "1-3-25": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.53
+      },
+      "1-3-26": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 65.38
+      },
+      "1-3-27": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-2-10": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-2-11": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 71.54
+      },
+      "1-2-12": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.93
+      },
+      "1-2-13": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.09
+      },
+      "1-2-14": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.12
+      },
+      "1-2-15": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 49.59
+      },
+      "1-2-16": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.53
+      },
+      "1-2-17": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 65.38
+      },
+      "1-2-18": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-1-1": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      },
+      "1-1-2": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": 3,
+        "area": 71.54
+      },
+      "1-1-3": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 30.93
+      },
+      "1-1-4": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": 0,
+        "area": 32.09
+      },
+      "1-1-5": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 41.12
+      },
+      "1-1-6": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 49.59
+      },
+      "1-1-7": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": 1,
+        "area": 40.53
+      },
+      "1-1-8": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 65.38
+      },
+      "1-1-9": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": 2,
+        "area": 47.85
+      }
+    }
+  },
+  "l10": {
+    "building_id": "4678b62d-aced-4349-a4c9-6d291abfe419",
+    "storepart": "242781962772",
+    "recid": "670767243",
+    "tab_label": "Литер 10 (25 эт.)",
+    "floors": 25,
+    "floors_in_data": 19,
+    "entrances": 1,
+    "units_per_floor": 10,
+    "units_per_entrance": [
+      10
+    ],
+    "positions": {
+      "1-19-167": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 46.7
+      },
+      "1-19-168": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.2
+      },
+      "1-19-169": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.2
+      },
+      "1-19-170": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 39.9
+      },
+      "1-19-171": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.1
+      },
+      "1-19-172": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.3
+      },
+      "1-19-173": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 73.1
+      },
+      "1-19-174": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.7
+      },
+      "1-19-175": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.3
+      },
+      "1-18-157": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 46.7
+      },
+      "1-18-158": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.2
+      },
+      "1-18-159": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.2
+      },
+      "1-18-160": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 39.9
+      },
+      "1-18-161": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.1
+      },
+      "1-18-162": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.3
+      },
+      "1-18-163": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.1
+      },
+      "1-18-164": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.7
+      },
+      "1-18-165": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.3
+      },
+      "1-17-147": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 46.7
+      },
+      "1-17-148": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.2
+      },
+      "1-17-149": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.2
+      },
+      "1-17-150": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 39.9
+      },
+      "1-17-151": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.1
+      },
+      "1-17-152": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.3
+      },
+      "1-17-153": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.1
+      },
+      "1-17-154": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.7
+      },
+      "1-17-155": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.3
+      },
+      "1-17-156": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 39.1
+      },
+      "1-16-137": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 46.7
+      },
+      "1-16-138": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.2
+      },
+      "1-16-139": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.2
+      },
+      "1-16-140": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 39.9
+      },
+      "1-16-141": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.1
+      },
+      "1-16-142": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.3
+      },
+      "1-16-143": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.1
+      },
+      "1-16-144": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.7
+      },
+      "1-16-145": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.3
+      },
+      "1-16-146": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 39.1
+      },
+      "1-15-127": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.3
+      },
+      "1-15-128": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.6
+      },
+      "1-15-129": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.8
+      },
+      "1-15-130": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.2
+      },
+      "1-15-131": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 46.6
+      },
+      "1-15-132": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.7
+      },
+      "1-15-133": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.7
+      },
+      "1-15-134": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.9
+      },
+      "1-15-135": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 66.6
+      },
+      "1-15-136": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.1
+      },
+      "1-14-117": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.3
+      },
+      "1-14-118": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.6
+      },
+      "1-14-119": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.8
+      },
+      "1-14-120": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.2
+      },
+      "1-14-121": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.6
+      },
+      "1-14-122": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.7
+      },
+      "1-14-123": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.7
+      },
+      "1-14-124": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.9
+      },
+      "1-14-125": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 66.6
+      },
+      "1-14-126": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 44.1
+      },
+      "1-13-107": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.3
+      },
+      "1-13-108": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.6
+      },
+      "1-13-109": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.8
+      },
+      "1-13-110": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.2
+      },
+      "1-13-111": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.6
+      },
+      "1-13-112": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.7
+      },
+      "1-13-113": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.7
+      },
+      "1-13-114": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.9
+      },
+      "1-13-115": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 66.6
+      },
+      "1-13-116": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.1
+      },
+      "1-12-97": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.3
+      },
+      "1-12-98": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.6
+      },
+      "1-12-99": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.8
+      },
+      "1-12-100": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.2
+      },
+      "1-12-101": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.6
+      },
+      "1-12-102": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.7
+      },
+      "1-12-103": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.7
+      },
+      "1-12-104": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.9
+      },
+      "1-12-105": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 66.6
+      },
+      "1-12-106": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.1
+      },
+      "1-11-87": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.3
+      },
+      "1-11-88": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.6
+      },
+      "1-11-89": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.8
+      },
+      "1-11-90": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.2
+      },
+      "1-11-91": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.6
+      },
+      "1-11-92": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.7
+      },
+      "1-11-93": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.7
+      },
+      "1-11-94": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.9
+      },
+      "1-11-95": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 66.6
+      },
+      "1-11-96": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.1
+      },
+      "1-10-77": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.3
+      },
+      "1-10-78": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.6
+      },
+      "1-10-79": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.8
+      },
+      "1-10-80": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.2
+      },
+      "1-10-81": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.6
+      },
+      "1-10-82": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.7
+      },
+      "1-10-83": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.7
+      },
+      "1-10-84": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.9
+      },
+      "1-10-85": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 66.6
+      },
+      "1-10-86": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.1
+      },
+      "1-9-67": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.3
+      },
+      "1-9-68": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.6
+      },
+      "1-9-69": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.8
+      },
+      "1-9-70": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 44.2
+      },
+      "1-9-71": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.6
+      },
+      "1-9-72": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.7
+      },
+      "1-9-73": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.7
+      },
+      "1-9-74": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.9
+      },
+      "1-9-75": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 66.6
+      },
+      "1-9-76": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.1
+      },
+      "1-8-57": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.3
+      },
+      "1-8-58": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.6
+      },
+      "1-8-59": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.8
+      },
+      "1-8-60": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.2
+      },
+      "1-8-61": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.6
+      },
+      "1-8-62": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.7
+      },
+      "1-8-63": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 73.8
+      },
+      "1-8-64": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.9
+      },
+      "1-8-65": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 66.6
+      },
+      "1-8-66": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.1
+      },
+      "1-7-47": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.3
+      },
+      "1-7-48": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.6
+      },
+      "1-7-49": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.8
+      },
+      "1-7-50": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.2
+      },
+      "1-7-51": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.6
+      },
+      "1-7-52": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.7
+      },
+      "1-7-53": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.7
+      },
+      "1-7-54": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.9
+      },
+      "1-7-55": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 66.6
+      },
+      "1-7-56": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.1
+      },
+      "1-6-37": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.3
+      },
+      "1-6-38": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.6
+      },
+      "1-6-39": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.8
+      },
+      "1-6-40": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 44.2
+      },
+      "1-6-41": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 46.6
+      },
+      "1-6-42": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.7
+      },
+      "1-6-43": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.7
+      },
+      "1-6-44": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.9
+      },
+      "1-6-45": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 66.6
+      },
+      "1-6-46": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.1
+      },
+      "1-5-27": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.3
+      },
+      "1-5-28": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.6
+      },
+      "1-5-29": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.8
+      },
+      "1-5-30": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.2
+      },
+      "1-5-31": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 46.6
+      },
+      "1-5-32": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.7
+      },
+      "1-5-33": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 73.8
+      },
+      "1-5-34": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.9
+      },
+      "1-5-35": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 74.6
+      },
+      "1-5-36": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.1
+      },
+      "1-4-17": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.3
+      },
+      "1-4-18": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.6
+      },
+      "1-4-19": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 84.8
+      },
+      "1-4-20": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 44.2
+      },
+      "1-4-21": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.6
+      },
+      "1-4-22": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 42.7
+      },
+      "1-4-23": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 65.7
+      },
+      "1-4-24": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.9
+      },
+      "1-4-25": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 66.6
+      },
+      "1-4-26": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.1
+      },
+      "1-3-7": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.3
+      },
+      "1-3-8": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.8
+      },
+      "1-3-9": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 87.4
+      },
+      "1-3-10": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 44.1
+      },
+      "1-3-11": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 46.4
+      },
+      "1-3-12": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 46.8
+      },
+      "1-3-13": {
+        "col": 7,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 68.1
+      },
+      "1-3-14": {
+        "col": 8,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 41
+      },
+      "1-3-15": {
+        "col": 9,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 66.7
+      },
+      "1-3-16": {
+        "col": 10,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.2
+      },
+      "1-2-1": {
+        "col": 1,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 47.4
+      },
+      "1-2-2": {
+        "col": 2,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 69
+      },
+      "1-2-3": {
+        "col": 3,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 63.7
+      },
+      "1-2-4": {
+        "col": 4,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 41.2
+      },
+      "1-2-5": {
+        "col": 5,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 67.1
+      },
+      "1-2-6": {
+        "col": 6,
+        "span_columns": 1,
+        "rooms": null,
+        "area": 40.3
+      }
+    }
+  }
+}
