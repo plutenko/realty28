@@ -6,7 +6,7 @@ import {
   sendToGroup,
   formatMention,
 } from '../../../lib/reportsTelegram'
-import { classifyMessage, parseReport, parseAbsence } from '../../../lib/reportsParser'
+import { classifyMessage, parseReport, parseAbsence, parseDateHeader } from '../../../lib/reportsParser'
 import {
   getReportsSettings,
   fillTemplate,
@@ -190,9 +190,17 @@ async function handleMessage(supabase, message, { edited }) {
   }
 
   // kind === 'report'
-  const parsed = parseReport(text, settings, now)
+  // Сначала смотрим, разблокирован ли этот день вручную через ЛК руководителя
+  // (report_day_overrides). Если да — парсер пропустит проверку окна приёма.
+  const hasOverride = await hasDayOverride(supabase, text, settings, now)
+  const parsed = parseReport(text, settings, now, { allowClosedWindow: hasOverride })
 
   if (!parsed.ok) {
+    // Если причина — закрытое окно и это правка существующего сообщения риелтора,
+    // молчим: сводка за день сдана, данные трогать нельзя (правила «после 09:30»).
+    const tooOld = (parsed.errors || []).some((e) => e?.type === 'too_old')
+    if (tooOld && edited) return
+
     await applyInvalidReport(supabase, {
       chatId,
       messageId,
@@ -417,4 +425,47 @@ async function notifyAdminUnknownUser(supabase, settings, from) {
   for (const a of admins) {
     await sendMessage(a.telegram_chat_id, text).catch(() => {})
   }
+}
+
+/**
+ * Проверяет, есть ли у хотя бы одной из дат сообщения разблокировка через ЛК
+ * руководителя (report_day_overrides). Если да — разрешаем принять отчёт даже
+ * после 09:30 (окно закрыто).
+ *
+ * Быстро вытаскиваем даты из первой строки через parseDateHeader; если дата не
+ * распознана (сообщение с absence-маркером, где parseReport всё равно не вызовется)
+ * — возвращаем false.
+ */
+async function hasDayOverride(supabase, text, settings, now) {
+  try {
+    const firstLine = String(text || '').split(/\r?\n/)[0] || ''
+    const tz = settings.timezone || 'Asia/Yakutsk'
+    const nowLocal = localPartsForOverride(now, tz)
+    const dateRes = parseDateHeader(firstLine, nowLocal, settings)
+    if (!dateRes.ok) return false
+
+    const { data, error } = await supabase
+      .from('report_day_overrides')
+      .select('date')
+      .gte('date', dateRes.dateFrom)
+      .lte('date', dateRes.dateTo)
+      .limit(1)
+      .maybeSingle()
+    if (error || !data) return false
+    return true
+  } catch {
+    return false
+  }
+}
+
+function localPartsForOverride(date, timeZone) {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const p = Object.fromEntries(fmt.formatToParts(date).map((x) => [x.type, x.value]))
+  const y = +p.year, mm = +p.month, dd = +p.day
+  return { year: y, month: mm, day: dd, dateIso: `${y}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}` }
 }

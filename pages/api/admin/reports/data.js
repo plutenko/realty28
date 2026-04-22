@@ -13,12 +13,20 @@ async function requireAdmin(req, supabase) {
  * Вычисляет границы периода по типу и offset от "текущего".
  * timeZone: Asia/Yakutsk — вся логика в локальном календаре риелторов.
  */
-function computeRange(periodType, offset, timeZone = 'Asia/Yakutsk') {
+function computeRange(periodType, offset, timeZone = 'Asia/Yakutsk', explicitDate = null) {
   const now = new Date()
   const nowLocalParts = localParts(now, timeZone)
   const y = nowLocalParts.year
   const m = nowLocalParts.month
   const d = nowLocalParts.day
+
+  if (periodType === 'day') {
+    const iso = explicitDate && /^\d{4}-\d{2}-\d{2}$/.test(explicitDate)
+      ? explicitDate
+      : `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    const [yy, mm, dd] = iso.split('-')
+    return { from: iso, to: iso, label: `${dd}.${mm}.${yy}` }
+  }
 
   if (periodType === 'week') {
     // Неделя: Пн-Вс. JS Sunday=0 — смещаем чтобы воскр стало 7.
@@ -101,10 +109,11 @@ export default async function handler(req, res) {
 
   const periodType = String(req.query.period || 'week')
   const offset = parseInt(req.query.offset || '0', 10)
+  const explicitDate = typeof req.query.date === 'string' ? req.query.date : null
 
   let range
   try {
-    range = computeRange(periodType, offset)
+    range = computeRange(periodType, offset, 'Asia/Yakutsk', explicitDate)
   } catch (e) {
     return res.status(400).json({ error: e.message })
   }

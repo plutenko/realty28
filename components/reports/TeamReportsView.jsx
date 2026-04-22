@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import RealtorReportsModal from './RealtorReportsModal'
 
 async function apiFetch(method, path, body) {
   const { data: { session } } = await supabase.auth.getSession()
@@ -10,12 +11,23 @@ async function apiFetch(method, path, body) {
   }
   if (body) opts.body = JSON.stringify(body)
   const res = await fetch(path, opts)
-  const json = await res.json()
-  if (!res.ok) throw new Error(json.error || 'Ошибка')
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`)
   return json
 }
 
-const PERIOD_LABELS = { week: 'Неделя', month: 'Месяц', quarter: 'Квартал', year: 'Год' }
+const PERIOD_LABELS = { day: 'День', week: 'Неделя', month: 'Месяц', quarter: 'Квартал', year: 'Год' }
+
+function todayIsoYakutsk() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Yakutsk',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const p = Object.fromEntries(parts.map((x) => [x.type, x.value]))
+  return `${p.year}-${p.month}-${p.day}`
+}
 
 const METRIC_COLS = [
   { key: 'cold_calls', label: 'Хз' },
@@ -51,26 +63,60 @@ function formatRu(iso) {
 export default function TeamReportsView() {
   const [period, setPeriod] = useState('week')
   const [offset, setOffset] = useState(0)
+  const [dayDate, setDayDate] = useState(todayIsoYakutsk())
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [textModal, setTextModal] = useState(null)
   const [copied, setCopied] = useState(false)
+  const [editRealtor, setEditRealtor] = useState(null)
+  const [unlocked, setUnlocked] = useState(false)
+  const [unlockingBusy, setUnlockingBusy] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const d = await apiFetch('GET', `/api/admin/reports/data?period=${period}&offset=${offset}`)
+      const path = period === 'day'
+        ? `/api/admin/reports/data?period=day&date=${dayDate}`
+        : `/api/admin/reports/data?period=${period}&offset=${offset}`
+      const d = await apiFetch('GET', path)
       setData(d)
+      // Параллельно — проверим, разблокирован ли текущий день (для режима «День»)
+      if (period === 'day') {
+        try {
+          const ov = await apiFetch('GET', `/api/admin/reports/unlock-day?from=${dayDate}&to=${dayDate}`)
+          setUnlocked((ov.overrides || []).length > 0)
+        } catch { setUnlocked(false) }
+      } else {
+        setUnlocked(false)
+      }
     } catch (e) {
       setError(e.message)
     } finally {
       setLoading(false)
     }
-  }, [period, offset])
+  }, [period, offset, dayDate])
 
   useEffect(() => { load() }, [load])
+
+  async function toggleUnlock() {
+    if (period !== 'day') return
+    setUnlockingBusy(true)
+    try {
+      if (unlocked) {
+        await apiFetch('DELETE', `/api/admin/reports/unlock-day?date=${dayDate}`)
+        setUnlocked(false)
+      } else {
+        await apiFetch('POST', `/api/admin/reports/unlock-day?date=${dayDate}`)
+        setUnlocked(true)
+      }
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setUnlockingBusy(false)
+    }
+  }
 
   async function handlePeriodText() {
     if (!data) return
@@ -118,30 +164,61 @@ export default function TeamReportsView() {
           ))}
         </div>
 
-        <div className="inline-flex items-center gap-1">
-          <button
-            onClick={() => setOffset((o) => o - 1)}
-            className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-            title="Предыдущий период"
-          >←</button>
-          <div className="min-w-[220px] rounded-md border border-gray-200 bg-white px-3 py-1.5 text-center text-sm text-gray-700">
-            {data?.range?.label || '—'}
-          </div>
-          <button
-            onClick={() => setOffset((o) => o + 1)}
-            disabled={offset >= 0}
-            className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-white"
-            title="Следующий период"
-          >→</button>
-          {offset !== 0 && (
+        {period === 'day' ? (
+          <div className="inline-flex items-center gap-2">
+            <input
+              type="date"
+              value={dayDate}
+              onChange={(e) => setDayDate(e.target.value || todayIsoYakutsk())}
+              className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700"
+            />
             <button
-              onClick={() => setOffset(0)}
-              className="ml-2 rounded-md bg-gray-200 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-300"
+              onClick={() => setDayDate(todayIsoYakutsk())}
+              className="rounded-md bg-gray-200 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-300"
+              title="Сегодня"
+            >Сегодня</button>
+            <button
+              onClick={toggleUnlock}
+              disabled={unlockingBusy}
+              className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                unlocked
+                  ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+              } disabled:opacity-50`}
+              title={unlocked
+                ? 'Разблокировано — риелторы могут прислать/отредактировать отчёт. Клик — снять'
+                : 'Разрешить риелторам прислать/отредактировать отчёт за этот день'
+              }
             >
-              Текущий
+              {unlocked ? '🔓 Разблокировано' : '🔒 Заблокировать/разблокировать'}
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-1">
+            <button
+              onClick={() => setOffset((o) => o - 1)}
+              className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+              title="Предыдущий период"
+            >←</button>
+            <div className="min-w-[220px] rounded-md border border-gray-200 bg-white px-3 py-1.5 text-center text-sm text-gray-700">
+              {data?.range?.label || '—'}
+            </div>
+            <button
+              onClick={() => setOffset((o) => o + 1)}
+              disabled={offset >= 0}
+              className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-white"
+              title="Следующий период"
+            >→</button>
+            {offset !== 0 && (
+              <button
+                onClick={() => setOffset(0)}
+                className="ml-2 rounded-md bg-gray-200 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-300"
+              >
+                Текущий
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="grow" />
         <button
@@ -173,9 +250,14 @@ export default function TeamReportsView() {
               </thead>
               <tbody>
                 {active.map((r) => (
-                  <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="sticky left-0 bg-white px-4 py-2 text-gray-900 whitespace-nowrap">
-                      {r.name || '—'}
+                  <tr
+                    key={r.id}
+                    className="cursor-pointer border-b border-gray-100 hover:bg-blue-50"
+                    onClick={() => setEditRealtor(r)}
+                    title="Открыть отчёты по дням для редактирования"
+                  >
+                    <td className="sticky left-0 bg-white px-4 py-2 text-gray-900 whitespace-nowrap group-hover:bg-blue-50">
+                      <span className="text-blue-700 hover:underline">{r.name || '—'}</span>
                       {r.is_active === false && (
                         <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] text-red-700">уволен</span>
                       )}
@@ -221,7 +303,13 @@ export default function TeamReportsView() {
               <ul className="text-sm text-gray-700 space-y-1">
                 {absent.map((r) => (
                   <li key={r.id}>
-                    <span className="text-gray-900 font-medium">{r.name}</span>
+                    <button
+                      onClick={() => setEditRealtor(r)}
+                      className="text-blue-700 font-medium hover:underline"
+                      title="Открыть отчёты по дням"
+                    >
+                      {r.name}
+                    </button>
                     {' — '}
                     <span className="text-amber-700">{ABSENCE_LABEL[r.absence.type] || r.absence.type}</span>
                     {' '}
@@ -249,6 +337,15 @@ export default function TeamReportsView() {
             </div>
           )}
         </>
+      )}
+
+      {editRealtor && data?.range && (
+        <RealtorReportsModal
+          realtor={editRealtor}
+          range={data.range}
+          onClose={() => setEditRealtor(null)}
+          onReportChanged={load}
+        />
       )}
 
       {textModal && (
