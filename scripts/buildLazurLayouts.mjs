@@ -57,7 +57,8 @@ function roomsFromLabel(label) {
 }
 
 function parseNum(cell) {
-  const m = String(cell ?? '').match(/№\s*(\d+)/)
+  // В Excel у застройщика встречается «№ 175», «Кв 166», «кв 176», «кв.176».
+  const m = String(cell ?? '').match(/(?:№|[Кк]в\.?)\s*(\d+)/)
   return m ? Number(m[1]) : null
 }
 
