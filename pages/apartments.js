@@ -876,7 +876,7 @@ export default function ApartmentsPage() {
                 <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
               </span>
               <div className="min-w-0">
-                <div className="text-sm text-gray-600">Общее вознаграждение сейчас</div>
+                <div className="text-sm text-gray-600">Вознаграждение в рынке</div>
                 <div className="text-xl font-bold text-emerald-700">
                   {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(totalCommission)} ₽
                 </div>
