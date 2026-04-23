@@ -19,8 +19,8 @@ const OUT_FILE = path.join(__dirname, '..', 'lib', 'lazurLayouts.json')
 const CONFIG = {
   l7: {
     // Сданный 4/5 — Excel-шахматки нет, на сайте всего 2 квартиры (№76 и
-    // №179). skipExcel=true — парсер Excel пропускает, в layouts попадает
-    // минимальный конфиг с storepart/recid, чтобы sync находил литер.
+    // №179). skipExcel=true — парсер Excel пропускает, positions прописаны
+    // вручную по поэтажному плану от пользователя.
     skipExcel: true,
     building_id: 'd5b75303-f1d2-4b6a-8307-645282f53a60',
     storepart: '176651611922',
@@ -28,6 +28,14 @@ const CONFIG = {
     tab_label: 'Сданный 4/5',
     floors: 14,
     entrances: 2,
+    // Подъезд 1 — 7 квартир на этаж, подъезд 2 — 6.
+    units_per_entrance: [7, 6],
+    units_per_floor: 13,
+    positions: {
+      // entrance-floor-number → { col (1..upe[ent-1]), span_columns }
+      '1-11-76': { col: 6, span_columns: 1 },
+      '2-14-179': { col: 3, span_columns: 1 },
+    },
   },
   l9: {
     file: 'liter-9.xlsx',
@@ -194,10 +202,10 @@ for (const slug of Object.keys(CONFIG)) {
       entrances: cfg.entrances ?? 1,
       units_per_floor: cfg.units_per_floor ?? null,
       units_per_entrance: cfg.units_per_entrance ?? null,
-      positions: {},
+      positions: cfg.positions ?? {},
     }
     console.log(
-      `${slug}: skipExcel (building=${cfg.building_id}  floors=${cfg.floors}  entrances=${cfg.entrances})`
+      `${slug}: skipExcel (building=${cfg.building_id}  floors=${cfg.floors}  entrances=${cfg.entrances}  positions=${Object.keys(cfg.positions ?? {}).length})`
     )
     continue
   }

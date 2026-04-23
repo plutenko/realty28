@@ -6,9 +6,21 @@
     "tab_label": "Сданный 4/5",
     "floors": 14,
     "entrances": 2,
-    "units_per_floor": null,
-    "units_per_entrance": null,
-    "positions": {}
+    "units_per_floor": 13,
+    "units_per_entrance": [
+      7,
+      6
+    ],
+    "positions": {
+      "1-11-76": {
+        "col": 6,
+        "span_columns": 1
+      },
+      "2-14-179": {
+        "col": 3,
+        "span_columns": 1
+      }
+    }
   },
   "l9": {
     "building_id": "bae1c6a5-a5d5-4358-b016-194c710be4dd",
