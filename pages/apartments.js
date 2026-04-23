@@ -868,21 +868,21 @@ export default function ApartmentsPage() {
           ) : null}
         </div>
 
-        <div className="mb-4 flex items-center gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-          <span className="relative flex h-3 w-3 shrink-0" aria-hidden="true">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
-          </span>
-          <div className="min-w-0">
-            <div className="text-sm text-gray-600">Общее вознаграждение сейчас</div>
-            <div className="text-2xl font-bold text-emerald-700">
-              {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(totalCommission)} ₽
-            </div>
-          </div>
-        </div>
-
         <div className="flex gap-6">
-          <FiltersSidebar
+          <div className="w-[300px] shrink-0 space-y-4">
+            <div className="flex items-center gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <span className="relative flex h-3 w-3 shrink-0" aria-hidden="true">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
+              </span>
+              <div className="min-w-0">
+                <div className="text-sm text-gray-600">Общее вознаграждение сейчас</div>
+                <div className="text-xl font-bold text-emerald-700">
+                  {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(totalCommission)} ₽
+                </div>
+              </div>
+            </div>
+            <FiltersSidebar
             uniqueDevelopers={uniqueDevelopers}
             complexBuildingsTree={complexBuildingsTree}
             selectedDevelopers={selectedDevelopers}
@@ -930,6 +930,7 @@ export default function ApartmentsPage() {
             selectedAreaRanges={selectedAreaRanges}
             onToggleAreaRange={toggleAreaRange}
           />
+          </div>
 
           <div className="flex-1">
             {busy ? (
