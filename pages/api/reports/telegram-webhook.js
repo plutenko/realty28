@@ -3,6 +3,7 @@ import {
   sendMessage,
   deleteMessage,
   setMessageReaction,
+  setMessageReactionWithQueue,
   sendToGroup,
   formatMention,
 } from '../../../lib/reportsTelegram'
@@ -291,6 +292,9 @@ async function applyTemplateHint(supabase, ctx) {
 async function applyAbsence(supabase, ctx) {
   const { chatId, messageId, profile, abs, settings, rawText, priorErrorReplyId } = ctx
 
+  // Метрики бывают даже при абсентизме: риелтор на больничном написал
+  // «Больничный\nВал - 75000» — вал нужно сохранить в daily_reports.revenue
+  // для сводки. parseAbsence уже вытащил metrics/extra из текста.
   const row = {
     user_id: profile.id,
     date_from: abs.dateFrom,
@@ -301,9 +305,9 @@ async function applyAbsence(supabase, ctx) {
     is_valid: true,
     absence_type: abs.absenceType,
     raw_text: rawText,
-    extra: {},
+    extra: abs.extra || {},
     updated_at: new Date().toISOString(),
-    // метрики не заполняем — человек не работал
+    ...(abs.metrics || {}),
   }
 
   const { error } = await supabase
@@ -323,7 +327,12 @@ async function applyAbsence(supabase, ctx) {
       .eq('chat_message_id', messageId)
   }
 
-  await setMessageReaction(chatId, messageId, settings.reaction_accepted || '👌').catch(() => {})
+  await setMessageReactionWithQueue(
+    supabase,
+    chatId,
+    messageId,
+    settings.reaction_accepted || '👌'
+  )
 }
 
 async function applyValidReport(supabase, ctx) {
@@ -364,8 +373,13 @@ async function applyValidReport(supabase, ctx) {
       .eq('chat_message_id', messageId)
   }
 
-  // Поставить реакцию "принят"
-  await setMessageReaction(chatId, messageId, settings.reaction_accepted || '👌').catch(() => {})
+  // Поставить реакцию "принят" (fallback в очередь при сетевой неудаче)
+  await setMessageReactionWithQueue(
+    supabase,
+    chatId,
+    messageId,
+    settings.reaction_accepted || '👌'
+  )
 }
 
 async function applyInvalidReport(supabase, ctx) {
@@ -405,8 +419,13 @@ async function applyInvalidReport(supabase, ctx) {
     .eq('chat_id', chatId)
     .eq('chat_message_id', messageId)
 
-  // Реакция "не принят"
-  await setMessageReaction(chatId, messageId, settings.reaction_rejected || '🤔').catch(() => {})
+  // Реакция "не принят" (fallback в очередь при сетевой неудаче)
+  await setMessageReactionWithQueue(
+    supabase,
+    chatId,
+    messageId,
+    settings.reaction_rejected || '🤔'
+  )
 }
 
 function buildErrorText(errors, settings, vars) {
