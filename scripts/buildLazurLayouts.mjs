@@ -17,6 +17,18 @@ const SEED_DIR = path.join(__dirname, 'seed', 'lazur')
 const OUT_FILE = path.join(__dirname, '..', 'lib', 'lazurLayouts.json')
 
 const CONFIG = {
+  l7: {
+    // Сданный 4/5 — Excel-шахматки нет, на сайте всего 2 квартиры (№76 и
+    // №179). skipExcel=true — парсер Excel пропускает, в layouts попадает
+    // минимальный конфиг с storepart/recid, чтобы sync находил литер.
+    skipExcel: true,
+    building_id: 'd5b75303-f1d2-4b6a-8307-645282f53a60',
+    storepart: '176651611922',
+    recid: '765850512',
+    tab_label: 'Сданный 4/5',
+    floors: 14,
+    entrances: 2,
+  },
   l9: {
     file: 'liter-9.xlsx',
     sheet: '10.05.2023',
@@ -171,7 +183,25 @@ function parseLayout(cfg) {
 
 const out = {}
 for (const slug of Object.keys(CONFIG)) {
-  const lay = parseLayout(CONFIG[slug])
+  const cfg = CONFIG[slug]
+  if (cfg.skipExcel) {
+    out[slug] = {
+      building_id: cfg.building_id,
+      storepart: cfg.storepart,
+      recid: cfg.recid,
+      tab_label: cfg.tab_label,
+      floors: cfg.floors ?? null,
+      entrances: cfg.entrances ?? 1,
+      units_per_floor: cfg.units_per_floor ?? null,
+      units_per_entrance: cfg.units_per_entrance ?? null,
+      positions: {},
+    }
+    console.log(
+      `${slug}: skipExcel (building=${cfg.building_id}  floors=${cfg.floors}  entrances=${cfg.entrances})`
+    )
+    continue
+  }
+  const lay = parseLayout(cfg)
   console.log(
     `${slug}: building=${lay.building_id}  floors=${lay.floors}  upf=${lay.units_per_floor}  upe=${JSON.stringify(lay.units_per_entrance)}  positions=${Object.keys(lay.positions).length}`
   )

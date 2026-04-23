@@ -1,4 +1,15 @@
 {
+  "l7": {
+    "building_id": "d5b75303-f1d2-4b6a-8307-645282f53a60",
+    "storepart": "176651611922",
+    "recid": "765850512",
+    "tab_label": "Сданный 4/5",
+    "floors": 14,
+    "entrances": 2,
+    "units_per_floor": null,
+    "units_per_entrance": null,
+    "positions": {}
+  },
   "l9": {
     "building_id": "bae1c6a5-a5d5-4358-b016-194c710be4dd",
     "storepart": "192173273262",
