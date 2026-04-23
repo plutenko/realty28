@@ -1040,7 +1040,7 @@ export default function ApartmentsPage() {
                           </div>
                           {c.amount != null && (
                             <div className="text-xs text-blue-700">
-                              Комиссия: {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(c.amount)} ₽
+                              Вознаграждение: {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(c.amount)} ₽
                             </div>
                           )}
                         </div>

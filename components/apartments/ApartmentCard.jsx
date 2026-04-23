@@ -68,11 +68,11 @@ export function calcCommission(unit) {
   const area = Number(unit?.area ?? 0)
 
   if (type === 'none' || value <= 0) {
-    return { text: 'Нет комиссии', amount: null }
+    return { text: 'Нет вознаграждения', amount: null }
   }
 
   if (type === 'percent') {
-    if (price <= 0) return { text: 'Комиссия не рассчитана', amount: null }
+    if (price <= 0) return { text: 'Вознаграждение не рассчитано', amount: null }
     const amount = (price * value) / 100
     return {
       text: `${formatPriceRub(amount)} ₽ (${value}% от цены)`,
@@ -88,7 +88,7 @@ export function calcCommission(unit) {
   }
 
   if (type === 'rub_per_m2') {
-    if (area <= 0) return { text: 'Комиссия не рассчитана', amount: null }
+    if (area <= 0) return { text: 'Вознаграждение не рассчитано', amount: null }
     const amount = area * value
     return {
       text: `${formatPriceRub(amount)} ₽ (${formatPriceRub(value)} ₽/м²)`,
@@ -245,7 +245,7 @@ export default function ApartmentCard({ unit, collectionView = false, listView =
       </div>
       {!collectionView && (
         <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-left text-sm">
-          <span className="block text-gray-600">Комиссия риелтора:</span>
+          <span className="block text-gray-600">Вознаграждение:</span>
           <span
             className={`block font-semibold break-words ${
               commission.amount != null ? 'text-blue-700' : 'text-gray-600'

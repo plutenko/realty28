@@ -55,19 +55,19 @@ function calcCommission(unit) {
   const price = Number(unit?.price ?? 0)
   const area = Number(unit?.area ?? 0)
 
-  if (type === 'none' || value <= 0) return { text: 'Нет комиссии', amount: null }
+  if (type === 'none' || value <= 0) return { text: 'Нет вознаграждения', amount: null }
   if (type === 'percent') {
-    if (price <= 0) return { text: 'Комиссия не рассчитана', amount: null }
+    if (price <= 0) return { text: 'Вознаграждение не рассчитано', amount: null }
     const amount = (price * value) / 100
     return { text: `${formatPriceRub(amount)} ₽ (${value}% от цены)`, amount }
   }
   if (type === 'fixed_rub') return { text: `${formatPriceRub(value)} ₽ (фикс.)`, amount: value }
   if (type === 'rub_per_m2') {
-    if (area <= 0) return { text: 'Комиссия не рассчитана', amount: null }
+    if (area <= 0) return { text: 'Вознаграждение не рассчитано', amount: null }
     const amount = area * value
     return { text: `${formatPriceRub(amount)} ₽ (${formatPriceRub(value)} ₽/м²)`, amount }
   }
-  return { text: 'Нет комиссии', amount: null }
+  return { text: 'Нет вознаграждения', amount: null }
 }
 
 function entranceFromPosition(position, unitsPerEntrance) {
@@ -278,7 +278,7 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
           {/* Commission */}
           {!collectionView && (
             <div className="rounded-xl bg-slate-50 p-4">
-              <div className="text-sm text-gray-600">Комиссия риелтора</div>
+              <div className="text-sm text-gray-600">Вознаграждение</div>
               <div className={`mt-1 text-base font-semibold ${commission.amount != null ? 'text-blue-700' : 'text-gray-500'}`}>
                 {commission.text}
               </div>
