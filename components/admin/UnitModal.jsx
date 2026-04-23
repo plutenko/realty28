@@ -149,6 +149,17 @@ export default function UnitModal({
               />
               Двухуровневая (занимает 2 этажа)
             </label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                checked={Boolean(form.has_renovation)}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, has_renovation: e.target.checked }))
+                }
+                className="h-4 w-4 rounded border-slate-600 bg-slate-800"
+              />
+              Квартира с ремонтом
+            </label>
           </div>
         </div>
 

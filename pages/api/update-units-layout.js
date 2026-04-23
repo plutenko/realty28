@@ -93,6 +93,7 @@ export default async function handler(req, res) {
           combined_unit_ids: Array.isArray(u.combined_unit_ids) ? u.combined_unit_ids : [],
           layout_title: u.layout_title ?? null,
           is_commercial: Boolean(u.is_commercial),
+          has_renovation: Boolean(u.has_renovation),
         }
         // Only include image fields if explicitly provided — don't overwrite with null
         if ('layout_image_url' in u) row.layout_image_url = u.layout_image_url ?? null

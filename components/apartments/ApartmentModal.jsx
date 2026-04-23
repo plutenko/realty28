@@ -188,6 +188,11 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
             >
               {sold ? 'Продано' : booked ? 'На брони' : 'В продаже'}
             </span>
+            {unit?.has_renovation ? (
+              <span className="rounded-lg bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
+                С ремонтом
+              </span>
+            ) : null}
             <button
               onClick={onClose}
               className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"

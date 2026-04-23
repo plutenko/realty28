@@ -193,16 +193,23 @@ export default function ApartmentCard({ unit, collectionView = false, listView =
           )}
         </div>
 
-        <div
-          className={`shrink-0 rounded-lg px-2 py-1 text-xs font-semibold ${
-            sold
-              ? 'bg-gray-300 text-gray-600'
-              : booked
-              ? 'bg-amber-300 text-amber-900'
-              : 'bg-green-400 text-white'
-          }`}
-        >
-          {sold ? 'Продано' : booked ? 'На брони' : 'В продаже'}
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <div
+            className={`rounded-lg px-2 py-1 text-xs font-semibold ${
+              sold
+                ? 'bg-gray-300 text-gray-600'
+                : booked
+                ? 'bg-amber-300 text-amber-900'
+                : 'bg-green-400 text-white'
+            }`}
+          >
+            {sold ? 'Продано' : booked ? 'На брони' : 'В продаже'}
+          </div>
+          {unit?.has_renovation ? (
+            <div className="rounded-lg bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700">
+              С ремонтом
+            </div>
+          ) : null}
         </div>
       </div>
 

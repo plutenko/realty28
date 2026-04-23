@@ -295,6 +295,8 @@ export default function AdminUnitsPage() {
     status: 'available',
     span_columns: '1',
     span_floors: '1',
+    is_commercial: false,
+    has_renovation: false,
   })
 
   function makeTempUnitId() {
@@ -967,6 +969,7 @@ export default function AdminUnitsPage() {
         ? String(Math.max(1, Number(unit.span_floors) || 1))
         : '1',
       is_commercial: Boolean(unit?.is_commercial),
+      has_renovation: Boolean(unit?.has_renovation),
     })
   }
 
@@ -981,6 +984,7 @@ export default function AdminUnitsPage() {
       span_columns: '1',
       span_floors: '1',
       is_commercial: false,
+      has_renovation: false,
     })
   }
 
@@ -1060,6 +1064,7 @@ export default function AdminUnitsPage() {
       span_columns: sc,
       span_floors: sf,
       is_commercial: Boolean(form.is_commercial),
+      has_renovation: Boolean(form.has_renovation),
     }
     try {
       await saveLayout({ upsert: [payload], deleteIds: [] })

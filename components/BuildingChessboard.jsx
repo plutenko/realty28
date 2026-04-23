@@ -267,8 +267,18 @@ function ApartmentCard({ apt, className = '', onClick = null }) {
       title={`${commercial ? 'Коммерция · ' : ''}№${ap.number ?? '—'} · ${areaStr} м² · ${formatPriceRub(apt.price)} ₽`}
       onClick={onClick}
     >
-      <div className="flex justify-between text-[10px]">
-        <span>{commercial ? 'КП' : `${ap.rooms}К`}</span>
+      <div className="flex items-center justify-between gap-1 text-[10px]">
+        <div className="flex items-center gap-1">
+          <span>{commercial ? 'КП' : `${ap.rooms}К`}</span>
+          {apt.has_renovation ? (
+            <span
+              className="rounded bg-indigo-600 px-1 py-[1px] text-[9px] font-bold leading-none text-white"
+              title="С ремонтом"
+            >
+              Р
+            </span>
+          ) : null}
+        </div>
         <span>
           {ap.number != null && ap.number !== ''
             ? `№${ap.number}`
@@ -758,6 +768,7 @@ export function mapUnitsToChessboardApartments(units) {
       combined_unit_ids: Array.isArray(u.combined_unit_ids)
         ? u.combined_unit_ids
         : [],
+      has_renovation: Boolean(u.has_renovation),
     }
   })
 }
