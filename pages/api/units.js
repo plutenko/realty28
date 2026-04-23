@@ -4,10 +4,16 @@ let cache = { data: null, ts: 0 }
 const TTL = 5 * 60 * 1000 // 5 минут
 
 export default async function handler(req, res) {
+  if (req.method === 'DELETE' || req.query?.invalidate === '1') {
+    cache = { data: null, ts: 0 }
+    res.setHeader('X-Cache', 'INVALIDATED')
+    if (req.method === 'DELETE') return res.status(204).end()
+  }
   if (req.method !== 'GET') return res.status(405).end()
 
   const now = Date.now()
-  if (cache.data && now - cache.ts < TTL) {
+  const fresh = req.query?.fresh === '1' || req.query?.invalidate === '1'
+  if (!fresh && cache.data && now - cache.ts < TTL) {
     res.setHeader('X-Cache', 'HIT')
     return res.status(200).json(cache.data)
   }

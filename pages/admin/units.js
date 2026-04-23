@@ -1119,6 +1119,9 @@ export default function AdminUnitsPage() {
     })
     const body = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(body?.error || 'Не удалось сохранить')
+    // Сбрасываем 5-мин in-memory кэш публичного /api/units, чтобы правки
+    // (has_renovation, цены, статусы и пр.) сразу отразились на /apartments.
+    fetch('/api/units?invalidate=1').catch(() => {})
     return body
   }
 
