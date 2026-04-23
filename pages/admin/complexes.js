@@ -149,7 +149,7 @@ export default function AdminComplexesPage() {
               <th className="p-3">Город</th>
               <th className="p-3">Застройщик</th>
               <th className="p-3">Сайт</th>
-              <th className="p-3">Комиссия</th>
+              <th className="p-3">Вознаграждение</th>
               <th className="p-3 w-40"></th>
             </tr>
           </thead>
@@ -191,7 +191,7 @@ export default function AdminComplexesPage() {
                       ? `${Number(r.realtor_commission_value ?? 0).toLocaleString('ru-RU')} ₽ фикс`
                       : r.realtor_commission_type === 'rub_per_m2'
                         ? `${Number(r.realtor_commission_value ?? 0).toLocaleString('ru-RU')} ₽/м²`
-                        : 'Нет комиссии'}
+                        : 'Нет вознаграждения'}
                 </td>
                 <td className="p-3">
                   <button
@@ -275,13 +275,13 @@ export default function AdminComplexesPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-xs text-slate-400">Тип комиссии</label>
+            <label className="block text-xs text-slate-400">Тип вознаграждения</label>
             <select
               className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
               value={commissionType}
               onChange={(e) => setCommissionType(e.target.value)}
             >
-              <option value="none">Нет комиссии (нет договора)</option>
+              <option value="none">Нет вознаграждения (нет договора)</option>
               <option value="percent">% от цены квартиры</option>
               <option value="fixed_rub">Фиксированная сумма (₽)</option>
               <option value="rub_per_m2">Сумма в ₽ за м²</option>
@@ -289,7 +289,7 @@ export default function AdminComplexesPage() {
           </div>
           <div>
             <label className="block text-xs text-slate-400">
-              Значение комиссии
+              Значение вознаграждения
             </label>
             <input
               type="number"
@@ -311,12 +311,12 @@ export default function AdminComplexesPage() {
             />
             <p className="mt-1 text-xs text-slate-500">
               {commissionType === 'percent'
-                ? 'Комиссия = цена квартиры × значение / 100'
+                ? 'Вознаграждение = цена квартиры × значение / 100'
                 : commissionType === 'fixed_rub'
-                  ? 'Комиссия = фиксированная сумма в рублях'
+                  ? 'Вознаграждение = фиксированная сумма в рублях'
                   : commissionType === 'rub_per_m2'
-                    ? 'Комиссия = площадь квартиры × значение'
-                    : 'Для этого ЖК комиссия не выплачивается'}
+                    ? 'Вознаграждение = площадь квартиры × значение'
+                    : 'Для этого ЖК вознаграждение не выплачивается'}
             </p>
           </div>
         </div>

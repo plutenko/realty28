@@ -96,7 +96,7 @@ export function calcCommission(unit) {
     }
   }
 
-  return { text: 'Нет комиссии', amount: null }
+  return { text: 'Нет вознаграждения', amount: null }
 }
 
 function entranceFromPosition(position, unitsPerEntrance) {

@@ -151,7 +151,7 @@ export default function SummaryPage() {
                   <th className="px-4 py-3">Сдача</th>
                   <th className="px-4 py-3 text-center">В продаже</th>
                   <th className="px-4 py-3">Комнатность</th>
-                  <th className="px-4 py-3">Комиссия риелтору</th>
+                  <th className="px-4 py-3">Вознаграждение</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
