@@ -4,7 +4,7 @@ import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
 import { fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
 import FiltersSidebar from '../components/apartments/FiltersSidebar'
-import ApartmentCard from '../components/apartments/ApartmentCard'
+import ApartmentCard, { calcCommission } from '../components/apartments/ApartmentCard'
 import ApartmentModal from '../components/apartments/ApartmentModal'
 
 const ABS_MIN = 0
@@ -997,7 +997,9 @@ export default function ApartmentsPage() {
                 <ul className="divide-y divide-gray-100">
                   {units
                     .filter((u) => selectedUnits.includes(u.id))
-                    .map((u) => (
+                    .map((u) => {
+                      const c = calcCommission(u)
+                      return (
                       <li key={u.id} className="flex items-center gap-3 py-3">
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-gray-900">
@@ -1009,8 +1011,15 @@ export default function ApartmentsPage() {
                             {u.floor ? ` · ${u.floor} эт.` : ''}
                           </div>
                         </div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {u.price ? `${Number(u.price).toLocaleString('ru-RU')} ₽` : '—'}
+                        <div className="text-right">
+                          <div className="text-sm font-semibold text-gray-900">
+                            {u.price ? `${Number(u.price).toLocaleString('ru-RU')} ₽` : '—'}
+                          </div>
+                          {c.amount != null && (
+                            <div className="text-xs text-blue-700">
+                              Комиссия: {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(c.amount)} ₽
+                            </div>
+                          )}
                         </div>
                         <button
                           type="button"
@@ -1021,7 +1030,8 @@ export default function ApartmentsPage() {
                           ✕
                         </button>
                       </li>
-                    ))}
+                      )
+                    })}
                 </ul>
               )}
             </div>

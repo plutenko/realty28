@@ -60,7 +60,7 @@ function messengerLabel(messenger) {
   return 'Мессенджер'
 }
 
-function calcCommission(unit) {
+export function calcCommission(unit) {
   const complex = unit?.building?.complex
   const type = String(complex?.realtor_commission_type || 'none')
   const value = Number(complex?.realtor_commission_value ?? 0)
