@@ -4,10 +4,16 @@ let cache = { data: null, ts: 0 }
 const TTL = 5 * 60 * 1000
 
 export default async function handler(req, res) {
+  if (req.method === 'DELETE' || req.query?.invalidate === '1') {
+    cache = { data: null, ts: 0 }
+    res.setHeader('X-Cache', 'INVALIDATED')
+    if (req.method === 'DELETE') return res.status(204).end()
+  }
   if (req.method !== 'GET') return res.status(405).end()
 
   const now = Date.now()
-  if (cache.data && now - cache.ts < TTL) {
+  const fresh = req.query?.fresh === '1' || req.query?.invalidate === '1'
+  if (!fresh && cache.data && now - cache.ts < TTL) {
     res.setHeader('X-Cache', 'HIT')
     return res.status(200).json(cache.data)
   }
@@ -23,7 +29,7 @@ export default async function handler(req, res) {
         developers ( id, name, developer_managers ( id, name, phone, short_description, messenger, messenger_contact, created_at ) ),
         buildings (
           id, name, address, floors, units_per_floor, units_per_entrance, handover_status, handover_quarter, handover_year,
-          units ( id, floor, number, position, entrance, rooms, area, layout_title, layout_image_url, finish_image_url, price, price_per_meter, status, span_columns, span_floors, is_commercial )
+          units ( id, floor, number, position, entrance, rooms, area, layout_title, layout_image_url, finish_image_url, price, price_per_meter, status, span_columns, span_floors, is_commercial, has_renovation )
         )
       `)
       .order('name')
