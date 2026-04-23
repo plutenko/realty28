@@ -44,23 +44,34 @@ export default async function handler(req, res) {
 
     const buildingIds = [...buildingCtx.keys()]
 
-    // Поэтажные планы — ключ (building_id, floor_level) -> url.
-    // Один запрос на все здания, группируем в Map для O(1) лукапа.
-    const floorPlanMap = new Map()
+    // Поэтажные планы — может быть несколько на этаж (если дом с разными
+    // планировками по подъездам). Ключи: (building_id, floor_level, entrance)
+    // и (building_id, floor_level, null). В лукапе сначала entrance-specific,
+    // иначе fallback на план «на весь дом» (entrance=null).
+    const floorPlanByEntranceMap = new Map()
+    const floorPlanAllMap = new Map()
     if (buildingIds.length > 0) {
       const { data: plRows, error: plErr } = await supabase
         .from('images')
-        .select('entity_id, floor_level, url, id')
+        .select('entity_id, floor_level, entrance, url, id')
         .eq('entity_type', 'building_floor_level_plan')
         .in('entity_id', buildingIds)
         .order('id', { ascending: false })
-      if (plErr && !/floor_level|column|schema cache/i.test(String(plErr.message || ''))) {
+      if (
+        plErr &&
+        !/floor_level|entrance|column|schema cache/i.test(String(plErr.message || ''))
+      ) {
         throw plErr
       }
       for (const r of plRows ?? []) {
         if (r.floor_level == null) continue
-        const key = `${r.entity_id}::${r.floor_level}`
-        if (!floorPlanMap.has(key)) floorPlanMap.set(key, r.url)
+        if (r.entrance == null) {
+          const key = `${r.entity_id}::${r.floor_level}`
+          if (!floorPlanAllMap.has(key)) floorPlanAllMap.set(key, r.url)
+        } else {
+          const key = `${r.entity_id}::${r.floor_level}::${r.entrance}`
+          if (!floorPlanByEntranceMap.has(key)) floorPlanByEntranceMap.set(key, r.url)
+        }
       }
     }
 
@@ -82,9 +93,14 @@ export default async function handler(req, res) {
         if (!ctx) continue
         // Приоритет: персональный план квартиры (FSK: SVG этажа с подсветкой
         // этой квартиры) > общий план этажа из images (MacroCRM/Amurstroy).
-        const floor_plan_url =
-          u.floor_plan_url ||
-          (u.floor != null ? floorPlanMap.get(`${u.building_id}::${u.floor}`) ?? null : null)
+        let plan = null
+        if (u.floor != null) {
+          if (u.entrance != null) {
+            plan = floorPlanByEntranceMap.get(`${u.building_id}::${u.floor}::${u.entrance}`) ?? null
+          }
+          if (!plan) plan = floorPlanAllMap.get(`${u.building_id}::${u.floor}`) ?? null
+        }
+        const floor_plan_url = u.floor_plan_url || plan
         flat.push({
           ...u,
           floor_plan_url,

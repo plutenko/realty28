@@ -270,10 +270,23 @@ export default function AdminUnitsPage() {
     deleteIds: [],
   })
   const [pendingBuildingPatch, setPendingBuildingPatch] = useState({})
-  /** @type {Record<number, string>} */
-  const [floorPlanUrls, setFloorPlanUrls] = useState({})
+  /** @type {Record<number, Array<{id:number, entrance:number|null, url:string}>>} */
+  const [floorPlans, setFloorPlans] = useState({})
   const [mediaBusy, setMediaBusy] = useState(false)
-  const [planModal, setPlanModal] = useState(null) // { floor, url } | null
+  const [planModal, setPlanModal] = useState(null) // { floor, url, entrance? } | null
+  const [planUploadModal, setPlanUploadModal] = useState(null) // { floor } | null
+
+  const floorPlanForEntrance = useCallback(
+    (floor, entrance) => {
+      const rows = floorPlans?.[floor] || []
+      const ent = entrance == null ? null : Number(entrance)
+      const match = rows.find((r) => r.entrance === ent)
+      if (match) return match.url
+      const fallback = rows.find((r) => r.entrance == null)
+      return fallback?.url || null
+    },
+    [floorPlans]
+  )
   const [form, setForm] = useState({
     number: '',
     rooms: '',
@@ -422,31 +435,35 @@ export default function AdminUnitsPage() {
 
   const loadFloorPlans = useCallback(async (buildingId) => {
     if (!supabase || !buildingId) {
-      setFloorPlanUrls({})
+      setFloorPlans({})
       return
     }
     const { data, error } = await supabase
       .from('images')
-      .select('floor_level, url, id')
+      .select('floor_level, url, id, entrance')
       .eq('entity_type', ENTITY_BUILDING_FLOOR_LEVEL_PLAN)
       .eq('entity_id', buildingId)
       .order('id', { ascending: false })
 
     if (error) {
-      if (!/floor_level|column|schema cache/i.test(String(error.message || ''))) {
+      if (!/floor_level|entrance|column|schema cache/i.test(String(error.message || ''))) {
         setMsg(error.message)
       }
-      setFloorPlanUrls({})
+      setFloorPlans({})
       return
     }
 
     const by = {}
     for (const r of data ?? []) {
       if (r.floor_level == null) continue
-      if (by[r.floor_level] != null) continue
-      by[r.floor_level] = r.url
+      const ent = r.entrance == null ? null : Number(r.entrance)
+      if (!by[r.floor_level]) by[r.floor_level] = []
+      // Берём самую свежую запись на каждую пару (floor, entrance) — order desc by id выше.
+      const exists = by[r.floor_level].some((x) => x.entrance === ent)
+      if (exists) continue
+      by[r.floor_level].push({ id: r.id, entrance: ent, url: r.url })
     }
-    setFloorPlanUrls(by)
+    setFloorPlans(by)
   }, [])
 
   useEffect(() => {
@@ -861,13 +878,14 @@ export default function AdminUnitsPage() {
     return out
   }, [entranceSizes])
 
-  async function uploadFloorPlanForFloor(floorLevel, file) {
+  async function uploadFloorPlanForFloor(floorLevel, entrance, file) {
     if (!supabase || !selectedBuildingId || !file) return
     setMediaBusy(true)
     setMsg('')
     try {
       const ext = file.name.split('.').pop() || 'jpg'
-      const folder = `floor_level_${floorLevel}`
+      const entFolder = entrance == null ? 'all' : `e${entrance}`
+      const folder = `floor_level_${floorLevel}/${entFolder}`
       const path = `${ENTITY_BUILDING_FLOOR_LEVEL_PLAN}/${selectedBuildingId}/${folder}/${Date.now()}.${ext}`
 
       const { error: upErr } = await supabase.storage
@@ -878,15 +896,17 @@ export default function AdminUnitsPage() {
       const { data: pub } = supabase.storage.from('images').getPublicUrl(path)
       const url = pub.publicUrl
 
-      // Replace: remove previous plan for this floor, then insert.
-      const { error: delErr } = await supabase
+      // Replace: remove previous plan for this (floor, entrance), then insert.
+      let delQ = supabase
         .from('images')
         .delete()
         .eq('entity_type', ENTITY_BUILDING_FLOOR_LEVEL_PLAN)
         .eq('entity_id', selectedBuildingId)
         .eq('floor_level', floorLevel)
+      delQ = entrance == null ? delQ.is('entrance', null) : delQ.eq('entrance', entrance)
+      const { error: delErr } = await delQ
 
-      if (delErr && !/floor_level|column|schema cache/i.test(String(delErr.message || ''))) {
+      if (delErr && !/floor_level|entrance|column|schema cache/i.test(String(delErr.message || ''))) {
         throw delErr
       }
 
@@ -894,6 +914,7 @@ export default function AdminUnitsPage() {
         entity_type: ENTITY_BUILDING_FLOOR_LEVEL_PLAN,
         entity_id: selectedBuildingId,
         floor_level: floorLevel,
+        entrance: entrance == null ? null : Number(entrance),
         url,
       })
       if (insErr) throw insErr
@@ -901,6 +922,30 @@ export default function AdminUnitsPage() {
       await loadFloorPlans(selectedBuildingId)
     } catch (e) {
       setMsg(e?.message || 'Ошибка загрузки')
+    } finally {
+      setMediaBusy(false)
+    }
+  }
+
+  async function deleteFloorPlanForEntrance(floorLevel, entrance) {
+    if (!supabase || !selectedBuildingId) return
+    setMediaBusy(true)
+    setMsg('')
+    try {
+      let q = supabase
+        .from('images')
+        .delete()
+        .eq('entity_type', ENTITY_BUILDING_FLOOR_LEVEL_PLAN)
+        .eq('entity_id', selectedBuildingId)
+        .eq('floor_level', floorLevel)
+      q = entrance == null ? q.is('entrance', null) : q.eq('entrance', entrance)
+      const { error } = await q
+      if (error && !/floor_level|entrance|column|schema cache/i.test(String(error.message || ''))) {
+        throw error
+      }
+      await loadFloorPlans(selectedBuildingId)
+    } catch (e) {
+      setMsg(e?.message || 'Ошибка удаления')
     } finally {
       setMediaBusy(false)
     }
@@ -1895,7 +1940,22 @@ export default function AdminUnitsPage() {
                   }}
                 >
                   {floorsDesc.map((f) => {
-                    const planUrl = floorPlanUrls?.[f] || null
+                    const plansForFloor = floorPlans?.[f] || []
+                    const planCount = plansForFloor.length
+                    const thumbPlan =
+                      plansForFloor.find((p) => p.entrance == null) ||
+                      plansForFloor[0] ||
+                      null
+                    const entranceCount = Math.max(1, entranceSizes?.length || 1)
+                    const hasAll = plansForFloor.some((p) => p.entrance == null)
+                    const labelText =
+                      planCount === 0
+                        ? 'Загрузить план'
+                        : hasAll && planCount === 1
+                          ? '✓ План загружен'
+                          : entranceCount > 1
+                            ? `✓ Планы (${planCount}/${entranceCount}${hasAll ? '+1' : ''})`
+                            : '✓ План загружен'
                     return (
                       <div key={`floor-side-${f}`} className="flex gap-2 overflow-hidden">
                         <div className="flex w-12 shrink-0 items-center justify-center text-sm font-semibold text-slate-300">
@@ -1904,38 +1964,35 @@ export default function AdminUnitsPage() {
 
                         <div className="flex w-40 shrink-0 flex-col justify-center gap-0.5">
                           <div className="flex items-center gap-1">
-                            <label
-                              className={`flex-1 cursor-pointer rounded border px-2 py-1 text-center text-[11px] leading-tight ${
-                                planUrl
+                            <button
+                              type="button"
+                              disabled={mediaBusy}
+                              onClick={() => setPlanUploadModal({ floor: f })}
+                              className={`flex-1 rounded border px-2 py-1 text-center text-[11px] leading-tight disabled:opacity-50 ${
+                                planCount > 0
                                   ? 'border-emerald-700 bg-emerald-950/40 text-emerald-200 hover:bg-emerald-900/40'
                                   : 'border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800'
                               }`}
                             >
-                              <input
-                                type="file"
-                                accept="image/*"
-                                disabled={mediaBusy}
-                                className="hidden"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0]
-                                  e.target.value = ''
-                                  if (!file) return
-                                  await uploadFloorPlanForFloor(f, file)
-                                }}
-                              />
-                              {planUrl ? '✓ План загружен' : 'Загрузить план'}
-                            </label>
-                            {planUrl ? (
+                              {labelText}
+                            </button>
+                            {thumbPlan ? (
                               <button
                                 type="button"
                                 className="shrink-0 overflow-hidden rounded border border-emerald-700 bg-white p-0.5 hover:border-emerald-400"
                                 style={{ width: 28, height: 28 }}
                                 title="Посмотреть план"
-                                onClick={() => setPlanModal({ floor: f, url: planUrl })}
+                                onClick={() =>
+                                  setPlanModal({
+                                    floor: f,
+                                    url: thumbPlan.url,
+                                    entrance: thumbPlan.entrance,
+                                  })
+                                }
                               >
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
-                                  src={planUrl}
+                                  src={thumbPlan.url}
                                   alt=""
                                   className="h-full w-full object-cover"
                                 />
@@ -2336,6 +2393,9 @@ export default function AdminUnitsPage() {
             <div className="mb-3 flex items-center justify-between">
               <div className="text-sm font-semibold text-slate-100">
                 План этажа {planModal.floor}
+                {planModal.entrance == null
+                  ? ' · на весь дом'
+                  : ` · подъезд ${planModal.entrance}`}
               </div>
               <button
                 type="button"
@@ -2355,6 +2415,109 @@ export default function AdminUnitsPage() {
         </div>
       ) : null}
 
+      {planUploadModal ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setPlanUploadModal(null)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-sm font-semibold text-slate-100">
+                Планы {planUploadModal.floor} этажа
+              </div>
+              <button
+                type="button"
+                className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-200 hover:bg-slate-800"
+                onClick={() => setPlanUploadModal(null)}
+              >
+                Закрыть
+              </button>
+            </div>
+            <div className="space-y-2">
+              {(() => {
+                const rows = floorPlans?.[planUploadModal.floor] || []
+                const byEnt = new Map()
+                for (const p of rows) byEnt.set(p.entrance, p)
+                const entrancesCount = Math.max(1, entranceSizes?.length || 1)
+                const slots =
+                  entrancesCount > 1
+                    ? [null, ...Array.from({ length: entrancesCount }, (_, i) => i + 1)]
+                    : [null]
+                return slots.map((ent) => {
+                  const plan = byEnt.get(ent)
+                  const label = ent == null ? 'На весь дом' : `Подъезд ${ent}`
+                  return (
+                    <div
+                      key={`plan-slot-${String(ent)}`}
+                      className="flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-950/40 p-2"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-slate-100">{label}</div>
+                        {plan ? (
+                          <button
+                            type="button"
+                            className="mt-1 inline-block overflow-hidden rounded border border-emerald-700 bg-white p-0.5 hover:border-emerald-400"
+                            style={{ width: 56, height: 40 }}
+                            title="Посмотреть"
+                            onClick={() =>
+                              setPlanModal({
+                                floor: planUploadModal.floor,
+                                url: plan.url,
+                                entrance: ent,
+                              })
+                            }
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={plan.url} alt="" className="h-full w-full object-cover" />
+                          </button>
+                        ) : (
+                          <div className="mt-1 text-xs text-slate-500">не загружен</div>
+                        )}
+                      </div>
+                      <label
+                        className={`cursor-pointer rounded-lg border px-3 py-2 text-xs ${
+                          mediaBusy
+                            ? 'border-slate-800 bg-slate-900 text-slate-500'
+                            : 'border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800'
+                        }`}
+                      >
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={mediaBusy}
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0]
+                            e.target.value = ''
+                            if (!file) return
+                            await uploadFloorPlanForFloor(planUploadModal.floor, ent, file)
+                          }}
+                        />
+                        {plan ? 'Заменить' : 'Загрузить'}
+                      </label>
+                      {plan ? (
+                        <button
+                          type="button"
+                          disabled={mediaBusy}
+                          className="rounded-lg border border-rose-800/70 bg-rose-950/30 px-3 py-2 text-xs text-rose-200 hover:bg-rose-900/30 disabled:opacity-50"
+                          onClick={() => deleteFloorPlanForEntrance(planUploadModal.floor, ent)}
+                        >
+                          Удалить
+                        </button>
+                      ) : null}
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+            {msg ? <div className="mt-3 text-xs text-rose-300">{msg}</div> : null}
+          </div>
+        </div>
+      ) : null}
+
       <UnitModal
         activeCell={activeCell}
         form={form}
@@ -2367,7 +2530,11 @@ export default function AdminUnitsPage() {
         removeUnitMedia={removeUnitMedia}
         mediaBusy={mediaBusy}
         mediaError={msg}
-        floorPlanUrl={activeCell?.unit?.floor != null ? floorPlanUrls?.[activeCell.unit.floor] : null}
+        floorPlanUrl={
+          activeCell?.unit?.floor != null
+            ? floorPlanForEntrance(activeCell.unit.floor, activeCell.unit.entrance ?? null)
+            : null
+        }
       />
     </AdminLayout>
   )
