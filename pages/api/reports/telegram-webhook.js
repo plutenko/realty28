@@ -196,16 +196,36 @@ async function handleMessage(supabase, message, { edited }) {
   const parsed = parseReport(text, settings, now, { allowClosedWindow: hasOverride })
 
   if (!parsed.ok) {
-    // Если причина — закрытое окно и это правка существующего сообщения риелтора,
-    // молчим: сводка за день сдана, данные трогать нельзя (правила «после 09:30»).
     const tooOld = (parsed.errors || []).some((e) => e?.type === 'too_old')
-    if (tooOld && edited) return
+
+    // Edit раньше принятого рапорта после 09:30 — молчим, данные заморожены.
+    // Если на сообщение висит прежняя ошибка/hint (`priorErrorReplyId`) — значит
+    // риелтор ещё пытается починить, показываем актуальный текст ошибки.
+    if (tooOld && edited && !priorErrorReplyId) return
+
+    // Если дата глубоко в прошлом (>1 дня), это скорее всего опечатка в месяце,
+    // а не реально опоздавший рапорт — подменяем ошибку на «date_in_past» с подсказкой про текущий месяц.
+    const gap = gapFromTodayDays(parsed.dateTo, now, settings)
+    const parsedForReply = {
+      ...parsed,
+      errors: (parsed.errors || []).map((e) => {
+        if (e?.type !== 'too_old') return e
+        if (gap > 1) {
+          return {
+            ...e,
+            type: 'date_in_past',
+            current_month_year: formatRuMonthYear(now, settings?.timezone),
+          }
+        }
+        return e
+      }),
+    }
 
     await applyInvalidReport(supabase, {
       chatId,
       messageId,
       profile,
-      parsed,
+      parsed: parsedForReply,
       settings,
       displayName,
       mention,
@@ -213,6 +233,21 @@ async function handleMessage(supabase, message, { edited }) {
       rawText: text,
       priorErrorReplyId,
     })
+
+    // Рапорт после 09:30 для свежей даты — данные всё равно сохраняем в БД
+    // (руководителю не нужно вносить вручную), а риелтору бот ответил «не принят».
+    if (tooOld && isWithinLateSaveWindow(parsed.dateTo, now, settings)) {
+      const full = parseReport(text, settings, now, { allowClosedWindow: true })
+      if (full.ok) {
+        await saveLateReport(supabase, {
+          chatId,
+          messageId,
+          profile,
+          parsed: full,
+          rawText: text,
+        })
+      }
+    }
     return
   }
 
@@ -390,6 +425,12 @@ function buildErrorText(errors, settings, vars) {
       return fillTemplate(msgs.error_too_early, { ...base, open_at: e.open_at })
     case 'too_old':
       return fillTemplate(msgs.error_too_old, { ...base, close_at: e.close_at })
+    case 'date_in_past':
+      return fillTemplate(
+        msgs.error_date_in_past ||
+          '🤔 {name}, рапорт за {value} — дата в прошлом. Сейчас {current_month_year}, проверь месяц.',
+        { ...base, current_month_year: e.current_month_year }
+      )
     case 'range_inverted':
       return fillTemplate(msgs.error_range_inverted, base)
     case 'range_too_wide':
@@ -455,6 +496,78 @@ async function hasDayOverride(supabase, text, settings, now) {
     return true
   } catch {
     return false
+  }
+}
+
+/**
+ * После 09:30 рапорт с формально «просроченной» датой всё равно сохраняем в БД,
+ * если дата недалеко в прошлом (обычно «вчера», иногда Пт-Вс батчем до понедельника).
+ * Так руководитель видит цифры, а риелтор видит «не принят» и в следующий раз сдаёт вовремя.
+ *
+ * Для очень старой даты (>7 дней назад) — это почти наверняка опечатка (март вместо апреля),
+ * не late-рапорт, поэтому не сохраняем.
+ */
+function gapFromTodayDays(targetIso, now, settings) {
+  if (!targetIso) return 0
+  const tz = settings?.timezone || 'Asia/Yakutsk'
+  const nowLocal = localPartsForOverride(now, tz)
+  const [ty, tm, td] = targetIso.split('-').map(Number)
+  const [ny, nm, nd] = nowLocal.dateIso.split('-').map(Number)
+  return Math.round(
+    (Date.UTC(ny, nm - 1, nd) - Date.UTC(ty, tm - 1, td)) / 86400000
+  )
+}
+
+function formatRuMonthYear(date, timeZone) {
+  const fmt = new Intl.DateTimeFormat('ru-RU', {
+    timeZone: timeZone || 'Asia/Yakutsk',
+    month: 'long',
+    year: 'numeric',
+  })
+  return fmt.format(date).replace(/\s*г\.?$/, '').trim()
+}
+
+function isWithinLateSaveWindow(targetIso, now, settings) {
+  if (!targetIso) return false
+  const tz = settings?.timezone || 'Asia/Yakutsk'
+  const nowLocal = localPartsForOverride(now, tz)
+  const maxGap = Number.isFinite(settings?.late_save_max_days_back)
+    ? settings.late_save_max_days_back
+    : 7
+  const [ty, tm, td] = targetIso.split('-').map(Number)
+  const [ny, nm, nd] = nowLocal.dateIso.split('-').map(Number)
+  const gap = Math.round(
+    (Date.UTC(ny, nm - 1, nd) - Date.UTC(ty, tm - 1, td)) / 86400000
+  )
+  return gap >= 0 && gap <= maxGap
+}
+
+async function saveLateReport(supabase, ctx) {
+  const { chatId, messageId, profile, parsed, rawText } = ctx
+  const metricCols = pickDailyReportColumns(parsed.metrics)
+  const row = {
+    user_id: profile.id,
+    date_from: parsed.dateFrom,
+    date_to: parsed.dateTo,
+    chat_id: chatId,
+    chat_message_id: messageId,
+    error_reply_message_id: null,
+    is_valid: true,
+    absence_type: null,
+    raw_text: rawText,
+    extra: {
+      ...(parsed.extra || {}),
+      late_submission: true,
+      late_reason: 'after_summary_window',
+    },
+    updated_at: new Date().toISOString(),
+    ...metricCols,
+  }
+  const { error } = await supabase
+    .from('daily_reports')
+    .upsert(row, { onConflict: 'user_id,date_from,date_to' })
+  if (error) {
+    console.error('[reports-webhook] late report upsert error', error)
   }
 }
 
