@@ -97,9 +97,24 @@ export default async function handler(req, res) {
     return r.name || 'риелтор'
   })
 
+  // По дню недели: Пн-Чт — свои уникальные шаблоны (не приедается),
+  // Вс — батч. Пт/Сб 20:00 reminder не отправляем — одиночные рапорты
+  // закрыты с Пт 15:00 (см. friday-notice + webhook weekend-hold).
+  const dowKey = nowLocal.dow
+  const weekdayTmplByDow = {
+    mon: settings.messages?.reminder_mon,
+    tue: settings.messages?.reminder_tue,
+    wed: settings.messages?.reminder_wed,
+    thu: settings.messages?.reminder_thu,
+  }
+  if (!period.isBatch && (dowKey === 'fri' || dowKey === 'sat')) {
+    return res.status(200).json({ ok: true, skipped: `weekend_hold_${dowKey}`, date: nowLocal.dateIso })
+  }
   const tmpl = period.isBatch
     ? settings.messages?.reminder_sunday_batch || '⏰ Напоминание! Ждём отчёты за {dates}. Не прислали: {users}'
-    : settings.messages?.reminder_weekday || '⏰ Напоминание! Ждём отчёты за {date}. Не прислали: {users}'
+    : (weekdayTmplByDow[dowKey]
+        || settings.messages?.reminder_weekday
+        || '⏰ Напоминание! Ждём отчёты за {date}. Не прислали: {users}')
 
   const text = fillTemplate(tmpl, {
     date: formatRu(period.to),

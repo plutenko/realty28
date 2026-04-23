@@ -13,6 +13,7 @@ import {
   fillTemplate,
   pickDailyReportColumns,
 } from '../../../lib/reportsSettings'
+import { localParts } from '../../../lib/reportsCron'
 
 /**
  * Webhook бота @sobr_reports_bot.
@@ -191,6 +192,33 @@ async function handleMessage(supabase, message, { edited }) {
   }
 
   // kind === 'report'
+  // «Weekend hold»: одиночные рапорты за Пт/Сб и батчи нельзя присылать
+  // в пятницу после 15:00 и в течение субботы — всё сдаётся в воскресенье
+  // вечером одним батчем Пт+Сб+Вс. Информационный 15:00-пост в группу —
+  // /api/reports/cron/friday-notice. Исключение — ручной override дня
+  // через ЛК руководителя (hasOverride ниже); туда код не доходит, но
+  // проверим после override, если нужен будет обход.
+  {
+    const l = localParts(now, settings.timezone || 'Asia/Yakutsk')
+    const afterFri15 = l.dow === 'fri' && l.hour >= 15
+    const isSat = l.dow === 'sat'
+    if (afterFri15 || isSat) {
+      const replyText = fillTemplate(
+        settings.messages?.weekend_hold_reply ||
+          '✋ Одиночные рапорты за выходные не принимаю. Собери Пт+Сб+Вс и присылай в воскресенье вечером.',
+        { name: displayName || mention || 'боец' }
+      )
+      await sendMessage(chatId, replyText, { replyToMessageId: messageId })
+      await setMessageReactionWithQueue(
+        supabase,
+        chatId,
+        messageId,
+        settings.reaction_rejected || '🤔'
+      )
+      return
+    }
+  }
+
   // Сначала смотрим, разблокирован ли этот день вручную через ЛК руководителя
   // (report_day_overrides). Если да — парсер пропустит проверку окна приёма.
   const hasOverride = await hasDayOverride(supabase, text, settings, now)
