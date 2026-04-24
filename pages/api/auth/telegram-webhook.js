@@ -355,7 +355,10 @@ async function handleLeadCallback(supabase, cq, action, leadId) {
       source = s
     }
 
-    // Ивент захвата
+    // Мгновенно даём ack в интерфейсе Telegram — всплывающий тост «✅ Вы взяли заявку»
+    // появляется у риелтора за 100-200 мс. Эдиты сообщений и уведомления — после.
+    await answerCallbackQuery(cqId, '✅ Вы взяли заявку')
+
     await supabase.from('lead_events').insert({
       lead_id: leadId,
       actor_user_id: profile.id,
@@ -371,8 +374,6 @@ async function handleLeadCallback(supabase, cq, action, leadId) {
         replyMarkup: { inline_keyboard: [] },
       })
     }
-
-    await answerCallbackQuery(cqId, '✅ Вы взяли заявку')
 
     // Остальным — эдит «Взял Иван»
     const winnerName = profile.name || profile.email || 'Риелтор'
