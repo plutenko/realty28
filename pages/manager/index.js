@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/authContext'
 import CatalogTabs from '../../components/CatalogTabs'
@@ -15,6 +16,7 @@ async function apiFetch(path) {
 
 const TABS = [
   { id: 'reports', label: '📝 Отчёты команды' },
+  { id: 'crm', label: '🎯 CRM' },
   { id: 'bindings', label: '🔗 Привязки Telegram' },
   { id: 'login_logs', label: '📋 Журнал входов' },
   { id: 'security', label: '🔒 Безопасность' },
@@ -72,12 +74,175 @@ export default function ManagerPage() {
 
         {/* Контент вкладки */}
         {tab === 'reports' && <TeamReportsView />}
+        {tab === 'crm' && <CrmTab />}
         {tab === 'bindings' && <TelegramBindingsView />}
         {tab === 'login_logs' && (
           <LoginLogsView logs={logs} loading={logsFetching} />
         )}
         {tab === 'security' && <SecurityTab />}
       </div>
+    </div>
+  )
+}
+
+function CrmTab() {
+  const [realtors, setRealtors] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
+  const [busyId, setBusyId] = useState(null)
+
+  async function load() {
+    setLoading(true)
+    setErr('')
+    try {
+      const data = await apiFetch('/api/manager/crm-realtors')
+      setRealtors(data || [])
+    } catch (e) {
+      setErr(String(e.message || e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function toggle(r) {
+    setBusyId(r.id)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/manager/crm-realtors', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ id: r.id, crm_enabled: !r.crm_enabled }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Ошибка')
+
+      // Если включили и TG не привязан — сразу генерим ссылку на Домовой
+      if (!r.crm_enabled && !r.has_telegram) {
+        const linkRes = await fetch('/api/admin/users/crm-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+          body: JSON.stringify({ user_id: r.id }),
+        })
+        const linkJson = await linkRes.json()
+        if (linkRes.ok && linkJson?.link) {
+          try { await navigator.clipboard.writeText(linkJson.link) } catch {}
+          alert(`✅ CRM включен для ${r.name || r.email}.\n\nСсылка на Домовой скопирована в буфер — отправь риелтору:\n${linkJson.link}`)
+        }
+      }
+
+      await load()
+    } catch (e) {
+      alert(e.message || e)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function copyLink(r) {
+    setBusyId(r.id)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/admin/users/crm-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ user_id: r.id }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Ошибка')
+      if (json?.link) {
+        try { await navigator.clipboard.writeText(json.link) } catch {}
+        alert(`Ссылка для ${r.name || r.email} скопирована:\n\n${json.link}`)
+      }
+    } catch (e) {
+      alert(e.message || e)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const active = realtors.filter(r => r.crm_enabled).length
+  const withTg = realtors.filter(r => r.crm_enabled && r.has_telegram).length
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">CRM — риелторы и лиды</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            CRM включён у {active} из {realtors.length} риелторов, из них {withTg} подключили бот «Домовой».
+          </p>
+        </div>
+        <Link href="/manager/leads" className="rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-medium text-white">
+          📥 Смотреть лиды →
+        </Link>
+      </div>
+
+      {err && <p className="rounded-lg bg-rose-100 px-3 py-2 text-sm text-rose-700">{err}</p>}
+
+      {loading ? (
+        <p className="text-sm text-gray-500">Загрузка...</p>
+      ) : realtors.length === 0 ? (
+        <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-500">
+          Активных риелторов нет.
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="px-4 py-3 text-left font-medium text-gray-500">Риелтор</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500">CRM</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500">Домовой</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-500">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {realtors.map(r => (
+                <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-gray-900">{r.name || '—'}</div>
+                    <div className="text-xs text-gray-500">{r.email || '—'}</div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => toggle(r)}
+                      disabled={busyId === r.id}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition disabled:opacity-40 ${
+                        r.crm_enabled ? 'bg-emerald-500' : 'bg-gray-300'
+                      }`}
+                      title={r.crm_enabled ? 'CRM включён' : 'CRM выключен'}
+                    >
+                      <span className={`inline-block h-4 w-4 rounded-full bg-white transition ${r.crm_enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    {r.has_telegram ? (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">✓ привязан</span>
+                    ) : (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">не привязан</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {!r.has_telegram && (
+                      <button
+                        type="button"
+                        onClick={() => copyLink(r)}
+                        disabled={busyId === r.id}
+                        className="rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 disabled:opacity-40 px-3 py-1 text-xs font-medium text-blue-700"
+                      >
+                        🔗 Скопировать ссылку
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }
