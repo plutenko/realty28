@@ -102,8 +102,10 @@ export default async function handler(req, res) {
 
   for (const r of reports || []) {
     if (r.absence_type) {
+      // Абсентизм — в отдельный список, но отчёт считается сданным
+      // (риелтор прислал сообщение), а метрики из текста (напр. «Вал 75 000»
+      // при больничном) суммируются в общие totals.
       absent.push({ user_id: r.user_id, type: r.absence_type, from: r.date_from, to: r.date_to })
-      continue
     }
     submitted.add(r.user_id)
     for (const m of metricsList) {
