@@ -325,18 +325,30 @@ export default function AdminLeads() {
 
 function LeadDetailModal({ lead, realtors, isAdmin, onClose, onDelete, onChangeStatus, onReassign, onReopen, onConfirmInBase }) {
   const [comment, setComment] = useState('')
+  const [busy, setBusy] = useState(false)
   const isTerminal = TERMINAL.includes(lead.status)
 
+  async function wrap(fn) {
+    if (busy) return
+    setBusy(true)
+    try { await fn() } finally { setBusy(false) }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={busy ? undefined : onClose}>
       <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-xl font-semibold text-white">{lead.name || '—'}</h2>
             <div className="text-sm text-slate-400">{lead.phone || '—'}{lead.email ? ` · ${lead.email}` : ''}</div>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-white">✕</button>
+          <button onClick={onClose} disabled={busy} className="text-slate-500 hover:text-white disabled:opacity-30">✕</button>
         </div>
+        {busy && (
+          <div className="mb-3 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-sm text-blue-200">
+            ⌛ Обновляю…
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
           <Row label="Статус" value={<span className={`rounded px-2 py-0.5 text-xs border ${STATUS_COLOR[lead.status]}`}>{STATUS_LABEL[lead.status]}</span>} />
@@ -363,20 +375,26 @@ function LeadDetailModal({ lead, realtors, isAdmin, onClose, onDelete, onChangeS
         <div className="flex flex-wrap gap-2 mb-4">
           {!isTerminal && (
             <>
-              {lead.status === 'new' && <ActionBtn color="blue" onClick={() => onChangeStatus('add_to_base')}>Внести в базу</ActionBtn>}
-              {lead.status === 'add_to_base' && <ActionBtn color="emerald" onClick={onConfirmInBase}>✅ Подтвердить: внесено</ActionBtn>}
-              {lead.status === 'in_work' && <ActionBtn color="violet" onClick={() => onChangeStatus('deal_done')}>Сделка</ActionBtn>}
+              {lead.status === 'new' && <ActionBtn disabled={busy} color="blue" onClick={() => wrap(() => onChangeStatus('add_to_base'))}>Внести в базу</ActionBtn>}
+              {lead.status === 'add_to_base' && <ActionBtn disabled={busy} color="emerald" onClick={() => wrap(onConfirmInBase)}>✅ Подтвердить: внесено</ActionBtn>}
+              {lead.status === 'in_work' && <ActionBtn disabled={busy} color="violet" onClick={() => wrap(() => onChangeStatus('deal_done'))}>Сделка</ActionBtn>}
 
-              <ActionBtn color="slate" onClick={() => onChangeStatus('not_lead', prompt('Причина «не лид»:') || '')}>Не лид</ActionBtn>
-              {lead.status === 'in_work' && <ActionBtn color="red" onClick={() => onChangeStatus('failed', prompt('Причина срыва:') || '')}>Срыв</ActionBtn>}
-              <ActionBtn color="amber" onClick={onReassign}>Переназначить</ActionBtn>
+              <ActionBtn disabled={busy} color="slate" onClick={() => {
+                const reason = prompt('Причина «не лид»:') || ''
+                if (reason.trim()) wrap(() => onChangeStatus('not_lead', reason))
+              }}>Не лид</ActionBtn>
+              {lead.status === 'in_work' && <ActionBtn disabled={busy} color="red" onClick={() => {
+                const reason = prompt('Причина срыва:') || ''
+                if (reason.trim()) wrap(() => onChangeStatus('failed', reason))
+              }}>Срыв</ActionBtn>}
+              <ActionBtn disabled={busy} color="amber" onClick={() => wrap(onReassign)}>Переназначить</ActionBtn>
             </>
           )}
           {isTerminal && lead.status !== 'deal_done' && (
-            <ActionBtn color="emerald" onClick={onReopen}>↩ Открыть заново</ActionBtn>
+            <ActionBtn disabled={busy} color="emerald" onClick={() => wrap(onReopen)}>↩ Открыть заново</ActionBtn>
           )}
           {isAdmin && (
-            <ActionBtn color="red" onClick={onDelete}>🗑 Удалить</ActionBtn>
+            <ActionBtn disabled={busy} color="red" onClick={() => wrap(onDelete)}>🗑 Удалить</ActionBtn>
           )}
         </div>
       </div>
@@ -393,7 +411,7 @@ function Row({ label, value }) {
   )
 }
 
-function ActionBtn({ color = 'slate', children, onClick }) {
+function ActionBtn({ color = 'slate', children, onClick, disabled = false }) {
   const colors = {
     blue: 'bg-blue-600/30 hover:bg-blue-600/50 text-blue-200',
     emerald: 'bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200',
@@ -403,7 +421,11 @@ function ActionBtn({ color = 'slate', children, onClick }) {
     slate: 'bg-slate-700/60 hover:bg-slate-700 text-slate-200',
   }
   return (
-    <button onClick={onClick} className={`text-sm rounded px-3 py-1.5 ${colors[color] || colors.slate}`}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`text-sm rounded px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed ${colors[color] || colors.slate}`}
+    >
       {children}
     </button>
   )
