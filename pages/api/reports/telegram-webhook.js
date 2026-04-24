@@ -49,12 +49,79 @@ export default async function handler(req, res) {
       if (message?.chat && message?.from && !message.from.is_bot) {
         await rememberChatMember(supabase, message.from)
         await rememberTextMentions(supabase, message)
+
+        // Приватный /start в Старшине: отвечаем ссылкой на Домовой (для CRM-риелторов)
+        if (message.chat.type === 'private') {
+          const text = String(message.text || '').trim()
+          if (/^\/start\b/.test(text)) {
+            await handlePrivateStart(supabase, message)
+            return
+          }
+        }
+
         await handleMessage(supabase, message, { edited: Boolean(update.edited_message) })
       }
     } catch (e) {
       console.error('[reports-webhook] background error', e)
     }
   })
+}
+
+async function handlePrivateStart(supabase, message) {
+  const crypto = await import('crypto')
+  const fromId = String(message.from.id)
+  const chatId = message.chat.id
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, name, email, role, crm_enabled, telegram_chat_id, is_active')
+    .eq('telegram_user_id', fromId)
+    .maybeSingle()
+
+  // Бот отвечает только риелторам из системы Домовой с подтверждённым Telegram
+  // и включенным CRM. В остальных случаях — молча игнорим.
+  if (!profile) return
+  if (profile.is_active === false) return
+  if (!profile.crm_enabled) return
+
+  if (profile.telegram_chat_id) {
+    await sendMessage(
+      chatId,
+      `👍 CRM у вас уже активна — заявки приходят в бот «Домовой».`,
+      { parseMode: 'HTML' }
+    )
+    return
+  }
+
+  // Генерируем код для Домовой и шлём ссылку
+  const code = crypto.default.randomBytes(8).toString('hex')
+  await supabase.from('profiles').update({ telegram_link_code: code }).eq('id', profile.id)
+
+  let botUsername = process.env.TELEGRAM_BOT_USERNAME || ''
+  if (!botUsername && process.env.TELEGRAM_BOT_TOKEN) {
+    try {
+      const r = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getMe`)
+      const j = await r.json()
+      if (j?.ok) botUsername = j.result?.username || ''
+    } catch {}
+  }
+  if (!botUsername) botUsername = 'domovoy_login_bot'
+  const link = `https://t.me/${botUsername}?start=${code}`
+
+  await sendMessage(
+    chatId,
+    `🎯 <b>${escapeHtml(profile.name || 'коллега')}, CRM подключен</b>\n\n` +
+      `Чтобы получать заявки клиентов, подключите бот «Домовой»:\n${link}\n\n` +
+      `Нажмите ссылку, в боте нажмите «Start» — и заявки начнут приходить.`,
+    { parseMode: 'HTML' }
+  )
+}
+
+function escapeHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 }
 
 async function rememberChatMember(supabase, from) {
