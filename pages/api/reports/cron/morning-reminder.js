@@ -70,8 +70,24 @@ export default async function handler(req, res) {
   }
 
   const missing = realtors.filter((r) => !submittedIds.has(r.id) && !absentIds.has(r.id))
+
+  // Все сдали — публикуем короткое «молодцы», чтобы было видно, что крон жив
+  // и все выполнили долг (раньше молча скипали, пользователь не видел факт).
   if (missing.length === 0) {
-    return res.status(200).json({ ok: true, skipped: 'all_submitted' })
+    const okTmpl = period.isBatch
+      ? settings.messages?.morning_all_submitted_batch ||
+        '👏 Молодцы, все сдали рапорта за {dates}.'
+      : settings.messages?.morning_all_submitted ||
+        '👏 Молодцы, все сдали рапорта за {date}.'
+    const okText = fillTemplate(okTmpl, {
+      date: formatRu(period.to),
+      dates: `${formatRu(period.from)} – ${formatRu(period.to)}`,
+    })
+    if (dry) {
+      return res.status(200).json({ ok: true, dry: true, period, missing: [], text: okText })
+    }
+    const tgRes = await sendToGroup(okText, { parseMode: 'HTML' })
+    return res.status(200).json({ ok: tgRes?.ok === true, all_submitted: true, telegram: tgRes })
   }
 
   const tgIds = missing.map((r) => r.telegram_user_id).filter(Boolean)
