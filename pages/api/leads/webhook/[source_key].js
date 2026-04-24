@@ -64,21 +64,25 @@ export default async function handler(req, res) {
     meta: { source_kind: source.kind, source_name: source.name },
   })
 
-  // Marquiz ждёт 200 до ~10 сек — сразу отвечаем, рассылку делаем фоном.
-  res.status(200).json({ ok: true, id: lead.id })
-
-  setImmediate(async () => {
-    try {
-      const { data: full } = await supabase
-        .from('leads')
-        .select('id, name, phone, email, rooms, budget, answers, created_at')
-        .eq('id', lead.id)
-        .single()
-      if (full) await broadcastLead(supabase, full, source)
-    } catch (e) {
-      console.error('[leads-webhook] broadcast error', e?.message || e)
+  // Рассылка до ответа (setImmediate обрезалось Next.js после res.send).
+  // Таймаут 8 сек, чтобы Марквиз не посчитал webhook провалившимся.
+  try {
+    const { data: full } = await supabase
+      .from('leads')
+      .select('id, name, phone, email, rooms, budget, answers, created_at')
+      .eq('id', lead.id)
+      .single()
+    if (full) {
+      const broadcastPromise = broadcastLead(supabase, full, source)
+      const timeout = new Promise(r => setTimeout(() => r({ sent: 0, timeout: true }), 8000))
+      const result = await Promise.race([broadcastPromise, timeout])
+      console.log('[leads-webhook] broadcast result', result)
     }
-  })
+  } catch (e) {
+    console.error('[leads-webhook] broadcast error', e?.message || e)
+  }
+
+  return res.status(200).json({ ok: true, id: lead.id })
 }
 
 function defaultMap(payload) {
