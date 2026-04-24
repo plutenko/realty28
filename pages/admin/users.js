@@ -411,13 +411,9 @@ export default function UsersPage() {
                           const enabling = !u.crm_enabled
                           try {
                             const r = await apiFetch('PATCH', '/api/admin/users', { id: u.id, crm_enabled: !u.crm_enabled })
-                            if (enabling && r?.invite) {
-                              if (r.invite.method === 'dm') {
-                                alert(`✅ CRM включен для ${u.name || u.email}.\nПриглашение отправлено Старшиной в личку.`)
-                              } else {
-                                try { await navigator.clipboard.writeText(r.invite.link) } catch {}
-                                alert(`⚠ CRM включен, но Старшина не смог написать в личку (риелтор никогда не писал ему приватно).\n\nСсылка в буфере — отправь вручную:\n${r.invite.link}`)
-                              }
+                            if (enabling && r?.invite?.link) {
+                              try { await navigator.clipboard.writeText(r.invite.link) } catch {}
+                              alert(`✅ CRM включен для ${u.name || u.email}.\n\nСсылка на Домовой скопирована в буфер — отправь риелтору:\n${r.invite.link}`)
                             }
                             await loadUsers()
                           } catch (err) {

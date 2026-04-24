@@ -1,6 +1,5 @@
 import crypto from 'crypto'
 import { getSupabaseAdmin } from '../../../lib/supabaseServer'
-import * as reportsBot from '../../../lib/reportsTelegram'
 
 async function requireAdmin(req) {
   const token = req.headers.authorization?.replace('Bearer ', '')
@@ -159,11 +158,10 @@ export default async function handler(req, res) {
 }
 
 async function sendCrmInvitation(supabase, target) {
-  // Генерируем свежий код и сохраняем в профиль
+  // Генерируем код и возвращаем ссылку — админ сам перешлёт риелтору.
   const code = crypto.randomBytes(8).toString('hex')
   await supabase.from('profiles').update({ telegram_link_code: code }).eq('id', target.id)
 
-  // Собираем ссылку на Домовой
   let botUsername = process.env.TELEGRAM_BOT_USERNAME || ''
   if (!botUsername && process.env.TELEGRAM_BOT_TOKEN) {
     try {
@@ -175,23 +173,5 @@ async function sendCrmInvitation(supabase, target) {
   if (!botUsername) botUsername = 'domovoy_login_bot'
   const link = `https://t.me/${botUsername}?start=${code}`
 
-  const nameHtml = reportsBot.escapeHtml(target.name || target.email || 'коллега')
-
-  // 1. Пробуем ЛС через Старшину
-  if (target.telegram_user_id) {
-    try {
-      const resp = await reportsBot.sendMessage(
-        target.telegram_user_id,
-        `🎯 <b>Тебе включили CRM</b>\n\n` +
-        `Теперь получаешь заявки клиентов в Telegram.\n\n` +
-        `Нажми, чтобы подключиться:\n${link}\n\n` +
-        `После клика жми «Start» — дальше лиды сами будут прилетать в бот «Домовой».`,
-        { parseMode: 'HTML' }
-      )
-      if (resp?.ok) return { method: 'dm', link }
-    } catch {}
-  }
-
-  // Fallback — возвращаем ссылку, админ скинет риелтору сам
   return { method: 'manual', link }
 }
