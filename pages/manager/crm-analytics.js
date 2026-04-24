@@ -60,8 +60,15 @@ export default function CrmAnalyticsPage() {
       <div className="px-4 py-4 md:px-6 md:py-6">
         <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
           <Link href="/manager" className="text-sm text-blue-600 hover:underline">← Назад в кабинет</Link>
-          <div className="flex gap-2">
-            {[['today','Сегодня'],['week','7 дней'],['month','30 дней'],['all','Всё время']].map(([v, label]) => (
+          <div className="flex gap-2 flex-wrap">
+            {[
+              ['today','Сегодня'],
+              ['week','Неделя'],
+              ['month','Месяц'],
+              ['quarter','Квартал'],
+              ['year','Год'],
+              ['all','Всё время'],
+            ].map(([v, label]) => (
               <button
                 key={v}
                 onClick={() => setPeriod(v)}
@@ -112,6 +119,20 @@ export default function CrmAnalyticsPage() {
               <Card title="Не лид" value={data.totals.not_lead} />
               <Card title="Срыв" value={data.totals.failed} />
             </div>
+
+            {data.timeseries && data.timeseries.length > 0 && (
+              <section className="rounded-2xl border border-gray-200 bg-white p-4">
+                <div className="flex items-baseline justify-between mb-3">
+                  <h2 className="font-semibold text-gray-900">Динамика</h2>
+                  <div className="flex gap-3 text-xs">
+                    <LegendDot color="bg-gray-400" label="Заявок" />
+                    <LegendDot color="bg-blue-500" label="Взято" />
+                    <LegendDot color="bg-violet-600" label="Сделок" />
+                  </div>
+                </div>
+                <BarChart series={data.timeseries} />
+              </section>
+            )}
 
             <section className="rounded-2xl border border-gray-200 bg-white">
               <div className="px-4 py-3 border-b border-gray-200">
@@ -191,6 +212,71 @@ export default function CrmAnalyticsPage() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function LegendDot({ color, label }) {
+  return (
+    <span className="flex items-center gap-1 text-gray-600">
+      <span className={`inline-block h-2 w-2 rounded-full ${color}`} />
+      {label}
+    </span>
+  )
+}
+
+function BarChart({ series }) {
+  const max = Math.max(1, ...series.map(s => Math.max(s.leads, s.taken, s.deal_done)))
+  const n = series.length
+  // Ширина группы, отступ между группами
+  const groupWidth = 36
+  const gap = 6
+  const total = n * (groupWidth + gap)
+  const h = 180
+  const padY = 20
+  const innerH = h - padY * 2
+  const barW = (groupWidth - 4) / 3
+
+  return (
+    <div className="overflow-x-auto">
+      <svg width={Math.max(total, 600)} height={h + 30} className="block">
+        {/* сетка Y */}
+        {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
+          <line key={i} x1={0} x2={total} y1={padY + innerH - innerH * p} y2={padY + innerH - innerH * p} stroke="#f1f5f9" strokeWidth={1} />
+        ))}
+
+        {/* столбцы */}
+        {series.map((s, i) => {
+          const x = i * (groupWidth + gap)
+          const yBase = padY + innerH
+          const hLeads = (s.leads / max) * innerH
+          const hTaken = (s.taken / max) * innerH
+          const hDeals = (s.deal_done / max) * innerH
+          return (
+            <g key={i}>
+              <rect x={x + 2} y={yBase - hLeads} width={barW} height={hLeads} fill="#94a3b8" rx={1}>
+                <title>{`${s.label}: ${s.leads} заявок`}</title>
+              </rect>
+              <rect x={x + 2 + barW + 1} y={yBase - hTaken} width={barW} height={hTaken} fill="#3b82f6" rx={1}>
+                <title>{`${s.label}: ${s.taken} взято`}</title>
+              </rect>
+              <rect x={x + 2 + (barW + 1) * 2} y={yBase - hDeals} width={barW} height={hDeals} fill="#7c3aed" rx={1}>
+                <title>{`${s.label}: ${s.deal_done} сделок`}</title>
+              </rect>
+              <text
+                x={x + groupWidth / 2}
+                y={h + 14}
+                textAnchor="middle"
+                fontSize="10"
+                fill="#64748b"
+                transform={series.length > 14 ? `rotate(-45 ${x + groupWidth / 2} ${h + 14})` : ''}
+              >
+                {s.label}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
     </div>
   )
 }
