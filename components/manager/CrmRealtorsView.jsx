@@ -12,7 +12,7 @@ async function apiFetch(path) {
 export default function CrmRealtorsView() {
   const [realtors, setRealtors] = useState([])
   const [counts, setCounts] = useState({})
-  const [settings, setSettings] = useState({ limits_enabled: false, limit_threshold: 10 })
+  const [settings, setSettings] = useState({ limits_enabled: false, limit_threshold: 10, unclaimed_escalation_minutes: 40 })
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [busyId, setBusyId] = useState(null)
@@ -31,7 +31,7 @@ export default function CrmRealtorsView() {
       const map = {}
       for (const c of cs || []) map[c.id] = c
       setCounts(map)
-      setSettings(st || { limits_enabled: false, limit_threshold: 10 })
+      setSettings(st || { limits_enabled: false, limit_threshold: 10, unclaimed_escalation_minutes: 40 })
     } catch (e) {
       setErr(String(e.message || e))
     } finally {
@@ -134,7 +134,7 @@ export default function CrmRealtorsView() {
             <div className="text-xs text-gray-500 mt-1">
               Когда ВКЛ: риелтору с {settings.limit_threshold}+ активных лидов (новый + в работе) не придёт карточка
               новой заявки.
-              <br />Если все достигли лимита, заявка повиснет — через 5 мин придёт уведомление об эскалации.
+              <br />Если все достигли лимита, заявка повиснет — через {settings.unclaimed_escalation_minutes} мин придёт уведомление об эскалации.
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -166,6 +166,34 @@ export default function CrmRealtorsView() {
               {settings.limits_enabled ? 'ВКЛ' : 'ОТКЛ'}
             </span>
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-gray-200 bg-white p-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div className="text-sm font-medium text-gray-900">Порог автоэскалации невзятых лидов</div>
+            <div className="text-xs text-gray-500 mt-1">
+              Если заявка лежит дольше этого времени без назначения — руководителю/админу
+              приходит уведомление «⚠ Заявку никто не взял». Рекомендация: 30–60 минут.
+              <br />Подсказка: «позвонить за 5 минут» всё равно остаётся целью для риелторов,
+              просто сигнал эскалации срабатывает не так резко.
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-gray-600">Минут:</span>
+            <input
+              type="number" min="1"
+              value={settings.unclaimed_escalation_minutes}
+              onChange={e => {
+                const v = parseInt(e.target.value, 10)
+                if (Number.isInteger(v) && v > 0) setSettings(s => ({ ...s, unclaimed_escalation_minutes: v }))
+              }}
+              onBlur={() => saveSettings({ unclaimed_escalation_minutes: settings.unclaimed_escalation_minutes })}
+              disabled={savingSettings}
+              className="w-20 rounded-lg border border-gray-200 px-2 py-1 text-sm disabled:opacity-40"
+            />
+          </label>
         </div>
       </div>
 

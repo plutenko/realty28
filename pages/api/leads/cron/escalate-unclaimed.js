@@ -17,7 +17,14 @@ export default async function handler(req, res) {
   const supabase = getSupabaseAdmin()
   if (!supabase) return res.status(500).json({ error: 'no supabase' })
 
-  const threshold = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+  // Порог эскалации (в минутах) берём из crm_settings, дефолт 40.
+  const { data: settings } = await supabase
+    .from('crm_settings')
+    .select('unclaimed_escalation_minutes')
+    .eq('id', 1)
+    .maybeSingle()
+  const minutes = Math.max(1, Number(settings?.unclaimed_escalation_minutes) || 40)
+  const threshold = new Date(Date.now() - minutes * 60 * 1000).toISOString()
 
   // Лиды без риелтора старше 5 мин
   const { data: candidates, error } = await supabase
@@ -63,7 +70,7 @@ export default async function handler(req, res) {
       `⚠ <b>Заявку никто не взял!</b>\n\n` +
       `Клиент: ${escapeHtml(lead.name || '—')} (${escapeHtml(lead.phone || '—')})\n` +
       `Источник: ${escapeHtml(sourceName)}\n` +
-      `Лежит уже ${ageMin} мин.\n\n` +
+      `Лежит уже ${ageMin} мин (порог ${minutes}).\n\n` +
       `Открой /admin/leads или /manager/leads и назначь вручную, либо позвони клиенту сам.`
 
     for (const m of managers || []) {
