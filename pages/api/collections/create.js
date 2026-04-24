@@ -23,6 +23,13 @@ export default async function handler(req, res) {
 
   if (ids.length === 0) return json(res, 400, { error: "unitIds is required" });
 
+  const MAX_UNITS_PER_COLLECTION = 100;
+  if (ids.length > MAX_UNITS_PER_COLLECTION) {
+    return json(res, 400, {
+      error: `В подборке максимум ${MAX_UNITS_PER_COLLECTION} квартир, а вы выбрали ${ids.length}. Оставьте не более ${MAX_UNITS_PER_COLLECTION} и попробуйте ещё раз.`,
+    });
+  }
+
   const token = crypto.randomBytes(6).toString("hex");
 
   const basePayload = {

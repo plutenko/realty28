@@ -753,6 +753,12 @@ export default function ApartmentsPage() {
       return
     }
 
+    const MAX_UNITS = 100
+    if (selectedUnits.length > MAX_UNITS) {
+      alert(`В подборке максимум ${MAX_UNITS} квартир, а вы выбрали ${selectedUnits.length}. Снимите лишние и попробуйте снова — клиенту проще смотреть отобранные варианты.`)
+      return
+    }
+
     const title = window.prompt('Название подборки')?.trim()
     if (!title) return
     const clientName = window.prompt('Имя клиента')?.trim()
@@ -852,11 +858,17 @@ export default function ApartmentsPage() {
           <button
             type="button"
             onClick={createSelection}
-            disabled={creatingCollection || selectedUnits.length === 0}
+            disabled={creatingCollection || selectedUnits.length === 0 || selectedUnits.length > 100}
             className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            title={selectedUnits.length > 100 ? `Максимум 100 квартир в подборке, выбрано ${selectedUnits.length}` : 'Создать подборку'}
           >
             {creatingCollection ? 'Создаём…' : 'Создать подборку'}
           </button>
+          {selectedUnits.length > 100 && (
+            <span className="text-xs text-rose-600">
+              Максимум 100 квартир в подборке — выбрано {selectedUnits.length}
+            </span>
+          )}
           {selectedUnits.length > 0 ? (
             <button
               type="button"
@@ -1085,10 +1097,11 @@ export default function ApartmentsPage() {
                     setCartOpen(false)
                     createSelection()
                   }}
-                  disabled={creatingCollection || selectedUnits.length === 0}
+                  disabled={creatingCollection || selectedUnits.length === 0 || selectedUnits.length > 100}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                  title={selectedUnits.length > 100 ? `Максимум 100 квартир в подборке, выбрано ${selectedUnits.length}` : 'Создать подборку'}
                 >
-                  {creatingCollection ? 'Создаём…' : 'Создать подборку'}
+                  {creatingCollection ? 'Создаём…' : selectedUnits.length > 100 ? `Лимит: 100 (у вас ${selectedUnits.length})` : 'Создать подборку'}
                 </button>
               </div>
             </div>
