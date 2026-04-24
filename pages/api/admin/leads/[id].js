@@ -63,6 +63,12 @@ async function changeStatus(supabase, caller, lead, body, res) {
     return res.status(400).json({ error: 'Для этого статуса обязательна причина' })
   }
 
+  // Идемпотентность: если текущий статус совпадает — не пишем событие и не шлём уведомления.
+  // Защита от двойного клика в UI.
+  if (lead.status === status) {
+    return res.status(200).json({ ok: true, noop: true })
+  }
+
   const updates = { status, updated_at: new Date().toISOString() }
   if (TERMINAL.has(status)) {
     updates.closed_at = new Date().toISOString()
