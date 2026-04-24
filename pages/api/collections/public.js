@@ -82,15 +82,19 @@ export default async function handler(req, res) {
 
   const unitIds = uniqueUnitIdsPreserveOrder(rawIds);
 
+  // PostgREST ломается на IN() с сотнями UUID — тянем чанками по 100.
   let rows = [];
   if (unitIds.length > 0) {
-    const { data: unitsData, error: uErr } = await supabase
-      .from("units")
-      .select(UNITS_SELECT)
-      .in("id", unitIds);
-
-    if (uErr) return json(res, 500, { error: uErr.message });
-    rows = unitsData ?? [];
+    const chunkSize = 100;
+    for (let i = 0; i < unitIds.length; i += chunkSize) {
+      const chunk = unitIds.slice(i, i + chunkSize);
+      const { data: unitsData, error: uErr } = await supabase
+        .from("units")
+        .select(UNITS_SELECT)
+        .in("id", chunk);
+      if (uErr) return json(res, 500, { error: uErr.message });
+      if (unitsData?.length) rows.push(...unitsData);
+    }
   }
 
   const byId = new Map((rows ?? []).map((u) => [String(u.id), u]));
