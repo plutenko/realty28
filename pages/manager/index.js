@@ -96,9 +96,14 @@ function CrmTab() {
             Все заявки от клиентов. Можешь переназначить, открыть заново закрытый, посмотреть контакты и историю.
           </p>
         </div>
-        <Link href="/manager/crm-users" className="rounded-xl bg-white border border-gray-200 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700">
-          👥 CRM — риелторы и лиды →
-        </Link>
+        <div className="flex gap-2 flex-wrap">
+          <Link href="/manager/crm-analytics" className="rounded-xl bg-white border border-gray-200 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700">
+            📊 Аналитика
+          </Link>
+          <Link href="/manager/crm-users" className="rounded-xl bg-white border border-gray-200 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700">
+            👥 Риелторы CRM
+          </Link>
+        </div>
       </div>
       <LeadsDashboard theme="light" isAdmin={false} />
     </div>
