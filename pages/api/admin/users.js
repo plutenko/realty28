@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, role, name, email, is_active, fired_at')
+      .select('id, role, name, email, is_active, fired_at, crm_enabled, telegram_chat_id')
 
     const profileMap = Object.fromEntries((profiles ?? []).map(p => [p.id, p]))
 
@@ -53,6 +53,8 @@ export default async function handler(req, res) {
       name: profileMap[u.id]?.name ?? null,
       is_active: profileMap[u.id]?.is_active ?? true,
       fired_at: profileMap[u.id]?.fired_at ?? null,
+      crm_enabled: profileMap[u.id]?.crm_enabled ?? false,
+      has_telegram: Boolean(profileMap[u.id]?.telegram_chat_id),
     }))
 
     return res.status(200).json(result)
@@ -87,9 +89,9 @@ export default async function handler(req, res) {
     return res.status(201).json({ id: user.id, email, role, name })
   }
 
-  // PATCH — изменить имя/роль/пароль/активность
+  // PATCH — изменить имя/роль/пароль/активность/CRM
   if (req.method === 'PATCH') {
-    const { id, role, name, password, is_active } = req.body
+    const { id, role, name, password, is_active, crm_enabled } = req.body
     if (!id) return res.status(400).json({ error: 'id обязателен' })
 
     const updates = {}
@@ -104,6 +106,7 @@ export default async function handler(req, res) {
       updates.is_active = is_active
       updates.fired_at = is_active ? null : new Date().toISOString()
     }
+    if (typeof crm_enabled === 'boolean') updates.crm_enabled = crm_enabled
     if (Object.keys(updates).length > 0) {
       const { error } = await supabase.from('profiles').update(updates).eq('id', id)
       if (error) return res.status(500).json({ error: error.message })

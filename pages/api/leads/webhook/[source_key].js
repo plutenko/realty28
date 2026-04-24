@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '../../../../lib/supabaseServer'
 import { mapMarquizPayload } from '../../../../lib/leadsCore'
+import { broadcastLead } from '../../../../lib/leadsTelegram'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -63,10 +64,21 @@ export default async function handler(req, res) {
     meta: { source_kind: source.kind, source_name: source.name },
   })
 
+  // Marquiz ждёт 200 до ~10 сек — сразу отвечаем, рассылку делаем фоном.
   res.status(200).json({ ok: true, id: lead.id })
 
-  // Рассылку в Telegram добавим отдельным шагом.
-  // Пока источник → БД, чтобы проверить сквозное попадание Марквиза.
+  setImmediate(async () => {
+    try {
+      const { data: full } = await supabase
+        .from('leads')
+        .select('id, name, phone, email, rooms, budget, answers, created_at')
+        .eq('id', lead.id)
+        .single()
+      if (full) await broadcastLead(supabase, full, source)
+    } catch (e) {
+      console.error('[leads-webhook] broadcast error', e?.message || e)
+    }
+  })
 }
 
 function defaultMap(payload) {

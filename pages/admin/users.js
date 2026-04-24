@@ -359,6 +359,7 @@ export default function UsersPage() {
               <tr className="border-b border-slate-800 bg-slate-900/60">
                 <th className="px-4 py-3 text-left font-medium text-slate-400">Пользователь</th>
                 <th className="px-4 py-3 text-left font-medium text-slate-400">Роль</th>
+                <th className="px-4 py-3 text-left font-medium text-slate-400">CRM</th>
                 <th className="px-4 py-3 text-left font-medium text-slate-400">Последний вход</th>
                 <th className="px-4 py-3 text-right font-medium text-slate-400">Действия</th>
               </tr>
@@ -366,7 +367,7 @@ export default function UsersPage() {
             <tbody>
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
                     Пользователей нет
                   </td>
                 </tr>
@@ -401,6 +402,39 @@ export default function UsersPage() {
                       <option value="manager">Руководитель</option>
                       {u.role === 'admin' && <option value="admin">Администратор</option>}
                     </select>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!u.has_telegram && !u.crm_enabled) {
+                            if (!confirm(`У ${u.name || u.email} не привязан Домовой-бот. Включить CRM? Заявки придут только после привязки.`)) return
+                          }
+                          try {
+                            await apiFetch('PATCH', '/api/admin/users', { id: u.id, crm_enabled: !u.crm_enabled })
+                            await loadUsers()
+                          } catch (err) {
+                            alert(err.message)
+                          }
+                        }}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${
+                          u.crm_enabled ? 'bg-emerald-500' : 'bg-slate-700'
+                        }`}
+                        title={u.crm_enabled ? 'CRM включен — получает лиды' : 'CRM выключен'}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 rounded-full bg-white transition ${
+                            u.crm_enabled ? 'translate-x-4' : 'translate-x-0.5'
+                          }`}
+                        />
+                      </button>
+                      {u.crm_enabled && !u.has_telegram && (
+                        <span className="text-[10px] text-amber-400" title="Бот Домовой не привязан — заявки не дойдут">
+                          ⚠ нет TG
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-slate-400">
                     {u.last_sign_in_at
