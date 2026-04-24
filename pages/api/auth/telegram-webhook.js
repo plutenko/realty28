@@ -63,7 +63,7 @@ async function processAuthUpdate(supabase, update) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, name, email, telegram_link_code')
+    .select('id, name, email, role, crm_enabled, telegram_link_code')
     .eq('telegram_link_code', code)
     .maybeSingle()
 
@@ -82,11 +82,16 @@ async function processAuthUpdate(supabase, update) {
     return
   }
 
-  await sendTelegramMessage(
-    chatId,
-    `✅ Telegram успешно привязан к аккаунту <b>${escapeHtml(profile.name || profile.email)}</b>.\n\n` +
+  const isRealtor = profile.role === 'realtor'
+  const welcomeText = isRealtor
+    ? `✅ Telegram привязан к аккаунту <b>${escapeHtml(profile.name || profile.email)}</b>.\n\n` +
+      (profile.crm_enabled
+        ? `🎯 <b>CRM активна</b> — сюда будут приходить заявки клиентов.\nУвидишь карточку — жми «🔥 Беру в работу», контакты покажутся только победителю.`
+        : `Когда руководитель включит тебе CRM, сюда будут приходить заявки клиентов.`)
+    : `✅ Telegram успешно привязан к аккаунту <b>${escapeHtml(profile.name || profile.email)}</b>.\n\n` +
       `Теперь вам будут приходить запросы на подтверждение входа риелторов.`
-  )
+
+  await sendTelegramMessage(chatId, welcomeText)
 }
 
 function escapeHtml(s) {

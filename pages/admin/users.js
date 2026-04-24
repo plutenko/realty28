@@ -429,10 +429,27 @@ export default function UsersPage() {
                           }`}
                         />
                       </button>
-                      {u.crm_enabled && !u.has_telegram && (
-                        <span className="text-[10px] text-amber-400" title="Бот Домовой не привязан — заявки не дойдут">
-                          ⚠ нет TG
-                        </span>
+                      {!u.has_telegram && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const r = await apiFetch('POST', '/api/admin/users/crm-link', { user_id: u.id })
+                              if (r?.link) {
+                                await navigator.clipboard.writeText(r.link).catch(() => {})
+                                alert(`Ссылка для ${u.name || u.email}:\n\n${r.link}\n\nСкопирована в буфер — отправь риелтору, он откроет и нажмёт Start.`)
+                              } else {
+                                alert('Не удалось получить ссылку')
+                              }
+                            } catch (err) {
+                              alert(err.message)
+                            }
+                          }}
+                          className="text-[10px] text-amber-400 hover:underline"
+                          title="Сгенерировать ссылку на Домовой для риелтора"
+                        >
+                          🔗 привязать TG
+                        </button>
                       )}
                     </div>
                   </td>
