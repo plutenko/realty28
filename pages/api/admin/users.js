@@ -192,16 +192,6 @@ async function sendCrmInvitation(supabase, target) {
     } catch {}
   }
 
-  // 2. Fallback — пост в группу рапортов с упоминанием
-  try {
-    const resp = await reportsBot.sendToGroup(
-      `🎯 <b>${nameHtml}</b>, тебе включили CRM.\n\n` +
-      `Подключи бота «Домовой» для получения заявок:\n${link}`,
-      { parseMode: 'HTML' }
-    )
-    if (resp?.ok) return { method: 'group', link }
-  } catch {}
-
-  // 3. Всё упало — возвращаем ссылку, админ скинет сам
+  // Fallback — возвращаем ссылку, админ скинет риелтору сам
   return { method: 'manual', link }
 }

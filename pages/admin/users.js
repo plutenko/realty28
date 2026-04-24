@@ -414,11 +414,9 @@ export default function UsersPage() {
                             if (enabling && r?.invite) {
                               if (r.invite.method === 'dm') {
                                 alert(`✅ CRM включен для ${u.name || u.email}.\nПриглашение отправлено Старшиной в личку.`)
-                              } else if (r.invite.method === 'group') {
-                                alert(`✅ CRM включен для ${u.name || u.email}.\nПриглашение опубликовано в группе рапортов (Старшина не смог написать в личку).`)
                               } else {
                                 try { await navigator.clipboard.writeText(r.invite.link) } catch {}
-                                alert(`⚠ CRM включен, но авто-приглашение не ушло.\n\nСкопируй ссылку и отправь вручную:\n${r.invite.link}`)
+                                alert(`⚠ CRM включен, но Старшина не смог написать в личку (риелтор никогда не писал ему приватно).\n\nСсылка в буфере — отправь вручную:\n${r.invite.link}`)
                               }
                             }
                             await loadUsers()
