@@ -61,27 +61,26 @@ async function processAuthUpdate(supabase, update) {
     return
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, name, email, role, crm_enabled, telegram_link_code')
-    .eq('telegram_link_code', code)
-    .maybeSingle()
-
-  if (!profile) {
-    await sendTelegramMessage(chatId, `❌ Код не найден или истёк. Сгенерируйте новый в админке.`)
-    return
-  }
-
-  const { error: updErr } = await supabase
+  // Атомарный consume кода: только один параллельный запрос заберёт его и получит profile,
+  // остальные увидят нулевой результат и скажут «уже привязан».
+  const { data: consumed, error: updErr } = await supabase
     .from('profiles')
     .update({ telegram_chat_id: String(chatId), telegram_link_code: null })
-    .eq('id', profile.id)
+    .eq('telegram_link_code', code)
+    .select('id, name, email, role, crm_enabled')
+    .maybeSingle()
 
   if (updErr) {
     await sendTelegramMessage(chatId, `❌ Ошибка привязки: ${updErr.message}`)
     return
   }
 
+  if (!consumed) {
+    // Код уже был использован (или не существовал). Тихо выходим — не спамим.
+    return
+  }
+
+  const profile = consumed
   const isRealtor = profile.role === 'realtor'
   const welcomeText = isRealtor
     ? `✅ Telegram привязан к аккаунту <b>${escapeHtml(profile.name || profile.email)}</b>.\n\n` +
