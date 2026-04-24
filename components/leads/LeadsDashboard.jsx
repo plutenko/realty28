@@ -79,6 +79,7 @@ export default function LeadsDashboard({ theme = 'dark', isAdmin = false }) {
   const [reassignFor, setReassignFor] = useState(null)
   const [reopenFor, setReopenFor] = useState(null)
   const [confirmInBaseFor, setConfirmInBaseFor] = useState(null)
+  const [addOpen, setAddOpen] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -158,7 +159,13 @@ export default function LeadsDashboard({ theme = 'dark', isAdmin = false }) {
     <>
       <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
         <h1 className={`text-2xl font-semibold ${textPrimary}`}>Лиды</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setAddOpen(true)}
+            className="px-3 py-1.5 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white"
+          >
+            ➕ Добавить лид
+          </button>
           <button
             onClick={() => setView('kanban')}
             className={`px-3 py-1.5 text-sm rounded-lg ${view === 'kanban' ? 'bg-blue-600 text-white' : tabIdle}`}
@@ -296,8 +303,138 @@ export default function LeadsDashboard({ theme = 'dark', isAdmin = false }) {
       {confirmInBaseFor && (
         <ConfirmInBaseModal theme={theme} lead={confirmInBaseFor} onClose={() => setConfirmInBaseFor(null)} onSubmit={(id) => doConfirmInBase(confirmInBaseFor, id)} />
       )}
+      {addOpen && (
+        <AddLeadModal
+          theme={theme}
+          sources={sources}
+          realtors={realtors}
+          onClose={() => setAddOpen(false)}
+          onCreated={async () => { setAddOpen(false); await load() }}
+        />
+      )}
     </>
   )
+}
+
+function AddLeadModal({ theme, sources, realtors, onClose, onCreated }) {
+  const dark = theme !== 'light'
+  const activeSources = (sources || []).filter(s => s.is_active)
+  const [form, setForm] = useState({
+    source_id: activeSources[0]?.id || '',
+    name: '',
+    phone: '',
+    email: '',
+    rooms: '',
+    budget: '',
+    comment: '',
+    assigned_user_id: '',
+  })
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function submit() {
+    if (!form.source_id) { setErr('Выбери источник'); return }
+    if (!form.name.trim() && !form.phone.trim()) { setErr('Нужно имя или телефон'); return }
+    setBusy(true); setErr('')
+    try {
+      const body = {
+        source_id: form.source_id,
+        name: form.name.trim() || null,
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
+        rooms: form.rooms.trim() || null,
+        budget: form.budget.trim() || null,
+        comment: form.comment.trim() || null,
+        assigned_user_id: form.assigned_user_id || null,
+      }
+      await apiFetch('POST', '/api/admin/leads/create', body)
+      await onCreated()
+    } catch (e) {
+      setErr(String(e.message || e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4" onClick={busy ? undefined : onClose}>
+      <div className={`rounded-xl w-full max-w-lg p-6 ${dark ? 'bg-slate-900 border border-slate-700' : 'bg-white shadow-xl'}`} onClick={e => e.stopPropagation()}>
+        <h3 className={`text-lg font-semibold mb-3 ${dark ? 'text-white' : 'text-gray-900'}`}>Добавить лид вручную</h3>
+        <p className={`text-xs mb-4 ${dark ? 'text-slate-400' : 'text-gray-500'}`}>
+          Для лидов со звонков, встреч, рекомендаций и других источников вне квизов.
+        </p>
+
+        <div className="space-y-3">
+          <Field theme={theme} label="Источник">
+            <select value={form.source_id} onChange={e => setForm(f => ({ ...f, source_id: e.target.value }))} className={inputCls(dark)}>
+              {activeSources.length === 0 && <option value="">— нет источников —</option>}
+              {activeSources.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field theme={theme} label="Имя клиента">
+              <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className={inputCls(dark)} />
+            </Field>
+            <Field theme={theme} label="Телефон">
+              <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+7..." className={inputCls(dark)} />
+            </Field>
+          </div>
+
+          <Field theme={theme} label="Email (необязательно)">
+            <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className={inputCls(dark)} />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field theme={theme} label="Комнат">
+              <input type="text" value={form.rooms} onChange={e => setForm(f => ({ ...f, rooms: e.target.value }))} placeholder="напр. 2" className={inputCls(dark)} />
+            </Field>
+            <Field theme={theme} label="Бюджет">
+              <input type="text" value={form.budget} onChange={e => setForm(f => ({ ...f, budget: e.target.value }))} placeholder="напр. 3–5 млн" className={inputCls(dark)} />
+            </Field>
+          </div>
+
+          <Field theme={theme} label="Назначить сразу (необязательно)">
+            <select value={form.assigned_user_id} onChange={e => setForm(f => ({ ...f, assigned_user_id: e.target.value }))} className={inputCls(dark)}>
+              <option value="">— рассылка всем CRM-риелторам —</option>
+              {realtors.map(r => (
+                <option key={r.id} value={r.id} disabled={!r.crm_enabled || !r.has_telegram}>
+                  {r.name || r.email}{!r.crm_enabled ? ' (CRM выкл.)' : ''}{!r.has_telegram ? ' (нет TG)' : ''}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field theme={theme} label="Комментарий (необязательно)">
+            <textarea rows={2} value={form.comment} onChange={e => setForm(f => ({ ...f, comment: e.target.value }))} className={inputCls(dark)} />
+          </Field>
+        </div>
+
+        {err && <p className={`mt-3 text-sm ${dark ? 'text-red-300' : 'text-red-600'}`}>{err}</p>}
+
+        <div className="flex justify-end gap-2 mt-4">
+          <button onClick={onClose} disabled={busy} className={`rounded-lg px-3 py-2 text-sm ${dark ? 'text-slate-400 hover:bg-slate-800' : 'text-gray-500 hover:bg-gray-100'}`}>Отмена</button>
+          <button onClick={submit} disabled={busy} className="rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-2 text-sm text-white font-medium">
+            {busy ? 'Создаю…' : 'Добавить лид'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Field({ theme, label, children }) {
+  const dark = theme !== 'light'
+  return (
+    <label className="block">
+      <div className={`text-xs mb-1 ${dark ? 'text-slate-400' : 'text-gray-500'}`}>{label}</div>
+      {children}
+    </label>
+  )
+}
+
+function inputCls(dark) {
+  return `w-full rounded-lg border px-3 py-2 text-sm ${dark ? 'border-slate-700 bg-slate-800 text-white' : 'border-gray-200 bg-white text-gray-900'}`
 }
 
 function LeadDetailModal({ theme, lead, isAdmin, statusColor, onClose, onDelete, onChangeStatus, onReassign, onReopen, onConfirmInBase }) {

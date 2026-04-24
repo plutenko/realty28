@@ -3,8 +3,39 @@ import { mapMarquizPayload } from '../../../../lib/leadsCore'
 import { broadcastLead } from '../../../../lib/leadsTelegram'
 import { sendTelegramMessage } from '../../../../lib/telegram'
 
+// Простой sliding-window rate limit: 60 запросов в минуту с одного IP.
+// In-memory — на один процесс Node, при рестарте сбрасывается. Этого хватит
+// против случайных ботов; целенаправленная атака требует внешней защиты.
+const RATE_BUCKET = new Map()
+const RATE_LIMIT = 60
+const RATE_WINDOW_MS = 60_000
+
+function rateLimited(ip) {
+  const now = Date.now()
+  const arr = RATE_BUCKET.get(ip) || []
+  const fresh = arr.filter(ts => ts > now - RATE_WINDOW_MS)
+  if (fresh.length >= RATE_LIMIT) {
+    RATE_BUCKET.set(ip, fresh)
+    return true
+  }
+  fresh.push(now)
+  RATE_BUCKET.set(ip, fresh)
+  return false
+}
+
+function clientIp(req) {
+  const xff = req.headers['x-forwarded-for']
+  if (xff) return String(xff).split(',')[0].trim()
+  return req.socket?.remoteAddress || 'unknown'
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  const ip = clientIp(req)
+  if (rateLimited(ip)) {
+    return res.status(429).json({ error: 'rate_limited', retry_after_sec: 60 })
+  }
 
   const { source_key } = req.query
   if (!source_key || typeof source_key !== 'string') {
