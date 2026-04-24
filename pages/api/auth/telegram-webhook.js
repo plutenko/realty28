@@ -25,12 +25,15 @@ export default async function handler(req, res) {
   const supabase = getSupabaseAdmin()
   if (!supabase) return res.status(200).json({ ok: true })
 
-  // Отвечаем Telegram-у мгновенно (Connection timed out от Timeweb → терянные updates).
-  // Всё остальное — фоном.
-  res.status(200).json({ ok: true })
-  setImmediate(() => processAuthUpdate(supabase, update).catch(e => {
-    console.error('[auth-webhook] background error', e)
-  }))
+  // Обрабатываем синхронно. setImmediate после res.send обрезалось Next.js,
+  // из-за чего часть действий (edit сообщений у других получателей после захвата лида)
+  // не успевала выполниться. Telegram webhook таймаут ~60 сек — запас есть.
+  try {
+    await processAuthUpdate(supabase, update)
+  } catch (e) {
+    console.error('[auth-webhook] handler error', e)
+  }
+  return res.status(200).json({ ok: true })
 }
 
 async function processAuthUpdate(supabase, update) {
