@@ -1,4 +1,6 @@
+import crypto from 'crypto'
 import { getSupabaseAdmin } from '../../../lib/supabaseServer'
+import * as reportsBot from '../../../lib/reportsTelegram'
 
 async function requireAdmin(req) {
   const token = req.headers.authorization?.replace('Bearer ', '')
@@ -107,6 +109,20 @@ export default async function handler(req, res) {
       updates.fired_at = is_active ? null : new Date().toISOString()
     }
     if (typeof crm_enabled === 'boolean') updates.crm_enabled = crm_enabled
+
+    // Если включили CRM, а Домовой-бот не привязан — сразу шлём приглашение
+    // через рапорт-бота (в ЛС или fallback в группу с упоминанием)
+    let inviteStatus = null
+    if (crm_enabled === true) {
+      const { data: target } = await supabase
+        .from('profiles')
+        .select('id, name, email, role, telegram_chat_id, telegram_user_id')
+        .eq('id', id)
+        .single()
+      if (target && !target.telegram_chat_id) {
+        inviteStatus = await sendCrmInvitation(supabase, target)
+      }
+    }
     if (Object.keys(updates).length > 0) {
       const { error } = await supabase.from('profiles').update(updates).eq('id', id)
       if (error) return res.status(500).json({ error: error.message })
@@ -117,7 +133,7 @@ export default async function handler(req, res) {
       if (error) return res.status(500).json({ error: error.message })
     }
 
-    return res.status(200).json({ ok: true })
+    return res.status(200).json({ ok: true, invite: inviteStatus })
   }
 
   // DELETE — "уволить" (soft-delete профиля, auth-юзер остаётся).
@@ -140,4 +156,52 @@ export default async function handler(req, res) {
   }
 
   return res.status(405).json({ error: 'Method not allowed' })
+}
+
+async function sendCrmInvitation(supabase, target) {
+  // Генерируем свежий код и сохраняем в профиль
+  const code = crypto.randomBytes(8).toString('hex')
+  await supabase.from('profiles').update({ telegram_link_code: code }).eq('id', target.id)
+
+  // Собираем ссылку на Домовой
+  let botUsername = process.env.TELEGRAM_BOT_USERNAME || ''
+  if (!botUsername && process.env.TELEGRAM_BOT_TOKEN) {
+    try {
+      const r = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getMe`)
+      const j = await r.json()
+      if (j?.ok) botUsername = j.result?.username || ''
+    } catch {}
+  }
+  if (!botUsername) botUsername = 'domovoy_login_bot'
+  const link = `https://t.me/${botUsername}?start=${code}`
+
+  const nameHtml = reportsBot.escapeHtml(target.name || target.email || 'коллега')
+
+  // 1. Пробуем ЛС через Старшину
+  if (target.telegram_user_id) {
+    try {
+      const resp = await reportsBot.sendMessage(
+        target.telegram_user_id,
+        `🎯 <b>Тебе включили CRM</b>\n\n` +
+        `Теперь получаешь заявки клиентов в Telegram.\n\n` +
+        `Нажми, чтобы подключиться:\n${link}\n\n` +
+        `После клика жми «Start» — дальше лиды сами будут прилетать в бот «Домовой».`,
+        { parseMode: 'HTML' }
+      )
+      if (resp?.ok) return { method: 'dm', link }
+    } catch {}
+  }
+
+  // 2. Fallback — пост в группу рапортов с упоминанием
+  try {
+    const resp = await reportsBot.sendToGroup(
+      `🎯 <b>${nameHtml}</b>, тебе включили CRM.\n\n` +
+      `Подключи бота «Домовой» для получения заявок:\n${link}`,
+      { parseMode: 'HTML' }
+    )
+    if (resp?.ok) return { method: 'group', link }
+  } catch {}
+
+  // 3. Всё упало — возвращаем ссылку, админ скинет сам
+  return { method: 'manual', link }
 }

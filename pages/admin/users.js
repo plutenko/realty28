@@ -408,11 +408,19 @@ export default function UsersPage() {
                       <button
                         type="button"
                         onClick={async () => {
-                          if (!u.has_telegram && !u.crm_enabled) {
-                            if (!confirm(`У ${u.name || u.email} не привязан Домовой-бот. Включить CRM? Заявки придут только после привязки.`)) return
-                          }
+                          const enabling = !u.crm_enabled
                           try {
-                            await apiFetch('PATCH', '/api/admin/users', { id: u.id, crm_enabled: !u.crm_enabled })
+                            const r = await apiFetch('PATCH', '/api/admin/users', { id: u.id, crm_enabled: !u.crm_enabled })
+                            if (enabling && r?.invite) {
+                              if (r.invite.method === 'dm') {
+                                alert(`✅ CRM включен для ${u.name || u.email}.\nПриглашение отправлено Старшиной в личку.`)
+                              } else if (r.invite.method === 'group') {
+                                alert(`✅ CRM включен для ${u.name || u.email}.\nПриглашение опубликовано в группе рапортов (Старшина не смог написать в личку).`)
+                              } else {
+                                try { await navigator.clipboard.writeText(r.invite.link) } catch {}
+                                alert(`⚠ CRM включен, но авто-приглашение не ушло.\n\nСкопируй ссылку и отправь вручную:\n${r.invite.link}`)
+                              }
+                            }
                             await loadUsers()
                           } catch (err) {
                             alert(err.message)
