@@ -14,6 +14,8 @@ const links = [
   { href: '/admin/users', label: 'Пользователи', icon: '👥' },
   { href: '/admin/security', label: 'Безопасность', icon: '🔒' },
   { href: '/admin/reports', label: 'Отчёты', icon: '📝' },
+  { href: '/admin/leads', label: 'Лиды', icon: '📥' },
+  { href: '/admin/lead-sources', label: 'CRM-источники', icon: '🎯' },
 ]
 
 export default function AdminLayout({ children, title }) {
