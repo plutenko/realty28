@@ -57,6 +57,11 @@ export default function CatalogTabs() {
             Сводка
           </Link>
         )}
+        {user && profile?.crm_enabled && (
+          <Link href="/crm" className={tabClass('/crm')}>
+            CRM
+          </Link>
+        )}
       </div>
 
       {/* Кнопка личного кабинета */}
