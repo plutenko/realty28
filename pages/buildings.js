@@ -223,7 +223,7 @@ export default function BuildingsPage() {
       alert('Сначала выберите квартиры')
       return
     }
-    const MAX_UNITS = 100
+    const MAX_UNITS = 20
     if (selectedUnits.length > MAX_UNITS) {
       alert(`В подборке максимум ${MAX_UNITS} квартир, а вы выбрали ${selectedUnits.length}. Снимите лишние и попробуйте снова — клиенту проще смотреть отобранные варианты.`)
       return
