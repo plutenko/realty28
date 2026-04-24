@@ -123,18 +123,26 @@ export default function AdminLeadSources() {
         {justCreated && (
           <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-100 px-4 py-3 mb-4 text-sm">
             <div className="font-semibold mb-1">✅ Источник создан: {justCreated.name}</div>
-            <div className="text-xs text-emerald-200/80">Вставь URL в настройки {KIND_LABELS[justCreated.kind] || justCreated.kind}:</div>
-            <div className="mt-2 flex items-center gap-2">
-              <code className="flex-1 truncate rounded bg-slate-900/60 px-3 py-2 text-xs text-emerald-100">
-                {webhookUrl(justCreated.source_key)}
-              </code>
-              <button
-                onClick={() => copyUrl(justCreated.source_key)}
-                className="rounded bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-xs font-medium text-white"
-              >
-                Копировать
-              </button>
-            </div>
+            {justCreated.kind === 'manual' ? (
+              <div className="text-xs text-emerald-200/80">
+                Для ручного источника webhook не нужен — добавляй лиды через кнопку «➕ Добавить лид» в <a href="/admin/leads" className="underline">/admin/leads</a>.
+              </div>
+            ) : (
+              <>
+                <div className="text-xs text-emerald-200/80">Вставь URL в настройки {KIND_LABELS[justCreated.kind] || justCreated.kind}:</div>
+                <div className="mt-2 flex items-center gap-2">
+                  <code className="flex-1 truncate rounded bg-slate-900/60 px-3 py-2 text-xs text-emerald-100">
+                    {webhookUrl(justCreated.source_key)}
+                  </code>
+                  <button
+                    onClick={() => copyUrl(justCreated.source_key)}
+                    className="rounded bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-xs font-medium text-white"
+                  >
+                    Копировать
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -200,17 +208,21 @@ export default function AdminLeadSources() {
                     <td className="px-4 py-3 text-white">{r.name}</td>
                     <td className="px-4 py-3 text-slate-300">{KIND_LABELS[r.kind] || r.kind}</td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <code className="truncate max-w-[320px] rounded bg-slate-800/80 px-2 py-1 text-xs text-slate-200">
-                          {webhookUrl(r.source_key)}
-                        </code>
-                        <button
-                          onClick={() => copyUrl(r.source_key)}
-                          className="text-xs rounded bg-slate-700 hover:bg-slate-600 px-2 py-1 text-white"
-                        >
-                          Копировать
-                        </button>
-                      </div>
+                      {r.kind === 'manual' ? (
+                        <span className="text-xs text-slate-500 italic">не требуется — добавляются через форму в /admin/leads</span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <code className="truncate max-w-[320px] rounded bg-slate-800/80 px-2 py-1 text-xs text-slate-200">
+                            {webhookUrl(r.source_key)}
+                          </code>
+                          <button
+                            onClick={() => copyUrl(r.source_key)}
+                            className="text-xs rounded bg-slate-700 hover:bg-slate-600 px-2 py-1 text-white"
+                          >
+                            Копировать
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <button
