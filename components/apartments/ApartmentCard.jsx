@@ -244,10 +244,10 @@ export default function ApartmentCard({ unit, collectionView = false, listView =
           Площадь: <span className="font-semibold text-gray-900">{unit?.area ?? '—'} м²</span>
         </div>
         <div>
-          Цена: <span className="font-semibold text-gray-900">{formatPriceRub(unit?.price)} ₽</span>
+          Цена: <span className="whitespace-nowrap font-semibold text-gray-900">{formatPriceRub(unit?.price)} ₽</span>
         </div>
         <div>
-          Цена за м²: <span className="font-semibold text-gray-900">{formatPriceRub(pricePerM2(unit))} ₽</span>
+          Цена за м²: <span className="whitespace-nowrap font-semibold text-gray-900">{formatPriceRub(pricePerM2(unit))} ₽</span>
         </div>
       </div>
       {!collectionView && (
