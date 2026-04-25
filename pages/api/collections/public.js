@@ -22,6 +22,11 @@ const UNITS_SELECT = `
   building:building_id (
     id,
     name,
+    handover_status,
+    handover_quarter,
+    handover_year,
+    floors,
+    units_per_entrance,
     complex:complex_id (
       id,
       name,
