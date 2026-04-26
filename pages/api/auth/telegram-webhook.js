@@ -367,46 +367,57 @@ async function handleLeadCallback(supabase, cq, action, leadId) {
       Math.round((new Date(updated.assigned_at).getTime() - new Date(updated.created_at).getTime()) / 1000)
     )
 
-    // reaction_seconds обновляем отдельно, чтобы не усложнять атомарный UPDATE выше
-    await supabase.from('leads').update({ reaction_seconds: reactionSec }).eq('id', leadId)
-
-    // Источник для карточек
-    let source = null
-    if (updated.source_id) {
-      const { data: s } = await supabase
-        .from('lead_sources')
-        .select('id, kind, name')
-        .eq('id', updated.source_id)
-        .maybeSingle()
-      source = s
-    }
-
-    // Мгновенно даём ack в интерфейсе Telegram — всплывающий тост «✅ Вы взяли заявку»
-    // появляется у риелтора за 100-200 мс. Эдиты сообщений и уведомления — после.
-    await answerCallbackQuery(cqId, '✅ Вы взяли заявку')
-
+    // КРИТИЧНО: записываем 'taken' и reaction_seconds сразу после атомарного UPDATE,
+    // ДО любых TG-вызовов. Если Telegram-эдиты упадут — у нас в БД останется
+    // консистентное состояние (lead.assigned + событие taken), запасной cleanup
+    // сможет разобрать ситуацию. Раньше handler терял события при таймаутах TG.
+    await supabase.from('leads').update({ reaction_seconds: reactionSec }).eq('id', leadId).then(
+      () => null,
+      e => console.error('[lead-take] reaction update', e?.message || e)
+    )
     await supabase.from('lead_events').insert({
       lead_id: leadId,
       actor_user_id: profile.id,
       event_type: 'taken',
       to_status: 'new',
       meta: { reaction_seconds: reactionSec },
-    })
+    }).then(
+      () => null,
+      e => console.error('[lead-take] event insert', e?.message || e)
+    )
 
-    // Карточка победителю с контактами
-    const winnerText = formatLeadForWinner(updated, source)
-    if (messageChatId && messageId) {
-      await editTelegramMessage(messageChatId, messageId, winnerText, {
-        replyMarkup: { inline_keyboard: [] },
-      })
+    // Мгновенный ack
+    try { await answerCallbackQuery(cqId, '✅ Вы взяли заявку') } catch (e) { console.error('[lead-take] ack', e?.message || e) }
+
+    // Источник для карточек
+    let source = null
+    if (updated.source_id) {
+      try {
+        const { data: s } = await supabase
+          .from('lead_sources')
+          .select('id, kind, name')
+          .eq('id', updated.source_id)
+          .maybeSingle()
+        source = s
+      } catch (e) { console.error('[lead-take] source fetch', e?.message || e) }
     }
 
-    // Остальным — эдит «Взял Иван»
-    const winnerName = profile.name || profile.email || 'Риелтор'
-    await editOtherRecipientsAfterTake(supabase, updated, source, profile.id, winnerName, reactionSec)
+    // Карточка победителю с контактами — каждый шаг защищён try/catch
+    try {
+      const winnerText = formatLeadForWinner(updated, source)
+      if (messageChatId && messageId) {
+        await editTelegramMessage(messageChatId, messageId, winnerText, {
+          replyMarkup: { inline_keyboard: [] },
+        })
+      }
+    } catch (e) { console.error('[lead-take] edit winner', e?.message || e) }
 
-    // Руководителям
-    await notifyManagersLeadTaken(supabase, updated, source, winnerName, reactionSec)
+    const winnerName = profile.name || profile.email || 'Риелтор'
+    try { await editOtherRecipientsAfterTake(supabase, updated, source, profile.id, winnerName, reactionSec) }
+    catch (e) { console.error('[lead-take] edit others', e?.message || e) }
+
+    try { await notifyManagersLeadTaken(supabase, updated, source, winnerName, reactionSec) }
+    catch (e) { console.error('[lead-take] notify managers', e?.message || e) }
   }
 }
 
