@@ -118,6 +118,32 @@ async function handleCallbackQuery(supabase, cq) {
     return
   }
 
+  // CRM: руководитель назначает риелтора через эскалацию
+  const assignMatch = data.match(/^assignlead:(.+)$/)
+  if (assignMatch) {
+    await handleAssignLeadStart(supabase, cq, assignMatch[1])
+    return
+  }
+  const pickMatch = data.match(/^pick:([a-f0-9]+):([a-f0-9]+)$/)
+  if (pickMatch) {
+    await handleAssignLeadPick(supabase, cq, pickMatch[1], pickMatch[2])
+    return
+  }
+  const cancelMatch = data.match(/^assigncancel:(.+)$/)
+  if (cancelMatch) {
+    // Просто убираем клавиатуру и оставляем оригинальный текст эскалации
+    if (cq.message?.chat?.id && cq.message?.message_id) {
+      const orig = (cq.message?.text || '').replace(/\n*<i>Кому назначить\?<\/i>\s*$/, '').replace(/\n*Кому назначить\?\s*$/, '')
+      await editTelegramMessage(cq.message.chat.id, cq.message.message_id, orig, {
+        replyMarkup: {
+          inline_keyboard: [[{ text: '👥 Назначить риелтора', callback_data: `assignlead:${cancelMatch[1]}` }]],
+        },
+      })
+    }
+    await answerCallbackQuery(cq.id)
+    return
+  }
+
   const m = data.match(/^(approve|reject):(.+)$/)
   if (!m) {
     await answerCallbackQuery(cqId, 'Неверные данные')
@@ -382,4 +408,175 @@ async function handleLeadCallback(supabase, cq, action, leadId) {
     // Руководителям
     await notifyManagersLeadTaken(supabase, updated, source, winnerName, reactionSec)
   }
+}
+
+// Шаг 1 — руководитель нажал «👥 Назначить риелтора» в эскалации.
+// Подгружаем список CRM-риелторов и эдитим то же сообщение, добавляя
+// клавиатуру с кнопками «Имя риелтора» (callback pick:<leadShort>:<userShort>).
+async function handleAssignLeadStart(supabase, cq, leadId) {
+  const cqId = cq.id
+  const fromChatId = String(cq.from?.id || '')
+  const messageChatId = cq.message?.chat?.id
+  const messageId = cq.message?.message_id
+  const originalText = cq.message?.text || ''
+
+  const { data: caller } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('telegram_chat_id', fromChatId)
+    .maybeSingle()
+  if (!caller || !['admin', 'manager'].includes(caller.role)) {
+    await answerCallbackQuery(cqId, 'Только админ/руководитель')
+    return
+  }
+
+  const { data: lead } = await supabase
+    .from('leads')
+    .select('id, status, assigned_user_id')
+    .eq('id', leadId)
+    .maybeSingle()
+  if (!lead) {
+    await answerCallbackQuery(cqId, 'Лид не найден')
+    return
+  }
+  if (lead.assigned_user_id) {
+    await answerCallbackQuery(cqId, 'Этот лид уже взят')
+    if (messageChatId && messageId) {
+      await editTelegramMessage(messageChatId, messageId, originalText, { replyMarkup: { inline_keyboard: [] } })
+    }
+    return
+  }
+
+  const { data: realtors } = await supabase
+    .from('profiles')
+    .select('id, name, email, telegram_chat_id')
+    .eq('crm_enabled', true)
+    .eq('is_active', true)
+    .not('telegram_chat_id', 'is', null)
+    .order('name')
+
+  if (!realtors || realtors.length === 0) {
+    await answerCallbackQuery(cqId, 'Нет CRM-риелторов с привязанным Домовой', true)
+    return
+  }
+
+  const leadShort = String(leadId).split('-')[0]
+  const rows = []
+  let row = []
+  for (const r of realtors) {
+    const userShort = String(r.id).split('-')[0]
+    row.push({
+      text: r.name || r.email || '—',
+      callback_data: `pick:${leadShort}:${userShort}`,
+    })
+    if (row.length === 2) { rows.push(row); row = [] }
+  }
+  if (row.length) rows.push(row)
+  rows.push([{ text: '✕ Отмена', callback_data: `assigncancel:${leadId}` }])
+
+  if (messageChatId && messageId) {
+    await editTelegramMessage(messageChatId, messageId, originalText + '\n\n<i>Кому назначить?</i>', {
+      replyMarkup: { inline_keyboard: rows },
+    })
+  }
+  await answerCallbackQuery(cqId)
+}
+
+async function handleAssignLeadPick(supabase, cq, leadShort, userShort) {
+  const cqId = cq.id
+  const fromChatId = String(cq.from?.id || '')
+
+  const { data: caller } = await supabase
+    .from('profiles')
+    .select('id, role, name')
+    .eq('telegram_chat_id', fromChatId)
+    .maybeSingle()
+  if (!caller || !['admin', 'manager'].includes(caller.role)) {
+    await answerCallbackQuery(cqId, 'Только админ/руководитель')
+    return
+  }
+
+  // По коротким префиксам ищем lead и риелтора (UUID начинается с этих 8 hex).
+  const { data: leadCandidates } = await supabase
+    .from('leads')
+    .select('id, status, assigned_user_id, name, phone, email, rooms, budget, created_at, source_id, lead_sources(name, kind)')
+    .in('status', ['new'])
+    .is('assigned_user_id', null)
+  const lead = (leadCandidates || []).find(l => String(l.id).startsWith(leadShort))
+  if (!lead) {
+    await answerCallbackQuery(cqId, 'Лид уже не доступен (взят или закрыт)', true)
+    return
+  }
+
+  const { data: realtors } = await supabase
+    .from('profiles')
+    .select('id, name, email, telegram_chat_id')
+    .eq('crm_enabled', true)
+    .eq('is_active', true)
+    .not('telegram_chat_id', 'is', null)
+  const realtor = (realtors || []).find(r => String(r.id).startsWith(userShort))
+  if (!realtor) {
+    await answerCallbackQuery(cqId, 'Риелтор не найден', true)
+    return
+  }
+
+  const now = new Date()
+  const reactionSec = Math.max(0, Math.round((now.getTime() - new Date(lead.created_at).getTime()) / 1000))
+
+  // Атомарное назначение
+  const { data: updated, error: updErr } = await supabase
+    .from('leads')
+    .update({
+      assigned_user_id: realtor.id,
+      assigned_at: now.toISOString(),
+      reaction_seconds: reactionSec,
+      updated_at: now.toISOString(),
+    })
+    .eq('id', lead.id)
+    .is('assigned_user_id', null)
+    .eq('status', 'new')
+    .select('id')
+    .maybeSingle()
+
+  if (updErr || !updated) {
+    await answerCallbackQuery(cqId, 'Лид уже взят кем-то другим', true)
+    return
+  }
+
+  await supabase.from('lead_events').insert({
+    lead_id: lead.id,
+    actor_user_id: caller.id,
+    event_type: 'taken',
+    to_status: 'new',
+    meta: { reaction_seconds: reactionSec, assigned_by_manager: true, assigner_id: caller.id },
+  })
+
+  await answerCallbackQuery(cqId, `✅ Назначено: ${realtor.name || realtor.email}`)
+
+  // Карточка риелтору в Домовой
+  const sourceName = lead.lead_sources?.name || lead.lead_sources?.kind || 'источник'
+  const realtorText =
+    `📂 <b>Вам назначен лид руководителем</b>\n\n` +
+    (lead.name ? `Клиент: ${escapeHtml(lead.name)} ` : '') +
+    (lead.phone ? `(<code>${escapeHtml(lead.phone)}</code>)\n` : '\n') +
+    (lead.email ? `Email: ${escapeHtml(lead.email)}\n` : '') +
+    (lead.rooms ? `Комнат: ${escapeHtml(lead.rooms)}\n` : '') +
+    (lead.budget ? `Бюджет: ${escapeHtml(lead.budget)}\n` : '') +
+    `Источник: ${escapeHtml(sourceName)}\n\n` +
+    `Свяжитесь с клиентом в ближайшие 5 минут.`
+  if (realtor.telegram_chat_id) {
+    try { await sendTelegramMessage(realtor.telegram_chat_id, realtorText) } catch {}
+  }
+
+  // Эдит блайнд-карточек у других CRM-риелторов
+  const winnerName = realtor.name || realtor.email || 'Риелтор'
+  let source = null
+  if (lead.source_id) {
+    const { data: s } = await supabase.from('lead_sources').select('id, kind, name').eq('id', lead.source_id).maybeSingle()
+    source = s
+  }
+  await editOtherRecipientsAfterTake(supabase, lead, source, realtor.id, winnerName, reactionSec)
+
+  // Уведомить других руководителей (notifyManagersLeadTaken)
+  await notifyManagersLeadTaken(supabase, lead, source, winnerName, reactionSec)
 }

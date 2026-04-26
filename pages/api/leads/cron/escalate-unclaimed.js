@@ -73,11 +73,16 @@ export default async function handler(req, res) {
       `Лежит уже ${ageMin} мин (порог ${minutes}).\n\n` +
       `Открой /admin/leads или /manager/leads и назначь вручную, либо позвони клиенту сам.`
 
+    const replyMarkup = {
+      inline_keyboard: [[
+        { text: '👥 Назначить риелтора', callback_data: `assignlead:${lead.id}` },
+      ]],
+    }
     const sentTo = []
     for (const m of managers || []) {
       if (!m.telegram_chat_id) continue
       try {
-        const resp = await sendTelegramMessage(m.telegram_chat_id, text)
+        const resp = await sendTelegramMessage(m.telegram_chat_id, text, { replyMarkup })
         if (resp?.ok && resp?.result?.message_id) {
           sentTo.push({ chat_id: Number(m.telegram_chat_id), message_id: Number(resp.result.message_id) })
         }
