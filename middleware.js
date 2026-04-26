@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server'
 
-const PUBLIC_HOST = (process.env.PUBLIC_COLLECTION_HOST || '').toLowerCase()
+function toPunycode(host) {
+  if (!host) return ''
+  try {
+    return new URL(`http://${host.split(':')[0]}`).hostname.toLowerCase()
+  } catch {
+    return host.toLowerCase()
+  }
+}
+
+const PUBLIC_HOST = toPunycode(process.env.PUBLIC_COLLECTION_HOST || '')
 
 function isAllowedOnPublicHost(pathname) {
   if (pathname.startsWith('/collections/')) return true
