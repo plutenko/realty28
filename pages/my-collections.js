@@ -17,7 +17,8 @@ export default function MyCollectionsPage() {
   const [origin, setOrigin] = useState('')
 
   useEffect(() => {
-    setOrigin(window.location.origin)
+    const publicHost = process.env.NEXT_PUBLIC_COLLECTION_HOST
+    setOrigin(publicHost ? `https://${publicHost}` : window.location.origin)
   }, [])
 
   useEffect(() => {

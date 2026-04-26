@@ -780,7 +780,9 @@ export default function ApartmentsPage() {
         throw new Error(body?.error || 'Не удалось создать подборку')
       }
 
-      const link = `${window.location.origin}/collections/${body.token}`
+      const publicHost = process.env.NEXT_PUBLIC_COLLECTION_HOST
+      const baseUrl = publicHost ? `https://${publicHost}` : window.location.origin
+      const link = `${baseUrl}/collections/${body.token}`
       await navigator.clipboard.writeText(link)
       alert(`Ссылка скопирована: ${link}`)
       setSelectedUnits([])
