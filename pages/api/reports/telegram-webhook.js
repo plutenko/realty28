@@ -217,6 +217,33 @@ async function handleMessage(supabase, message, { edited }) {
       )
       return
     }
+
+    // Воскресенье — рапорт по инструкции сдаётся единым батчем за Пт+Сб+Вс
+    // (диапазон «24.04-26.04»). Одиночка с одной датой за Вс отклоняется,
+    // чтобы цифры за Пт/Сб не оставались висеть как несданные.
+    // Исключение для абсент-кейсов (больничный Пт-Сб): override дня в ЛК.
+    // Активируется только при `settings.sunday_batch_required_strict === true`,
+    // чтобы выкатывать постепенно (не штрафовать риелторов в день деплоя).
+    if (l.dow === 'sun' && settings.sunday_batch_required_strict === true) {
+      const probe = parseReport(text, settings, now, { allowClosedWindow: true })
+      const hasDate = Boolean(probe.dateFrom && probe.dateTo)
+      const isBatch = hasDate && probe.dateFrom !== probe.dateTo
+      if (hasDate && !isBatch) {
+        const replyText = fillTemplate(
+          settings.messages?.sunday_batch_required ||
+            '✋ Боец, в воскресенье жду рапорт-батч за Пт+Сб+Вс. Пиши диапазон, например «Отчёт:24.04-26.04», и метрики за все три дня.',
+          { name: displayName || mention || 'боец' }
+        )
+        await sendMessage(chatId, replyText, { replyToMessageId: messageId })
+        await setMessageReactionWithQueue(
+          supabase,
+          chatId,
+          messageId,
+          settings.reaction_rejected || '🤔'
+        )
+        return
+      }
+    }
   }
 
   // Сначала смотрим, разблокирован ли этот день вручную через ЛК руководителя
