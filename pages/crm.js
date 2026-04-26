@@ -55,6 +55,7 @@ export default function CrmPage() {
   const [view, setView] = useState('kanban')
   const [filters, setFilters] = useState({ status: 'all', period: 'all' })
   const [detail, setDetail] = useState(null)
+  const [kindFor, setKindFor] = useState(null) // лид, для которого выбираем категорию (Внести в базу)
 
   useEffect(() => {
     if (authLoading) return
@@ -86,15 +87,23 @@ export default function CrmPage() {
     return map
   }, [leads])
 
-  async function changeStatus(lead, status, commentArg) {
+  async function changeStatus(lead, status, commentArg, leadKind) {
     let comment = commentArg
     if ((status === 'not_lead' || status === 'failed') && !comment) {
       comment = prompt(status === 'not_lead' ? 'Причина «не лид»:' : 'Причина срыва:')
       if (!comment || !comment.trim()) return
     }
+    if (status === 'add_to_base' && !leadKind) {
+      // Открываем модалку выбора категории
+      setKindFor(lead)
+      return
+    }
     try {
-      await apiFetch('POST', `/api/crm/leads/${lead.id}`, { action: 'change_status', status, comment })
+      const body = { action: 'change_status', status, comment }
+      if (leadKind) body.lead_kind = leadKind
+      await apiFetch('POST', `/api/crm/leads/${lead.id}`, body)
       setDetail(null)
+      setKindFor(null)
       await load()
     } catch (e) {
       alert(e.message || e)
@@ -218,6 +227,13 @@ export default function CrmPage() {
             onChangeStatus={(st, c) => changeStatus(detail, st, c)}
           />
         )}
+        {kindFor && (
+          <KindPickerModal
+            lead={kindFor}
+            onClose={() => setKindFor(null)}
+            onSubmit={(kind) => changeStatus(kindFor, 'add_to_base', null, kind)}
+          />
+        )}
       </div>
     </div>
   )
@@ -306,6 +322,46 @@ function Row({ label, value }) {
     <div>
       <div className="text-xs text-gray-500">{label}</div>
       <div className="text-gray-900 mt-0.5">{value}</div>
+    </div>
+  )
+}
+
+function KindPickerModal({ lead, onClose, onSubmit }) {
+  const [kind, setKind] = useState('buyer')
+  const [busy, setBusy] = useState(false)
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" onClick={busy ? undefined : onClose}>
+      <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Категория клиента</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Клиент {lead.name || ''} — выбери, что он хочет, чтобы админ внёс правильную запись в базу агентства.
+        </p>
+        <div className="space-y-2">
+          {[
+            ['buyer', '🏠 Покупатель', 'Хочет купить квартиру'],
+            ['seller', '🔑 Продавец', 'Хочет продать квартиру'],
+            ['both', '🔄 Покупатель и Продавец', 'Продаёт свою и покупает новую — нужны 2 записи в базе'],
+          ].map(([v, label, hint]) => (
+            <label key={v} className={`flex items-start gap-3 cursor-pointer rounded-lg border p-3 ${kind === v ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+              <input type="radio" name="kind" value={v} checked={kind === v} onChange={() => setKind(v)} className="mt-1" />
+              <div>
+                <div className="text-sm font-medium text-gray-900">{label}</div>
+                <div className="text-xs text-gray-500">{hint}</div>
+              </div>
+            </label>
+          ))}
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <button onClick={onClose} disabled={busy} className="rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100">Отмена</button>
+          <button
+            onClick={async () => { setBusy(true); try { await onSubmit(kind) } finally { setBusy(false) } }}
+            disabled={busy}
+            className="rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 px-4 py-2 text-sm text-white font-medium"
+          >
+            {busy ? 'Отправляю…' : 'Внести в базу'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

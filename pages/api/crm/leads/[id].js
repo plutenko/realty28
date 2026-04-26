@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { action, status, comment } = req.body || {}
+  const { action, status, comment, lead_kind } = req.body || {}
   if (action !== 'change_status') return res.status(400).json({ error: 'action должен быть change_status' })
 
   const supabase = getSupabaseAdmin()
@@ -54,7 +54,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Для этого статуса обязательна причина' })
   }
 
+  if (status === 'add_to_base' && !['buyer', 'seller', 'both'].includes(lead_kind)) {
+    return res.status(400).json({ error: 'Укажите категорию: buyer | seller | both' })
+  }
+
   const updates = { status, updated_at: new Date().toISOString() }
+  if (status === 'add_to_base') updates.lead_kind = lead_kind
   if (TERMINAL.has(status)) {
     updates.closed_at = new Date().toISOString()
     updates.close_reason = String(comment || '').trim() || null

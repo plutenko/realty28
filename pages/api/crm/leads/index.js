@@ -28,7 +28,8 @@ export default async function handler(req, res) {
       .select(`
         id, status, name, phone, phone_normalized, email, rooms, budget,
         assigned_user_id, assigned_at, reaction_seconds, close_reason, closed_at,
-        external_base_id, created_at, updated_at, source_id,
+        external_base_id, external_base_id_seller, lead_kind,
+        created_at, updated_at, source_id,
         answers,
         lead_sources(kind)
       `)

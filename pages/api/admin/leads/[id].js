@@ -57,19 +57,22 @@ export default async function handler(req, res) {
 }
 
 async function changeStatus(supabase, caller, lead, body, res) {
-  const { status, comment } = body
+  const { status, comment, lead_kind } = body
   if (!ALLOWED_STATUS_SET.has(status)) return res.status(400).json({ error: 'Недопустимый статус' })
   if ((status === 'not_lead' || status === 'failed') && !String(comment || '').trim()) {
     return res.status(400).json({ error: 'Для этого статуса обязательна причина' })
   }
+  if (status === 'add_to_base' && !['buyer', 'seller', 'both'].includes(lead_kind)) {
+    return res.status(400).json({ error: 'Укажите категорию: buyer | seller | both' })
+  }
 
-  // Идемпотентность: если текущий статус совпадает — не пишем событие и не шлём уведомления.
-  // Защита от двойного клика в UI.
+  // Идемпотентность
   if (lead.status === status) {
     return res.status(200).json({ ok: true, noop: true })
   }
 
   const updates = { status, updated_at: new Date().toISOString() }
+  if (status === 'add_to_base') updates.lead_kind = lead_kind
   if (TERMINAL.has(status)) {
     updates.closed_at = new Date().toISOString()
     updates.close_reason = String(comment || '').trim() || null
@@ -258,19 +261,30 @@ async function reopen(supabase, caller, lead, body, res) {
 }
 
 async function confirmInWork(supabase, caller, lead, body, res) {
-  const { external_base_id } = body
-  if (!String(external_base_id || '').trim()) {
-    return res.status(400).json({ error: 'external_base_id обязателен — ID в базе агентства' })
-  }
   if (lead.status !== 'add_to_base') {
     return res.status(400).json({ error: 'Лид не в статусе add_to_base' })
+  }
+
+  const isBoth = lead.lead_kind === 'both'
+  const buyerId = String(body.external_base_id_buyer || body.external_base_id || '').trim()
+  const sellerId = String(body.external_base_id_seller || '').trim()
+
+  if (isBoth) {
+    if (!buyerId || !sellerId) {
+      return res.status(400).json({ error: 'Для категории «Покупатель и Продавец» нужны оба ID' })
+    }
+  } else {
+    if (!buyerId) {
+      return res.status(400).json({ error: 'ID в базе агентства обязателен' })
+    }
   }
 
   const { error } = await supabase
     .from('leads')
     .update({
       status: 'in_work',
-      external_base_id: String(external_base_id).trim(),
+      external_base_id: buyerId,
+      external_base_id_seller: isBoth ? sellerId : null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', lead.id)
@@ -282,16 +296,22 @@ async function confirmInWork(supabase, caller, lead, body, res) {
     event_type: 'admin_confirmed',
     from_status: 'add_to_base',
     to_status: 'in_work',
-    meta: { external_base_id: String(external_base_id).trim() },
+    meta: {
+      external_base_id: buyerId,
+      external_base_id_seller: isBoth ? sellerId : null,
+      lead_kind: lead.lead_kind || null,
+    },
   })
 
   // Уведомление риелтору
   if (lead.profiles?.telegram_chat_id) {
+    const idsLine = isBoth
+      ? `ID покупателя: <code>${escapeHtml(buyerId)}</code>\nID продавца: <code>${escapeHtml(sellerId)}</code>`
+      : `ID в базе агентства: <code>${escapeHtml(buyerId)}</code>`
     await sendTelegramMessage(
       lead.profiles.telegram_chat_id,
       `✅ <b>Лид ${escapeHtml(lead.name || '—')} внесён в базу</b>\n\n` +
-      `ID в базе агентства: <code>${escapeHtml(external_base_id)}</code>\n` +
-      `Веди клиента до сделки.`
+      idsLine + `\nВеди клиента до сделки.`
     ).catch(() => {})
   }
 
@@ -330,12 +350,18 @@ async function notifyManagersClosed(supabase, lead, status, comment, closerId) {
 async function notifyAdminsAddToBase(supabase, lead) {
   const sourceName = lead.lead_sources?.name || lead.lead_sources?.kind || 'источник'
   const realtorName = lead.profiles?.name || lead.profiles?.email || '—'
+  const kindLabel = ({
+    buyer: 'Покупатель',
+    seller: 'Продавец',
+    both: 'Покупатель и Продавец (нужны 2 ID)',
+  })[lead.lead_kind || ''] || '—'
   const text =
     `📋 <b>Внести в базу агентства</b>\n\n` +
     `Клиент: ${escapeHtml(lead.name || '—')} (${escapeHtml(lead.phone || '—')})\n` +
+    `Категория: ${escapeHtml(kindLabel)}\n` +
     `Источник: ${escapeHtml(sourceName)}\n` +
     `Риелтор: ${escapeHtml(realtorName)}\n\n` +
-    `Открой лид в админке и подтверди «Внесено в базу» с ID.`
+    `Открой лид в админке и подтверди «Внесено в базу».`
 
   const { data: admins } = await supabase
     .from('profiles')

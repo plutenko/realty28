@@ -148,9 +148,13 @@ export default function LeadsDashboard({ theme = 'dark', isAdmin = false }) {
       setReopenFor(null); setDetail(null); await load()
     } catch (e) { alert(e.message || e) }
   }
-  async function doConfirmInBase(lead, externalId) {
+  async function doConfirmInBase(lead, payload) {
     try {
-      await apiFetch('POST', `/api/admin/leads/${lead.id}`, { action: 'confirm_in_work', external_base_id: externalId })
+      await apiFetch('POST', `/api/admin/leads/${lead.id}`, {
+        action: 'confirm_in_work',
+        external_base_id_buyer: payload?.external_base_id_buyer ?? null,
+        external_base_id_seller: payload?.external_base_id_seller ?? null,
+      })
       setConfirmInBaseFor(null); setDetail(null); await load()
     } catch (e) { alert(e.message || e) }
   }
@@ -467,7 +471,21 @@ function LeadDetailModal({ theme, lead, isAdmin, statusColor, onClose, onDelete,
           <Row theme={theme} label="Источник" value={lead.lead_sources?.name || '—'} />
           <Row theme={theme} label="Получен" value={fmtDate(lead.created_at)} />
           {typeof lead.reaction_seconds === 'number' && <Row theme={theme} label="Реакция" value={`${lead.reaction_seconds} сек`} />}
-          {lead.external_base_id && <Row theme={theme} label="ID в базе" value={<span className={dark ? 'text-amber-300' : 'text-amber-700'}>{lead.external_base_id}</span>} />}
+          {lead.lead_kind && <Row theme={theme} label="Категория" value={({ buyer: '🏠 Покупатель', seller: '🔑 Продавец', both: '🔄 Покупатель и Продавец' })[lead.lead_kind] || lead.lead_kind} />}
+          {lead.external_base_id && (
+            <Row
+              theme={theme}
+              label={lead.lead_kind === 'both' ? 'ID покупателя' : 'ID в базе'}
+              value={<span className={dark ? 'text-amber-300' : 'text-amber-700'}>{lead.external_base_id}</span>}
+            />
+          )}
+          {lead.external_base_id_seller && (
+            <Row
+              theme={theme}
+              label="ID продавца"
+              value={<span className={dark ? 'text-amber-300' : 'text-amber-700'}>{lead.external_base_id_seller}</span>}
+            />
+          )}
           {lead.close_reason && <Row theme={theme} label="Причина закрытия" value={lead.close_reason} />}
         </div>
         {Array.isArray(lead.answers) && lead.answers.length > 0 && (
@@ -577,19 +595,49 @@ function PickRealtorModal({ theme, title, realtors, onClose, onSubmit }) {
 }
 
 function ConfirmInBaseModal({ theme, lead, onClose, onSubmit }) {
-  const [id, setId] = useState('')
   const dark = theme !== 'light'
+  const isBoth = lead.lead_kind === 'both'
+  const [buyer, setBuyer] = useState('')
+  const [seller, setSeller] = useState('')
+  const kindLabel = ({ buyer: 'Покупатель', seller: 'Продавец', both: 'Покупатель и Продавец' })[lead.lead_kind || ''] || '—'
+
+  const ready = isBoth ? buyer.trim() && seller.trim() : buyer.trim()
+  const inputCls = `w-full rounded-lg border px-3 py-2 text-sm ${dark ? 'border-slate-700 bg-slate-800 text-white' : 'border-gray-200 bg-white text-gray-900'}`
+
   return (
     <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
       <div className={`rounded-xl w-full max-w-md p-6 ${dark ? 'bg-slate-900 border border-slate-700' : 'bg-white shadow-xl'}`} onClick={e => e.stopPropagation()}>
         <h3 className={`text-lg font-semibold mb-3 ${dark ? 'text-white' : 'text-gray-900'}`}>Подтвердить: внесено в базу</h3>
         <p className={`text-xs mb-3 ${dark ? 'text-slate-400' : 'text-gray-600'}`}>
-          Клиент: {lead.name || '—'} ({lead.phone || '—'}). Введи ID записи в базе агентства — риелтор получит уведомление и сможет работать дальше.
+          Клиент: {lead.name || '—'} ({lead.phone || '—'}). Категория: <b>{kindLabel}</b>.
+          {isBoth ? ' Нужны два ID — продавца и покупателя.' : ' Введи ID записи в базе агентства.'}
         </p>
-        <input type="text" value={id} onChange={e => setId(e.target.value)} placeholder="ID в базе агентства" autoFocus className={`w-full rounded-lg border px-3 py-2 text-sm ${dark ? 'border-slate-700 bg-slate-800 text-white' : 'border-gray-200 bg-white text-gray-900'}`} />
+        {isBoth ? (
+          <div className="space-y-3">
+            <label className="block">
+              <div className={`text-xs mb-1 ${dark ? 'text-slate-400' : 'text-gray-500'}`}>ID покупателя</div>
+              <input type="text" value={buyer} onChange={e => setBuyer(e.target.value)} placeholder="например, BUY-1234" autoFocus className={inputCls} />
+            </label>
+            <label className="block">
+              <div className={`text-xs mb-1 ${dark ? 'text-slate-400' : 'text-gray-500'}`}>ID продавца</div>
+              <input type="text" value={seller} onChange={e => setSeller(e.target.value)} placeholder="например, SELL-5678" className={inputCls} />
+            </label>
+          </div>
+        ) : (
+          <input type="text" value={buyer} onChange={e => setBuyer(e.target.value)} placeholder="ID в базе агентства" autoFocus className={inputCls} />
+        )}
         <div className="flex justify-end gap-2 mt-4">
           <button onClick={onClose} className={`rounded-lg px-3 py-2 text-sm ${dark ? 'text-slate-400 hover:bg-slate-800' : 'text-gray-500 hover:bg-gray-100'}`}>Отмена</button>
-          <button onClick={() => id.trim() && onSubmit(id.trim())} disabled={!id.trim()} className="rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-2 text-sm text-white font-medium">Подтвердить</button>
+          <button
+            onClick={() => ready && onSubmit({
+              external_base_id_buyer: buyer.trim(),
+              external_base_id_seller: isBoth ? seller.trim() : null,
+            })}
+            disabled={!ready}
+            className="rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-2 text-sm text-white font-medium"
+          >
+            Подтвердить
+          </button>
         </div>
       </div>
     </div>
