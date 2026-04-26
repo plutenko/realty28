@@ -2,6 +2,7 @@ import { getSupabaseAdmin } from '../../../lib/supabaseServer'
 import { sendTelegramMessage, editTelegramMessage, answerCallbackQuery } from '../../../lib/telegram'
 import {
   formatLeadForWinner,
+  formatLeadTakenBy,
   editOtherRecipientsAfterTake,
   notifyManagersLeadTaken,
 } from '../../../lib/leadsTelegram'
@@ -350,6 +351,35 @@ async function handleLeadCallback(supabase, cq, action, leadId) {
     }
 
     if (!updated) {
+      // Лид уже взят — пытаемся показать кем именно (как в background-эдите).
+      try {
+        const { data: takenLead } = await supabase
+          .from('leads')
+          .select('id, name, assigned_user_id, reaction_seconds, source_id, lead_sources(name, kind), profiles:assigned_user_id(name, email)')
+          .eq('id', leadId)
+          .maybeSingle()
+
+        if (takenLead) {
+          const winnerName = takenLead.profiles?.name || takenLead.profiles?.email || 'другой риелтор'
+          const sec = takenLead.reaction_seconds
+          const text = formatLeadTakenBy(
+            takenLead,
+            takenLead.lead_sources,
+            winnerName,
+            typeof sec === 'number' ? sec : null
+          )
+          await answerCallbackQuery(cqId, `🔒 Уже взял ${winnerName}`)
+          if (messageChatId && messageId) {
+            await editTelegramMessage(messageChatId, messageId, text, {
+              replyMarkup: { inline_keyboard: [] },
+            })
+          }
+          return
+        }
+      } catch (e) {
+        console.warn('[lead-take] late-race lookup failed', e?.message || e)
+      }
+      // Фолбэк, если не смогли подтянуть инфу
       await answerCallbackQuery(cqId, '🔒 Эту заявку уже взял другой риелтор')
       if (messageChatId && messageId) {
         await editTelegramMessage(
