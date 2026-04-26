@@ -73,15 +73,21 @@ export default async function handler(req, res) {
       `Лежит уже ${ageMin} мин (порог ${minutes}).\n\n` +
       `Открой /admin/leads или /manager/leads и назначь вручную, либо позвони клиенту сам.`
 
+    const sentTo = []
     for (const m of managers || []) {
       if (!m.telegram_chat_id) continue
-      try { await sendTelegramMessage(m.telegram_chat_id, text) } catch {}
+      try {
+        const resp = await sendTelegramMessage(m.telegram_chat_id, text)
+        if (resp?.ok && resp?.result?.message_id) {
+          sentTo.push({ chat_id: Number(m.telegram_chat_id), message_id: Number(resp.result.message_id) })
+        }
+      } catch {}
     }
 
     await supabase.from('lead_events').insert({
       lead_id: lead.id,
       event_type: 'escalated_unclaimed',
-      meta: { age_minutes: ageMin },
+      meta: { age_minutes: ageMin, sent_to: sentTo },
     })
     sent++
   }

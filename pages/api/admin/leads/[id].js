@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from '../../../../lib/supabaseServer'
-import { sendTelegramMessage } from '../../../../lib/telegram'
+import { sendTelegramMessage, editTelegramMessage } from '../../../../lib/telegram'
 import { requireAdminOrManager } from './index'
 
 const TERMINAL = new Set(['not_lead', 'deal_done', 'failed'])
@@ -99,6 +99,23 @@ async function changeStatus(supabase, caller, lead, body, res) {
   return res.status(200).json({ ok: true })
 }
 
+async function resolveEscalationMessages(supabase, leadId, statusText) {
+  try {
+    const { data: escEvents } = await supabase
+      .from('lead_events')
+      .select('meta')
+      .eq('lead_id', leadId)
+      .eq('event_type', 'escalated_unclaimed')
+    for (const ev of escEvents || []) {
+      const list = Array.isArray(ev?.meta?.sent_to) ? ev.meta.sent_to : []
+      for (const sent of list) {
+        if (!sent?.chat_id || !sent?.message_id) continue
+        try { await editTelegramMessage(sent.chat_id, sent.message_id, statusText) } catch {}
+      }
+    }
+  } catch {}
+}
+
 async function reassign(supabase, caller, lead, body, res) {
   const { new_user_id, comment } = body
   if (!new_user_id) return res.status(400).json({ error: 'new_user_id обязателен' })
@@ -155,6 +172,16 @@ async function reassign(supabase, caller, lead, body, res) {
       ).catch(() => {})
     }
   }
+
+  // Если по этому лиду была эскалация «никто не взял» — поправляем
+  // сообщения у руководителя, чтобы не было путаницы.
+  await resolveEscalationMessages(
+    supabase,
+    lead.id,
+    `✅ <b>Лид назначен: ${escapeHtml(newProfile.name || newProfile.email || 'риелтор')}</b>\n` +
+    `Клиент: ${escapeHtml(clientName)} (${escapeHtml(phone)})\n` +
+    `Назначил: руководитель`
+  )
 
   return res.status(200).json({ ok: true })
 }
