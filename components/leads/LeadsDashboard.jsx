@@ -60,6 +60,21 @@ function formatMessenger(key) {
   return MESSENGER_LABELS[k] || (k.charAt(0).toUpperCase() + k.slice(1))
 }
 
+function formatReactionTime(sec) {
+  const total = Math.max(0, Math.round(Number(sec) || 0))
+  if (total < 60) return `${total} сек`
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  if (h > 0) {
+    const parts = [`${h} ч`]
+    if (m) parts.push(`${m} мин`)
+    if (s) parts.push(`${s} сек`)
+    return parts.join(' ')
+  }
+  return s ? `${m} мин ${s} сек` : `${m} мин`
+}
+
 /**
  * Общий дашборд лидов. Используется в /admin/leads (theme=dark) и /manager/leads (theme=light).
  * isAdmin=true — доступна кнопка «Удалить». Кнопки «Переназначить» и «Открыть заново»
@@ -480,7 +495,7 @@ function LeadDetailModal({ theme, lead, isAdmin, statusColor, onClose, onDelete,
           <Row theme={theme} label="Источник" value={lead.lead_sources?.name || '—'} />
           <Row theme={theme} label="Получен" value={fmtDate(lead.created_at)} />
           {lead.messenger && <Row theme={theme} label="Мессенджер" value={formatMessenger(lead.messenger)} />}
-          {typeof lead.reaction_seconds === 'number' && <Row theme={theme} label="Реакция" value={`${lead.reaction_seconds} сек`} />}
+          {typeof lead.reaction_seconds === 'number' && <Row theme={theme} label="Реакция" value={formatReactionTime(lead.reaction_seconds)} />}
           {lead.lead_kind && <Row theme={theme} label="Категория" value={({ buyer: '🏠 Покупатель', seller: '🔑 Продавец', both: '🔄 Покупатель и Продавец' })[lead.lead_kind] || lead.lead_kind} />}
           {lead.external_base_id && (
             <Row

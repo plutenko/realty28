@@ -15,10 +15,18 @@ async function apiFetch(path) {
 
 function fmtSec(s) {
   if (s == null) return '—'
-  if (s < 60) return `${s} сек`
-  const m = Math.floor(s / 60)
-  const rem = s % 60
-  return rem ? `${m} мин ${rem} сек` : `${m} мин`
+  const total = Math.max(0, Math.round(Number(s) || 0))
+  if (total < 60) return `${total} сек`
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const sec = total % 60
+  if (h > 0) {
+    const parts = [`${h} ч`]
+    if (m) parts.push(`${m} мин`)
+    if (sec) parts.push(`${sec} сек`)
+    return parts.join(' ')
+  }
+  return sec ? `${m} мин ${sec} сек` : `${m} мин`
 }
 
 export default function CrmAnalyticsPage() {
