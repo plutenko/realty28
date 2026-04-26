@@ -44,6 +44,15 @@ function fmtDate(iso) {
   } catch { return iso }
 }
 
+const MESSENGER_LABELS = {
+  max: 'Max', whatsapp: 'WhatsApp', telegram: 'Telegram', viber: 'Viber', signal: 'Signal',
+}
+function formatMessenger(key) {
+  if (!key) return null
+  const k = String(key).toLowerCase().trim()
+  return MESSENGER_LABELS[k] || (k.charAt(0).toUpperCase() + k.slice(1))
+}
+
 export default function CrmPage() {
   const router = useRouter()
   const { user, profile, loading: authLoading } = useAuth()
@@ -271,6 +280,7 @@ function LeadDetailModal({ lead, onClose, onChangeStatus }) {
             <span className={`rounded px-2 py-0.5 text-xs border ${STATUS_COLOR[lead.status]}`}>{STATUS_LABEL[lead.status]}</span>
           } />
           <Row label="Получен" value={fmtDate(lead.created_at)} />
+          {lead.messenger && <Row label="Мессенджер" value={formatMessenger(lead.messenger)} />}
           {lead.external_base_id && <Row label="ID в базе" value={<span className="text-amber-700 font-medium">{lead.external_base_id}</span>} />}
           {lead.close_reason && <Row label="Причина закрытия" value={lead.close_reason} />}
         </div>

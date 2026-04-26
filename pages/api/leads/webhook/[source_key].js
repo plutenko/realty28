@@ -105,6 +105,7 @@ export default async function handler(req, res) {
     rooms: mapped.rooms,
     answers: mapped.answers || [],
     utm: mapped.utm || {},
+    messenger: mapped.messenger || null,
     raw: payload,
   }
 

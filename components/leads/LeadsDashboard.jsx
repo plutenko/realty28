@@ -51,6 +51,15 @@ function fmtDate(iso) {
   } catch { return iso }
 }
 
+const MESSENGER_LABELS = {
+  max: 'Max', whatsapp: 'WhatsApp', telegram: 'Telegram', viber: 'Viber', signal: 'Signal',
+}
+function formatMessenger(key) {
+  if (!key) return null
+  const k = String(key).toLowerCase().trim()
+  return MESSENGER_LABELS[k] || (k.charAt(0).toUpperCase() + k.slice(1))
+}
+
 /**
  * Общий дашборд лидов. Используется в /admin/leads (theme=dark) и /manager/leads (theme=light).
  * isAdmin=true — доступна кнопка «Удалить». Кнопки «Переназначить» и «Открыть заново»
@@ -470,6 +479,7 @@ function LeadDetailModal({ theme, lead, isAdmin, statusColor, onClose, onDelete,
           <Row theme={theme} label="Риелтор" value={lead.profiles?.name || lead.profiles?.email || '—'} />
           <Row theme={theme} label="Источник" value={lead.lead_sources?.name || '—'} />
           <Row theme={theme} label="Получен" value={fmtDate(lead.created_at)} />
+          {lead.messenger && <Row theme={theme} label="Мессенджер" value={formatMessenger(lead.messenger)} />}
           {typeof lead.reaction_seconds === 'number' && <Row theme={theme} label="Реакция" value={`${lead.reaction_seconds} сек`} />}
           {lead.lead_kind && <Row theme={theme} label="Категория" value={({ buyer: '🏠 Покупатель', seller: '🔑 Продавец', both: '🔄 Покупатель и Продавец' })[lead.lead_kind] || lead.lead_kind} />}
           {lead.external_base_id && (
