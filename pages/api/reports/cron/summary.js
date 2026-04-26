@@ -5,6 +5,7 @@ import {
   localParts,
   computeSummaryPeriod,
   formatRu,
+  formatRuPeriodCompact,
   fmtMoney,
   isHoliday,
 } from '../../../../lib/reportsCron'
@@ -129,7 +130,7 @@ export default async function handler(req, res) {
     .filter(Boolean)
 
   const header = period.isBatch
-    ? `📊 Сводка за ${formatRu(period.from)} – ${formatRu(period.to)}`
+    ? `📊 Сводка за ${formatRuPeriodCompact(period.from, period.to)}`
     : `📊 Сводка за ${formatRu(period.to)}`
 
   const lines = [header, `Отчитались: ${submitted.size} из ${totalCount}`, '']
