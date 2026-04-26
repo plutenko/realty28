@@ -78,7 +78,7 @@ export default async function handler(req, res) {
   const { data: lead, error } = await supabase
     .from('leads')
     .insert(insert)
-    .select('id, name, phone, email, rooms, budget, answers, created_at, source_id, assigned_user_id')
+    .select('id, name, phone, email, rooms, budget, messenger, answers, created_at, source_id, assigned_user_id')
     .single()
   if (error) return res.status(500).json({ error: error.message })
 

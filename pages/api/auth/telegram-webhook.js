@@ -340,7 +340,7 @@ async function handleLeadCallback(supabase, cq, action, leadId) {
       .eq('id', leadId)
       .is('assigned_user_id', null)
       .eq('status', 'new')
-      .select('id, name, phone, email, rooms, budget, answers, created_at, assigned_at, source_id')
+      .select('id, name, phone, email, rooms, budget, messenger, answers, created_at, assigned_at, source_id')
       .maybeSingle()
 
     if (updErr) {
@@ -510,7 +510,7 @@ async function handleAssignLeadPick(supabase, cq, leadShort, userShort) {
   // По коротким префиксам ищем lead и риелтора (UUID начинается с этих 8 hex).
   const { data: leadCandidates } = await supabase
     .from('leads')
-    .select('id, status, assigned_user_id, name, phone, email, rooms, budget, created_at, source_id, lead_sources(name, kind)')
+    .select('id, status, assigned_user_id, name, phone, email, rooms, budget, messenger, created_at, source_id, lead_sources(name, kind)')
     .in('status', ['new'])
     .is('assigned_user_id', null)
   const lead = (leadCandidates || []).find(l => String(l.id).startsWith(leadShort))

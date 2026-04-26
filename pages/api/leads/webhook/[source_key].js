@@ -132,7 +132,7 @@ export default async function handler(req, res) {
   try {
     const { data: full } = await supabase
       .from('leads')
-      .select('id, name, phone, email, rooms, budget, answers, created_at')
+      .select('id, name, phone, email, rooms, budget, messenger, answers, created_at')
       .eq('id', lead.id)
       .single()
     if (full) {
