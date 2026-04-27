@@ -1,4 +1,3 @@
-import MiniChessboard from './MiniChessboard'
 import {
   formatComplexName,
   formatName,
@@ -11,9 +10,8 @@ const fmtPrice = (n) => {
 }
 
 /**
- * Карточка одного корпуса (литера) — визуально как на /buildings:
- * картинка → ЖК → корпус → застройщик → этажей → цена → кнопка → мини-шахматка.
- * Параметры matched/available — счётчик «12 из 88» с фильтром.
+ * Карточка одного корпуса (литера) — стиль 1:1 с тем что было на /buildings.
+ * Шахматка не превью, а полная — открывается по клику «Смотреть шахматку».
  */
 export default function ComplexCard({
   complex,
@@ -46,7 +44,7 @@ export default function ComplexCard({
   const priceLine = minPrice != null ? `от ${fmtPrice(minPrice)}` : 'Нет в продаже'
 
   const counterLabel = hasFilters
-    ? `${matched} из ${available}`
+    ? `${matched} из ${available} подходящих`
     : `${available} квартир`
 
   return (
@@ -66,7 +64,7 @@ export default function ComplexCard({
         )}
         {available > 0 ? (
           <div className="absolute left-2 top-2 rounded bg-white/95 px-2 py-1 text-xs font-medium text-gray-800 shadow">
-            {counterLabel}{hasFilters ? ' подходящих' : ''}
+            {counterLabel}
           </div>
         ) : null}
       </div>
@@ -88,14 +86,6 @@ export default function ComplexCard({
         >
           Смотреть шахматку
         </button>
-
-        <div className="mt-3 flex justify-center">
-          <MiniChessboard
-            units={building?.units}
-            matchedIds={filteredIds}
-            hasFilters={hasFilters}
-          />
-        </div>
       </div>
     </div>
   )
