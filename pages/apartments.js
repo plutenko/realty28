@@ -747,16 +747,25 @@ export default function ApartmentsPage() {
   }, [units])
 
   /** ЖК, у которых хотя бы 1 подходящая квартира под фильтр (или все, если фильтра нет) */
-  const visibleComplexes = useMemo(() => {
+  /** Плоский список карточек корпусов: 1 карточка = 1 building. Скрываем те, у которых
+   *  при активных фильтрах 0 совпадений, иначе — те, у которых 0 доступных квартир. */
+  const visibleBuildingCards = useMemo(() => {
     if (!complexes?.length) return []
-    return complexes.filter((c) => {
-      const buildings = c?.buildings ?? []
-      if (!buildings.length) return false
-      if (!hasActiveFilters) {
-        return buildings.some((b) => (availableByBuilding[b.id] ?? 0) > 0)
+    const items = []
+    for (const c of complexes) {
+      const buildings = [...(c?.buildings ?? [])].sort(sortBuildingsByName)
+      for (const b of buildings) {
+        const matched = matchedByBuilding[b.id] ?? 0
+        const available = availableByBuilding[b.id] ?? 0
+        if (hasActiveFilters) {
+          if (matched <= 0) continue
+        } else if (available <= 0) {
+          continue
+        }
+        items.push({ complex: c, building: b, matched, available })
       }
-      return buildings.some((b) => (matchedByBuilding[b.id] ?? 0) > 0)
-    })
+    }
+    return items
   }, [complexes, hasActiveFilters, availableByBuilding, matchedByBuilding])
 
   const selectedComplex = useMemo(() => {
@@ -782,16 +791,10 @@ export default function ApartmentsPage() {
     return mapUnitsToChessboardApartments(selectedBuilding.units ?? [])
   }, [selectedBuilding])
 
-  function openComplexChessboard(c) {
-    if (!c) return
-    const buildings = [...(c.buildings ?? [])]
-      .filter((b) => (availableByBuilding[b.id] ?? 0) > 0)
-      .sort(sortBuildingsByName)
-    const fallback = [...(c.buildings ?? [])].sort(sortBuildingsByName)[0]
-    const target = buildings[0] ?? fallback
-    if (!target) return
+  function openBuildingChessboard(c, b) {
+    if (!c || !b) return
     setSelectedComplexId(c.id)
-    setSelectedBuildingId(target.id)
+    setSelectedBuildingId(b.id)
   }
 
   function closeComplexChessboard() {
@@ -1264,23 +1267,24 @@ export default function ApartmentsPage() {
                   />
                 </div>
               </div>
-            ) : visibleComplexes.length === 0 ? (
+            ) : visibleBuildingCards.length === 0 ? (
               <p className="text-sm text-gray-500">
                 {hasActiveFilters
-                  ? 'Нет ЖК с подходящими под фильтр квартирами'
-                  : 'Нет ЖК с доступными квартирами'}
+                  ? 'Нет домов с подходящими под фильтр квартирами'
+                  : 'Нет домов с доступными квартирами'}
               </p>
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {visibleComplexes.map((c) => (
+                {visibleBuildingCards.map(({ complex: c, building: b, matched, available }) => (
                   <ComplexCard
-                    key={c.id}
+                    key={b.id}
                     complex={c}
+                    building={b}
                     filteredIds={filteredIds}
-                    matchedByBuilding={matchedByBuilding}
-                    availableByBuilding={availableByBuilding}
+                    matched={matched}
+                    available={available}
                     hasFilters={hasActiveFilters}
-                    onOpen={() => openComplexChessboard(c)}
+                    onOpen={() => openBuildingChessboard(c, b)}
                   />
                 ))}
               </div>
