@@ -193,6 +193,19 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
                 С ремонтом
               </span>
             ) : null}
+            {onAddToCollection && (
+              <button
+                type="button"
+                onClick={() => onAddToCollection(unit.id)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  isSelected
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {isSelected ? '✓ В подборке' : '+ В подборку'}
+              </button>
+            )}
             <button
               onClick={onClose}
               className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
@@ -335,20 +348,6 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
             </div>
           )}
 
-          {/* Add to collection button */}
-          {onAddToCollection && (
-            <button
-              type="button"
-              onClick={() => onAddToCollection(unit.id)}
-              className={`w-full rounded-xl py-3 text-sm font-semibold transition ${
-                isSelected
-                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              {isSelected ? 'Убрать из подборки' : 'Добавить в подборку'}
-            </button>
-          )}
         </div>
       </div>
       {zoomedSrc && (
