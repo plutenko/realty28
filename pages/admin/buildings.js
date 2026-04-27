@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
+
+const YandexMap = dynamic(() => import('../../components/YandexMap'), { ssr: false })
 import AdminLayout from '../../components/admin/AdminLayout'
 import { supabase } from '../../lib/supabaseClient'
 import { getBuildings, getComplexes } from '../../lib/supabaseQueries'
@@ -13,6 +16,8 @@ export default function AdminBuildingsPage() {
   const [handoverYear, setHandoverYear] = useState('')
   const [address, setAddress] = useState('')
   const [floors, setFloors] = useState('')
+  const [lat, setLat] = useState('')
+  const [lng, setLng] = useState('')
   const [editId, setEditId] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
@@ -55,6 +60,8 @@ export default function AdminBuildingsPage() {
       )
       setAddress(r.address ?? '')
       setFloors(r.floors != null ? String(r.floors) : '')
+      setLat(r.lat != null ? String(r.lat) : '')
+      setLng(r.lng != null ? String(r.lng) : '')
     } else {
       setName('')
       setComplexId('')
@@ -63,6 +70,8 @@ export default function AdminBuildingsPage() {
       setHandoverYear('')
       setAddress('')
       setFloors('')
+      setLat('')
+      setLng('')
     }
   }, [editId, rows])
 
@@ -83,6 +92,8 @@ export default function AdminBuildingsPage() {
         handoverStatus === 'planned' && handoverYear ? Number(handoverYear) : null,
       address: address.trim() || null,
       floors: floors && Number(floors) > 0 ? Number(floors) : null,
+      lat: lat === '' ? null : Number(lat),
+      lng: lng === '' ? null : Number(lng),
     }
 
     let error = null
@@ -225,6 +236,57 @@ export default function AdminBuildingsPage() {
             placeholder="например: ул. Ленина, 10 или ул. Ленина / ул. Пушкина"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs text-slate-400">
+              Координаты корпуса (для карты на /apartments?view=map)
+            </label>
+            {(lat !== '' || lng !== '') && (
+              <button
+                type="button"
+                onClick={() => { setLat(''); setLng('') }}
+                className="text-xs text-rose-400 hover:text-rose-300"
+              >
+                Очистить
+              </button>
+            )}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              type="number"
+              step="any"
+              placeholder="Широта (lat)"
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              value={lat}
+              onChange={(e) => setLat(e.target.value)}
+            />
+            <input
+              type="number"
+              step="any"
+              placeholder="Долгота (lng)"
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              value={lng}
+              onChange={(e) => setLng(e.target.value)}
+            />
+          </div>
+          <p className="text-xs text-slate-500">
+            Кликни по карте, чтобы поставить пин. Перетащи пин для уточнения позиции.
+            У ЖК с несколькими корпусами координаты ставятся на каждый корпус отдельно.
+          </p>
+          <YandexMap
+            height={320}
+            pickerSingle
+            value={
+              lat !== '' && lng !== '' && Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))
+                ? [Number(lat), Number(lng)]
+                : null
+            }
+            onPick={(la, ln) => {
+              setLat(String(la.toFixed(6)))
+              setLng(String(ln.toFixed(6)))
+            }}
           />
         </div>
         <div>
