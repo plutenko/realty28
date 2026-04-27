@@ -845,6 +845,24 @@ export default function ApartmentsPage() {
     })
   }
 
+  function resetAllFilters() {
+    setSelectedDevelopers([])
+    setSelectedComplexes([])
+    setSelectedBuildingIds([])
+    setSelectedHandoverKeys([])
+    setSelectedPpmRanges([])
+    setSelectedPriceRanges([])
+    setSelectedRooms([])
+    setSelectedAreaRanges([])
+    setTwoLevelOnly(false)
+    setPriceMin(ABS_MIN)
+    setPriceMax(ABS_MAX)
+    setFloorFrom(null)
+    setFloorTo(null)
+    setAreaFrom('')
+    setAreaTo('')
+  }
+
   function toggleDeveloper(name) {
     setSelectedDevelopers((prev) =>
       prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]
@@ -1099,6 +1117,15 @@ export default function ApartmentsPage() {
                 title="В разработке"
               />
             </div>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={resetAllFilters}
+                className="w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+              >
+                Сбросить все фильтры
+              </button>
+            )}
             <FiltersSidebar
             uniqueDevelopers={uniqueDevelopers}
             complexBuildingsTree={complexBuildingsTree}
