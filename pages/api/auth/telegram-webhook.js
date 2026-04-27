@@ -359,6 +359,15 @@ async function handleLeadCallback(supabase, cq, action, leadId) {
           .eq('id', leadId)
           .maybeSingle()
 
+        // Защита от double-webhook от Telegram: если лид уже принадлежит
+        // самому caller'у, значит это ретрай того же callback'а — первый вызов
+        // выиграл UPDATE, второй идёт по `!updated`. Нельзя затирать
+        // winner-card: молча отвечаем в callback и оставляем сообщение как есть.
+        if (takenLead && String(takenLead.assigned_user_id || '') === String(profile.id)) {
+          await answerCallbackQuery(cqId, '✅ Это уже ваша заявка')
+          return
+        }
+
         if (takenLead) {
           const winnerName = takenLead.profiles?.name || takenLead.profiles?.email || 'другой риелтор'
           const sec = takenLead.reaction_seconds
@@ -379,16 +388,9 @@ async function handleLeadCallback(supabase, cq, action, leadId) {
       } catch (e) {
         console.warn('[lead-take] late-race lookup failed', e?.message || e)
       }
-      // Фолбэк, если не смогли подтянуть инфу
+      // Фолбэк, если не смогли подтянуть инфу: только ack callback,
+      // сообщение НЕ редактируем — иначе ретрай может затереть валидное состояние.
       await answerCallbackQuery(cqId, '🔒 Эту заявку уже взял другой риелтор')
-      if (messageChatId && messageId) {
-        await editTelegramMessage(
-          messageChatId,
-          messageId,
-          '🔒 Эту заявку уже взял другой риелтор.',
-          { replyMarkup: { inline_keyboard: [] } }
-        )
-      }
       return
     }
 
