@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
+import dynamic from 'next/dynamic'
 import { Building2, LayoutGrid, List, Map as MapIcon, SquareStack } from 'lucide-react'
 import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
@@ -11,6 +12,15 @@ import ApartmentModal from '../components/apartments/ApartmentModal'
 import CollectionMetaModal from '../components/apartments/CollectionMetaModal'
 import ComplexCard from '../components/apartments/ComplexCard'
 import BuildingChessboard, { mapUnitsToChessboardApartments } from '../components/BuildingChessboard'
+
+const LeafletMap = dynamic(() => import('../components/LeafletMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[480px] items-center justify-center rounded-xl border border-gray-200 bg-white text-sm text-gray-500">
+      Загрузка карты…
+    </div>
+  ),
+})
 
 const ABS_MIN = 0
 const ABS_MAX = 50000000
@@ -111,6 +121,7 @@ export default function ApartmentsPage() {
   const [pageView, setPageView] = useState('units')
   const [selectedComplexId, setSelectedComplexId] = useState(null)
   const [selectedBuildingId, setSelectedBuildingId] = useState(null)
+  const [mapPickedComplexId, setMapPickedComplexId] = useState(null)
 
   const [selectedDevelopers, setSelectedDevelopers] = useState([])
   const [selectedComplexes, setSelectedComplexes] = useState([])
@@ -148,7 +159,7 @@ export default function ApartmentsPage() {
     const saved = window.localStorage.getItem('apartmentsViewMode')
     if (saved === 'grid' || saved === 'list') setViewMode(saved)
     const savedPage = window.localStorage.getItem('apartmentsPageView')
-    if (savedPage === 'units' || savedPage === 'complexes') setPageView(savedPage)
+    if (savedPage === 'units' || savedPage === 'complexes' || savedPage === 'map') setPageView(savedPage)
   }, [])
 
   useEffect(() => {
@@ -167,14 +178,17 @@ export default function ApartmentsPage() {
       setSelectedComplexId(null)
       setSelectedBuildingId(null)
     }
-  }, [pageView, selectedComplexId, selectedBuildingId])
+    if (pageView !== 'map' && mapPickedComplexId) {
+      setMapPickedComplexId(null)
+    }
+  }, [pageView, selectedComplexId, selectedBuildingId, mapPickedComplexId])
 
   // URL ↔ state: читаем при первом готовом router.isReady, дальше пишем в URL на изменения
   const urlInitialized = useRef(false)
   useEffect(() => {
     if (!router.isReady || urlInitialized.current) return
     const q = router.query
-    if (q.view === 'complexes' || q.view === 'units') setPageView(q.view)
+    if (q.view === 'complexes' || q.view === 'units' || q.view === 'map') setPageView(q.view)
     if (typeof q.complex === 'string' && q.complex) setSelectedComplexId(q.complex)
     if (typeof q.building === 'string' && q.building) setSelectedBuildingId(q.building)
     urlInitialized.current = true
@@ -774,6 +788,34 @@ export default function ApartmentsPage() {
   }, [units])
 
   /** ЖК, у которых хотя бы 1 подходящая квартира под фильтр (или все, если фильтра нет) */
+  /** Пины ЖК для карты: только те, у которых заполнены lat/lng и есть подходящие квартиры */
+  const mapMarkers = useMemo(() => {
+    if (!complexes?.length) return []
+    const out = []
+    for (const c of complexes) {
+      const lat = Number(c?.lat)
+      const lng = Number(c?.lng)
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
+      const buildings = c.buildings ?? []
+      let matched = 0
+      let available = 0
+      for (const b of buildings) {
+        matched += matchedByBuilding[b.id] ?? 0
+        available += availableByBuilding[b.id] ?? 0
+      }
+      if (hasActiveFilters ? matched <= 0 : available <= 0) continue
+      out.push({
+        id: c.id,
+        complex: c,
+        lat,
+        lng,
+        matched,
+        available,
+      })
+    }
+    return out
+  }, [complexes, hasActiveFilters, matchedByBuilding, availableByBuilding])
+
   /** Плоский список карточек корпусов: 1 карточка = 1 building. Скрываем те, у которых
    *  при активных фильтрах 0 совпадений, иначе — те, у которых 0 доступных квартир. */
   const visibleBuildingCards = useMemo(() => {
@@ -831,6 +873,21 @@ export default function ApartmentsPage() {
     if (!c || !b) return
     setSelectedComplexId(c.id)
     setSelectedBuildingId(b.id)
+  }
+
+  /** Открыть шахматку «первого подходящего» корпуса ЖК с переключением в режим «ЖК» */
+  function openFirstAvailableChessboard(c) {
+    if (!c) return
+    const sorted = [...(c.buildings ?? [])].sort(sortBuildingsByName)
+    const target =
+      sorted.find((b) => (matchedByBuilding[b.id] ?? 0) > 0) ??
+      sorted.find((b) => (availableByBuilding[b.id] ?? 0) > 0) ??
+      sorted[0]
+    if (!target) return
+    setPageView('complexes')
+    setSelectedComplexId(c.id)
+    setSelectedBuildingId(target.id)
+    setMapPickedComplexId(null)
   }
 
   function closeComplexChessboard() {
@@ -1123,11 +1180,10 @@ export default function ApartmentsPage() {
                 label="ЖК"
               />
               <SegBtn
-                active={false}
-                disabled
+                active={pageView === 'map'}
+                onClick={() => setPageView('map')}
                 icon={<MapIcon size={16} />}
                 label="Карта"
-                title="В разработке"
               />
             </div>
             <FiltersSidebar
@@ -1227,6 +1283,20 @@ export default function ApartmentsPage() {
                   ))}
                 </div>
               )
+            ) : pageView === 'map' ? (
+              <MapView
+                busy={busy}
+                markers={mapMarkers}
+                hasFilters={hasActiveFilters}
+                pickedComplex={
+                  mapPickedComplexId
+                    ? complexes.find((c) => c.id === mapPickedComplexId) ?? null
+                    : null
+                }
+                onPin={(m) => setMapPickedComplexId(m.id)}
+                onClosePopup={() => setMapPickedComplexId(null)}
+                onOpenChessboard={openFirstAvailableChessboard}
+              />
             ) : busy ? (
               <div className="flex items-center justify-center py-20">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500"></div>
@@ -1465,6 +1535,74 @@ export default function ApartmentsPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function MapView({ busy, markers, hasFilters, pickedComplex, onPin, onClosePopup, onOpenChessboard }) {
+  const leafletMarkers = useMemo(
+    () =>
+      markers.map((m) => ({
+        id: m.id,
+        lat: m.lat,
+        lng: m.lng,
+        onClick: () => onPin(m),
+      })),
+    [markers, onPin]
+  )
+
+  if (busy) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500"></div>
+        <span className="ml-3 text-sm text-gray-500">Загрузка карты...</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative">
+      {markers.length === 0 ? (
+        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {hasFilters
+            ? 'Нет ЖК с подходящими квартирами и проставленными координатами'
+            : 'Нет ЖК с проставленными координатами. Заполни их в /admin/complexes (карта-пикер).'}
+        </div>
+      ) : null}
+
+      <LeafletMap height={600} markers={leafletMarkers} />
+
+      {pickedComplex ? (
+        <div className="pointer-events-none absolute left-3 top-3 z-[1000] w-[280px]">
+          <div className="pointer-events-auto rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-semibold text-gray-900">
+                  {formatComplexName(pickedComplex.name ?? '')}
+                </h3>
+                <p className="truncate text-xs text-gray-500">
+                  {formatName(getComplexDeveloper(pickedComplex)?.name || '') || '—'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClosePopup}
+                className="shrink-0 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Закрыть"
+              >
+                ✕
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => onOpenChessboard(pickedComplex)}
+              className="mt-3 w-full rounded-xl bg-blue-600 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
+            >
+              Смотреть шахматку
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

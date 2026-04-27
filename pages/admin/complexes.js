@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import AdminLayout from '../../components/admin/AdminLayout'
 import ImageUploadField from '../../components/admin/ImageUploadField'
 import { supabase } from '../../lib/supabaseClient'
 import { getComplexes, getDevelopers } from '../../lib/supabaseQueries'
+
+const LeafletMap = dynamic(() => import('../../components/LeafletMap'), { ssr: false })
 
 /** Первая обложка ЖК из images (entity_type = complex) */
 async function fetchComplexCoverUrls(supabase, complexIds) {
@@ -34,6 +37,8 @@ export default function AdminComplexesPage() {
   const [commissionType, setCommissionType] = useState('none')
   const [commissionValue, setCommissionValue] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
+  const [lat, setLat] = useState('')
+  const [lng, setLng] = useState('')
   const [editId, setEditId] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
@@ -76,6 +81,8 @@ export default function AdminComplexesPage() {
         r.realtor_commission_value != null ? String(r.realtor_commission_value) : ''
       )
       setWebsiteUrl(r.website_url ?? '')
+      setLat(r.lat != null ? String(r.lat) : '')
+      setLng(r.lng != null ? String(r.lng) : '')
     } else {
       setName('')
       setCity('')
@@ -83,6 +90,8 @@ export default function AdminComplexesPage() {
       setCommissionType('none')
       setCommissionValue('')
       setWebsiteUrl('')
+      setLat('')
+      setLng('')
     }
   }, [editId, rows])
 
@@ -101,6 +110,8 @@ export default function AdminComplexesPage() {
           ? null
           : Number(commissionValue),
       website_url: websiteUrl.trim() || null,
+      lat: lat === '' ? null : Number(lat),
+      lng: lng === '' ? null : Number(lng),
     }
     const q = editId
       ? supabase.from('complexes').update(payload).eq('id', editId)
@@ -256,6 +267,57 @@ export default function AdminComplexesPage() {
             placeholder="https://..."
             value={websiteUrl}
             onChange={(e) => setWebsiteUrl(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs text-slate-400">
+              Координаты (для карты на /apartments?view=map)
+            </label>
+            {(lat !== '' || lng !== '') && (
+              <button
+                type="button"
+                onClick={() => { setLat(''); setLng('') }}
+                className="text-xs text-rose-400 hover:text-rose-300"
+              >
+                Очистить
+              </button>
+            )}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              type="number"
+              step="any"
+              placeholder="Широта (lat)"
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              value={lat}
+              onChange={(e) => setLat(e.target.value)}
+            />
+            <input
+              type="number"
+              step="any"
+              placeholder="Долгота (lng)"
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              value={lng}
+              onChange={(e) => setLng(e.target.value)}
+            />
+          </div>
+          <p className="text-xs text-slate-500">
+            Кликни по карте, чтобы поставить пин. Если у дома нет адреса —
+            ориентируйся визуально, можно перетащить пин для уточнения.
+          </p>
+          <LeafletMap
+            height={320}
+            pickerSingle
+            value={
+              lat !== '' && lng !== '' && Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))
+                ? [Number(lat), Number(lng)]
+                : null
+            }
+            onPick={(la, ln) => {
+              setLat(String(la.toFixed(6)))
+              setLng(String(ln.toFixed(6)))
+            }}
           />
         </div>
         <div>

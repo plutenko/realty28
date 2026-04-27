@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const { data: complexes, error: cErr } = await supabase
       .from('complexes')
       .select(`
-        id, name, city, website_url, realtor_commission_type, realtor_commission_value, developer_id,
+        id, name, city, website_url, realtor_commission_type, realtor_commission_value, developer_id, lat, lng,
         developers ( id, name, developer_managers ( id, name, phone, short_description, messenger, messenger_contact, created_at ) ),
         buildings (
           id, name, address, floors, units_per_floor, units_per_entrance, handover_status, handover_quarter, handover_year,
