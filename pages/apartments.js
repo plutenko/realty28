@@ -1130,16 +1130,9 @@ export default function ApartmentsPage() {
                 title="В разработке"
               />
             </div>
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={resetAllFilters}
-                className="w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
-              >
-                Сбросить все фильтры
-              </button>
-            )}
             <FiltersSidebar
+            onResetFilters={resetAllFilters}
+            hasActiveFilters={hasActiveFilters}
             uniqueDevelopers={uniqueDevelopers}
             complexBuildingsTree={complexBuildingsTree}
             selectedDevelopers={selectedDevelopers}

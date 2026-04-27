@@ -61,6 +61,8 @@ function FilterBlock({ title, open, onToggle, children }) {
 }
 
 export default function FiltersSidebar({
+  onResetFilters,
+  hasActiveFilters,
   uniqueDevelopers,
   complexBuildingsTree,
   selectedDevelopers,
@@ -158,6 +160,16 @@ export default function FiltersSidebar({
   return (
     <div className="w-[300px] space-y-4">
       <h2 className="text-lg font-bold text-gray-900">Фильтр</h2>
+
+      {hasActiveFilters && onResetFilters ? (
+        <button
+          type="button"
+          onClick={onResetFilters}
+          className="w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+        >
+          Сбросить все фильтры
+        </button>
+      ) : null}
 
       <FilterBlock
         title="Цена"
