@@ -17,7 +17,16 @@ export default async function handler(req, res) {
     });
   }
 
-  const { unitIds, selectedUnits, title, clientName, createdBy } = req.body ?? {};
+  const {
+    unitIds,
+    selectedUnits,
+    title,
+    clientName,
+    createdBy,
+    showComplexName,
+    showDeveloperName,
+    showAddress,
+  } = req.body ?? {};
   const rawIds = Array.isArray(selectedUnits) ? selectedUnits : unitIds;
   const ids = Array.isArray(rawIds) ? rawIds.map((x) => String(x)).filter(Boolean) : [];
 
@@ -41,6 +50,9 @@ export default async function handler(req, res) {
     ...basePayload,
     client_name: clientName ? String(clientName) : null,
     units: ids,
+    show_complex_name: showComplexName !== false,
+    show_developer_name: showDeveloperName !== false,
+    show_address: showAddress !== false,
   };
 
   let collection = null;

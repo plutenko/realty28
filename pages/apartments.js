@@ -6,6 +6,7 @@ import { fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
 import FiltersSidebar from '../components/apartments/FiltersSidebar'
 import ApartmentCard, { calcCommission } from '../components/apartments/ApartmentCard'
 import ApartmentModal from '../components/apartments/ApartmentModal'
+import CollectionMetaModal from '../components/apartments/CollectionMetaModal'
 
 const ABS_MIN = 0
 const ABS_MAX = 50000000
@@ -130,6 +131,7 @@ export default function ApartmentsPage() {
   const [selectedUnits, setSelectedUnits] = useState([])
   const [modalUnit, setModalUnit] = useState(null)
   const [creatingCollection, setCreatingCollection] = useState(false)
+  const [collectionModalOpen, setCollectionModalOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
 
   useEffect(() => {
@@ -747,7 +749,7 @@ export default function ApartmentsPage() {
     setSelectedUnits((prev) => prev.filter((id) => !filteredIds.has(id)))
   }
 
-  async function createSelection() {
+  function createSelection() {
     if (!selectedUnits.length) {
       alert('Сначала выберите квартиры в карточках')
       return
@@ -759,18 +761,21 @@ export default function ApartmentsPage() {
       return
     }
 
-    const title = window.prompt('Название подборки')?.trim()
-    if (!title) return
-    const clientName = window.prompt('Имя клиента')?.trim()
+    setCollectionModalOpen(true)
+  }
 
+  async function submitNewCollection(values) {
     try {
       setCreatingCollection(true)
       const res = await fetch('/api/collections/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title,
-          clientName: clientName || null,
+          title: values.title,
+          clientName: values.clientName,
+          showComplexName: values.showComplexName,
+          showDeveloperName: values.showDeveloperName,
+          showAddress: values.showAddress,
           selectedUnits,
           createdBy: user?.id ?? null,
         }),
@@ -786,6 +791,7 @@ export default function ApartmentsPage() {
       await navigator.clipboard.writeText(link)
       alert(`Ссылка скопирована: ${link}`)
       setSelectedUnits([])
+      setCollectionModalOpen(false)
     } catch (e) {
       alert(e?.message || 'Ошибка создания подборки')
     } finally {
@@ -1000,6 +1006,15 @@ export default function ApartmentsPage() {
           onClose={() => setModalUnit(null)}
           onAddToCollection={toggleSelectedUnit}
           isSelected={selectedUnits.includes(modalUnit.id)}
+        />
+      )}
+
+      {collectionModalOpen && (
+        <CollectionMetaModal
+          mode="create"
+          onClose={() => setCollectionModalOpen(false)}
+          onSubmit={submitNewCollection}
+          submitting={creatingCollection}
         />
       )}
 

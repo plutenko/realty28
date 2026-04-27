@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
+import CollectionMetaModal from '../components/apartments/CollectionMetaModal'
 
 function formatDate(str) {
   if (!str) return '—'
@@ -15,6 +16,8 @@ export default function MyCollectionsPage() {
   const [collections, setCollections] = useState([])
   const [fetching, setFetching] = useState(true)
   const [origin, setOrigin] = useState('')
+  const [editingCollection, setEditingCollection] = useState(null)
+  const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
     const publicHost = process.env.NEXT_PUBLIC_COLLECTION_HOST
@@ -25,7 +28,7 @@ export default function MyCollectionsPage() {
     if (loading || !user || !supabase) return
     supabase
       .from('collections')
-      .select('id, token, title, client_name, views_count, created_at')
+      .select('id, token, title, client_name, views_count, created_at, show_complex_name, show_developer_name, show_address')
       .eq('created_by', user.id)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
@@ -48,6 +51,35 @@ export default function MyCollectionsPage() {
       body: JSON.stringify({ id }),
     })
     if (res.ok) setCollections(c => c.filter(x => x.id !== id))
+  }
+
+  async function submitEdit(values) {
+    if (!editingCollection) return
+    try {
+      setSavingEdit(true)
+      const res = await fetch('/api/collections/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingCollection.id,
+          title: values.title,
+          clientName: values.clientName,
+          showComplexName: values.showComplexName,
+          showDeveloperName: values.showDeveloperName,
+          showAddress: values.showAddress,
+        }),
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body?.error || 'Не удалось сохранить')
+      setCollections(list =>
+        list.map(c => (c.id === body.collection.id ? { ...c, ...body.collection } : c)),
+      )
+      setEditingCollection(null)
+    } catch (e) {
+      alert(e?.message || 'Ошибка сохранения')
+    } finally {
+      setSavingEdit(false)
+    }
   }
 
   return (
@@ -97,6 +129,20 @@ export default function MyCollectionsPage() {
                         >
                           Открыть
                         </a>
+                        <button
+                          onClick={() => setEditingCollection(c)}
+                          className="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition"
+                          title="Редактировать"
+                        >
+                          ✎
+                        </button>
+                        <button
+                          onClick={() => handleDelete(c.id)}
+                          className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition"
+                          title="Удалить"
+                        >
+                          ✕
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -106,6 +152,16 @@ export default function MyCollectionsPage() {
           </div>
         )}
       </div>
+
+      {editingCollection && (
+        <CollectionMetaModal
+          mode="edit"
+          initialValues={editingCollection}
+          onClose={() => setEditingCollection(null)}
+          onSubmit={submitEdit}
+          submitting={savingEdit}
+        />
+      )}
     </div>
   )
 }

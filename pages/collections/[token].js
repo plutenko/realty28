@@ -238,7 +238,16 @@ export default function CollectionPage({ token }) {
               ) : null}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {units.map((u) => (
-                  <ApartmentCard key={u.id} unit={u} collectionView />
+                  <ApartmentCard
+                    key={u.id}
+                    unit={u}
+                    collectionView
+                    displayFlags={{
+                      showComplexName: collection?.show_complex_name !== false,
+                      showDeveloperName: collection?.show_developer_name !== false,
+                      showAddress: collection?.show_address !== false,
+                    }}
+                  />
                 ))}
               </div>
             </>

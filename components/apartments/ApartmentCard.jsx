@@ -134,11 +134,15 @@ function formatHandover(b) {
   return q ? `${q} кв. ${y}` : `${y}`
 }
 
-export default function ApartmentCard({ unit, collectionView = false, listView = false }) {
+export default function ApartmentCard({ unit, collectionView = false, listView = false, displayFlags = null }) {
   const [contactsOpen, setContactsOpen] = useState(false)
   const b = unit?.building
   const c = b?.complex
   const d = c?.developer
+
+  const showComplexName = displayFlags?.showComplexName !== false
+  const showDeveloperName = displayFlags?.showDeveloperName !== false
+  const showAddress = displayFlags?.showAddress !== false
 
   const status = unit?.status ?? 'available'
   const statusKey = String(status).toLowerCase()
@@ -177,15 +181,24 @@ export default function ApartmentCard({ unit, collectionView = false, listView =
       <div className="min-w-0 flex-1">
       <div className="mb-2 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="truncate text-base font-semibold text-gray-900">
-            {c?.name ?? '—'}
-          </div>
-          <div className="truncate text-sm text-gray-600">
+          {showComplexName && (
+            <div className="truncate text-base font-semibold text-gray-900">
+              {c?.name ?? '—'}
+            </div>
+          )}
+          <div className={`truncate text-sm text-gray-600 ${!showComplexName ? 'text-base font-semibold text-gray-900' : ''}`}>
             Корпус: {b?.name ?? '—'}
           </div>
-          <div className="truncate text-sm text-gray-600">
-            Застройщик: {d?.name ?? '—'}
-          </div>
+          {showAddress && b?.address ? (
+            <div className="truncate text-sm text-gray-600">
+              📍 {b.address}
+            </div>
+          ) : null}
+          {showDeveloperName && (
+            <div className="truncate text-sm text-gray-600">
+              Застройщик: {d?.name ?? '—'}
+            </div>
+          )}
           {formatHandover(b) && (
             <div className="truncate text-sm text-gray-600">
               Сдача: {formatHandover(b)}
