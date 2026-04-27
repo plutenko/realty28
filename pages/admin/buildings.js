@@ -379,9 +379,27 @@ export default function AdminBuildingsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {buildings.map((r) => (
+                    {buildings.map((r) => {
+                      const onMap = r.lat != null && r.lng != null
+                      return (
                       <tr key={r.id} className={`border-b border-slate-800/80 ${editId === r.id ? 'bg-blue-950/30' : ''}`}>
-                        <td className="p-3 font-medium">{r.name}</td>
+                        <td className="p-3 font-medium">
+                          <div className="flex items-center gap-2">
+                            <span>{r.name}</span>
+                            {onMap ? (
+                              <span
+                                className="inline-flex items-center gap-1 rounded bg-emerald-900/40 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300"
+                                title={`${r.lat}, ${r.lng}`}
+                              >
+                                📍 на карте
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded bg-amber-900/40 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+                                нет на карте
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="p-3 text-slate-300 truncate">{r.address || <span className="text-slate-600">—</span>}</td>
                         <td className="p-3 text-slate-300">{formatHandover(r)}</td>
                         <td className="p-3">
@@ -401,7 +419,8 @@ export default function AdminBuildingsPage() {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
