@@ -978,7 +978,20 @@ export default function ApartmentsPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-100">
-      <CatalogTabs />
+      <CatalogTabs>
+        <div className="hidden items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 sm:flex">
+          <span className="relative flex h-3 w-3 shrink-0" aria-hidden="true">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
+          </span>
+          <div className="min-w-0 leading-tight">
+            <div className="text-[11px] text-gray-600">Вознаграждение в рынке</div>
+            <div className="text-sm font-bold text-emerald-700">
+              {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(totalCommission)} ₽
+            </div>
+          </div>
+        </div>
+      </CatalogTabs>
 
       <div className="px-4 py-4">
         <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -1035,18 +1048,34 @@ export default function ApartmentsPage() {
           ) : null}
           </div>
 
-          <div className="ml-auto flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
-            <span className="relative flex h-3 w-3 shrink-0" aria-hidden="true">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
-            </span>
-            <div className="min-w-0 leading-tight">
-              <div className="text-[11px] text-gray-600">Вознаграждение в рынке</div>
-              <div className="text-base font-bold text-emerald-700">
-                {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(totalCommission)} ₽
-              </div>
+          {pageView === 'units' && (
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`rounded-lg border p-2 transition ${
+                  viewMode === 'grid'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+                aria-label="Grid"
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`rounded-lg border p-2 transition ${
+                  viewMode === 'list'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+                aria-label="List"
+              >
+                <List size={18} />
+              </button>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="flex gap-6">
@@ -1136,33 +1165,6 @@ export default function ApartmentsPage() {
                   Ничего не найдено по фильтрам
                 </p>
               ) : (
-                <>
-                  <div className="mb-3 flex items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('grid')}
-                      className={`rounded-lg border p-2 transition ${
-                        viewMode === 'grid'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-white text-gray-600 hover:bg-gray-50'
-                      }`}
-                      aria-label="Grid"
-                    >
-                      <LayoutGrid size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('list')}
-                      className={`rounded-lg border p-2 transition ${
-                        viewMode === 'list'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-white text-gray-600 hover:bg-gray-50'
-                      }`}
-                      aria-label="List"
-                    >
-                      <List size={18} />
-                    </button>
-                  </div>
                 <div
                   className={
                     viewMode === 'grid'
@@ -1193,7 +1195,6 @@ export default function ApartmentsPage() {
                     </div>
                   ))}
                 </div>
-                </>
               )
             ) : busy ? (
               <div className="flex items-center justify-center py-20">

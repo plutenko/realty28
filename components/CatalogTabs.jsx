@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../lib/authContext'
 
-export default function CatalogTabs() {
+export default function CatalogTabs({ children }) {
   const router = useRouter()
   const path = router.pathname
   const { user, profile, signOut } = useAuth()
@@ -64,6 +64,8 @@ export default function CatalogTabs() {
         )}
       </div>
 
+      <div className="flex items-center gap-3">
+      {children}
       {/* Кнопка личного кабинета */}
       {user && (
         <div className="relative" ref={ref}>
@@ -125,6 +127,7 @@ export default function CatalogTabs() {
           )}
         </div>
       )}
+      </div>
     </div>
   )
 }
