@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { LayoutGrid, List } from 'lucide-react'
+import { Building2, LayoutGrid, List, Map as MapIcon, SquareStack } from 'lucide-react'
 import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
 import { fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
@@ -102,6 +102,7 @@ export default function ApartmentsPage() {
   const [error, setError] = useState('')
 
   const [viewMode, setViewMode] = useState('grid')
+  const [pageView, setPageView] = useState('units')
 
   const [selectedDevelopers, setSelectedDevelopers] = useState([])
   const [selectedComplexes, setSelectedComplexes] = useState([])
@@ -138,12 +139,19 @@ export default function ApartmentsPage() {
     if (typeof window === 'undefined') return
     const saved = window.localStorage.getItem('apartmentsViewMode')
     if (saved === 'grid' || saved === 'list') setViewMode(saved)
+    const savedPage = window.localStorage.getItem('apartmentsPageView')
+    if (savedPage === 'units' || savedPage === 'complexes') setPageView(savedPage)
   }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     window.localStorage.setItem('apartmentsViewMode', viewMode)
   }, [viewMode])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem('apartmentsPageView', pageView)
+  }, [pageView])
 
   useEffect(() => {
     async function load() {
@@ -804,35 +812,57 @@ export default function ApartmentsPage() {
       <CatalogTabs />
 
       <div className="px-4 py-4">
-        <div className="mb-4 flex items-center justify-between gap-4">
-          <h1 className="text-xl font-bold text-gray-900">Квартиры</h1>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setViewMode('grid')}
-              className={`rounded-lg border p-2 transition ${
-                viewMode === 'grid'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
-              aria-label="Grid"
-            >
-              <LayoutGrid size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('list')}
-              className={`rounded-lg border p-2 transition ${
-                viewMode === 'list'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
-              aria-label="List"
-            >
-              <List size={20} />
-            </button>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <PageViewTab
+              active={pageView === 'units'}
+              onClick={() => setPageView('units')}
+              icon={<SquareStack size={16} />}
+              label="Квартиры"
+            />
+            <PageViewTab
+              active={pageView === 'complexes'}
+              onClick={() => setPageView('complexes')}
+              icon={<Building2 size={16} />}
+              label="ЖК"
+            />
+            <PageViewTab
+              active={false}
+              disabled
+              icon={<MapIcon size={16} />}
+              label="Карта"
+              title="В разработке"
+            />
           </div>
+
+          {pageView === 'units' && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`rounded-lg border p-2 transition ${
+                  viewMode === 'grid'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+                aria-label="Grid"
+              >
+                <LayoutGrid size={20} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`rounded-lg border p-2 transition ${
+                  viewMode === 'list'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+                aria-label="List"
+              >
+                <List size={20} />
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-3">
@@ -953,47 +983,57 @@ export default function ApartmentsPage() {
           </div>
 
           <div className="flex-1">
-            {busy ? (
-              <div className="flex items-center justify-center py-20">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500"></div>
-                <span className="ml-3 text-sm text-gray-500">Загрузка квартир...</span>
-              </div>
-            ) : error ? (
-              <p className="text-sm text-rose-600">{error}</p>
-            ) : filtered.length === 0 ? (
-              <p className="text-sm text-gray-500">
-                Ничего не найдено по фильтрам
-              </p>
-            ) : (
-              <div
-                className={
-                  viewMode === 'grid'
-                    ? 'grid grid-cols-3 gap-4'
-                    : 'flex flex-col gap-4'
-                }
-              >
-                {filtered.map((u) => (
-                  <div
-                    key={u.id}
-                    className={`rounded-2xl p-1 ${
-                      selectedUnits.includes(u.id)
-                        ? 'ring-2 ring-blue-500 ring-offset-1'
-                        : 'ring-1 ring-transparent'
-                    }`}
-                  >
-                    <label className="mb-2 flex cursor-pointer items-center gap-2 rounded-lg bg-white px-2 py-1 text-sm text-gray-700 shadow-sm">
-                      <input
-                        type="checkbox"
-                        checked={selectedUnits.includes(u.id)}
-                        onChange={() => toggleSelectedUnit(u.id)}
-                      />
-                      В подборку
-                    </label>
-                    <div onClick={() => setModalUnit(u)} className="cursor-pointer">
-                      <ApartmentCard unit={u} listView={viewMode === 'list'} />
+            {pageView === 'units' ? (
+              busy ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500"></div>
+                  <span className="ml-3 text-sm text-gray-500">Загрузка квартир...</span>
+                </div>
+              ) : error ? (
+                <p className="text-sm text-rose-600">{error}</p>
+              ) : filtered.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  Ничего не найдено по фильтрам
+                </p>
+              ) : (
+                <div
+                  className={
+                    viewMode === 'grid'
+                      ? 'grid grid-cols-3 gap-4'
+                      : 'flex flex-col gap-4'
+                  }
+                >
+                  {filtered.map((u) => (
+                    <div
+                      key={u.id}
+                      className={`rounded-2xl p-1 ${
+                        selectedUnits.includes(u.id)
+                          ? 'ring-2 ring-blue-500 ring-offset-1'
+                          : 'ring-1 ring-transparent'
+                      }`}
+                    >
+                      <label className="mb-2 flex cursor-pointer items-center gap-2 rounded-lg bg-white px-2 py-1 text-sm text-gray-700 shadow-sm">
+                        <input
+                          type="checkbox"
+                          checked={selectedUnits.includes(u.id)}
+                          onChange={() => toggleSelectedUnit(u.id)}
+                        />
+                        В подборку
+                      </label>
+                      <div onClick={() => setModalUnit(u)} className="cursor-pointer">
+                        <ApartmentCard unit={u} listView={viewMode === 'list'} />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )
+            ) : (
+              <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
+                <Building2 size={36} className="mx-auto mb-3 text-gray-400" />
+                <p className="text-sm text-gray-600">
+                  Режим «ЖК» — карточки жилых комплексов с мини-шахматкой и счётчиком
+                  подходящих квартир. Скоро будет доступен.
+                </p>
               </div>
             )}
           </div>
@@ -1126,5 +1166,27 @@ export default function ApartmentsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+function PageViewTab({ active, disabled, onClick, icon, label, title }) {
+  const base =
+    'inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition'
+  const stateClass = disabled
+    ? 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400'
+    : active
+    ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+  return (
+    <button
+      type="button"
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      className={`${base} ${stateClass}`}
+      title={title}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
   )
 }
