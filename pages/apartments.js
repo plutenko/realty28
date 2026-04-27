@@ -1044,19 +1044,19 @@ export default function ApartmentsPage() {
               <SegBtn
                 active={pageView === 'units'}
                 onClick={() => setPageView('units')}
-                icon={<SquareStack size={14} />}
+                icon={<SquareStack size={16} />}
                 label="Квартиры"
               />
               <SegBtn
                 active={pageView === 'complexes'}
                 onClick={() => setPageView('complexes')}
-                icon={<Building2 size={14} />}
+                icon={<Building2 size={16} />}
                 label="ЖК"
               />
               <SegBtn
                 active={false}
                 disabled
-                icon={<MapIcon size={14} />}
+                icon={<MapIcon size={16} />}
                 label="Карта"
                 title="В разработке"
               />
@@ -1421,7 +1421,7 @@ export default function ApartmentsPage() {
 
 function SegBtn({ active, disabled, onClick, icon, label, title }) {
   const base =
-    'flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition'
+    'flex-1 inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition'
   const stateClass = disabled
     ? 'cursor-not-allowed text-gray-400'
     : active
