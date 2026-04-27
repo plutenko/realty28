@@ -788,8 +788,17 @@ export default function ApartmentsPage() {
 
   const chessboardApartments = useMemo(() => {
     if (!selectedBuilding) return []
-    return mapUnitsToChessboardApartments(selectedBuilding.units ?? [])
-  }, [selectedBuilding])
+    const all = selectedBuilding.units ?? []
+    if (!hasActiveFilters) return mapUnitsToChessboardApartments(all)
+    // При активном фильтре в шахматке остаются sold/booked/reserved/closed
+    // (визуальный контекст дома) + available только те, что попали под фильтр.
+    const filteredUnits = all.filter((u) => {
+      const s = String(u?.status ?? 'available').toLowerCase()
+      if (s === 'sold' || s === 'booked' || s === 'reserved' || s === 'closed') return true
+      return filteredIds.has(u.id)
+    })
+    return mapUnitsToChessboardApartments(filteredUnits)
+  }, [selectedBuilding, hasActiveFilters, filteredIds])
 
   function openBuildingChessboard(c, b) {
     if (!c || !b) return
