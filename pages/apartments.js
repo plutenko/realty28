@@ -972,7 +972,8 @@ export default function ApartmentsPage() {
       <CatalogTabs />
 
       <div className="px-4 py-4">
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-3">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-3">
           <div className="text-sm text-gray-700">
             Выбрано квартир: <span className="font-semibold">{selectedUnits.length}</span>
           </div>
@@ -1023,6 +1024,7 @@ export default function ApartmentsPage() {
               Сбросить выбор
             </button>
           ) : null}
+          </div>
 
           <div className="ml-auto flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
             <span className="relative flex h-3 w-3 shrink-0" aria-hidden="true">
