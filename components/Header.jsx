@@ -12,9 +12,6 @@ export default function Header() {
           <a href="/apartments" className="hover:text-white">
             Квартиры
           </a>
-          <a href="/buildings" className="hover:text-white">
-            Дома / ЖК
-          </a>
           <a
             href="https://nextjs.org/docs"
             target="_blank"

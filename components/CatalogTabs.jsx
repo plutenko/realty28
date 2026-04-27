@@ -44,9 +44,6 @@ export default function CatalogTabs({ children }) {
         <Link href="/commercial" className={tabClass('/commercial')}>
           Коммерция
         </Link>
-        <Link href="/buildings" className={tabClass('/buildings')}>
-          Дома / ЖК
-        </Link>
         {user && (
           <Link href="/my-collections" className={tabClass('/my-collections')}>
             Мои подборки

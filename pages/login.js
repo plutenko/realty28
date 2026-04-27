@@ -32,7 +32,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && user && profile && !pendingToken && !deviceChecking && !submitting) {
-      router.replace(profile.role === 'admin' ? '/admin' : '/buildings')
+      router.replace(profile.role === 'admin' ? '/admin' : '/apartments')
     }
   }, [loading, user, profile, pendingToken, deviceChecking, submitting])
 
@@ -75,7 +75,7 @@ export default function LoginPage() {
         ? '/admin'
         : pendingRole === 'manager'
         ? '/manager'
-        : '/buildings'
+        : '/apartments'
 
     // Логируем событие входа в фоне — не блокируем редирект
     ;(async () => {
