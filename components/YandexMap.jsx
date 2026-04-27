@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 
 // Благовещенск
-export const BLAGO_CENTER = [127.5273, 50.2671] // [lng, lat] — Yandex order
+export const BLAGO_CENTER = [50.2671, 127.5273] // [lat, lng] в v2.1
 export const BLAGO_ZOOM = 12
 
 let yandexPromise = null
 
-/** Лениво грузит Yandex Maps JS API v3 (только клиент). */
+/** Лениво грузит Яндекс.Карты JS API v2.1 (только клиент). */
 function loadYandex(apiKey) {
   if (typeof window === 'undefined') return Promise.resolve(null)
-  if (window.ymaps3) return window.ymaps3.ready.then(() => window.ymaps3)
+  if (window.ymaps && window.ymaps.Map) {
+    return new Promise((resolve) => window.ymaps.ready(() => resolve(window.ymaps)))
+  }
   if (!apiKey) {
     return Promise.reject(
       new Error('NEXT_PUBLIC_YANDEX_MAPS_KEY не задан. Получи ключ на developer.tech.yandex.ru')
@@ -18,15 +20,10 @@ function loadYandex(apiKey) {
   if (!yandexPromise) {
     yandexPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script')
-      script.src = `https://api-maps.yandex.ru/v3/?apikey=${encodeURIComponent(apiKey)}&lang=ru_RU`
+      script.src = `https://api-maps.yandex.ru/2.1/?apikey=${encodeURIComponent(apiKey)}&lang=ru_RU`
       script.async = true
-      script.onload = async () => {
-        try {
-          await window.ymaps3.ready
-          resolve(window.ymaps3)
-        } catch (e) {
-          reject(e)
-        }
+      script.onload = () => {
+        window.ymaps.ready(() => resolve(window.ymaps))
       }
       script.onerror = () => reject(new Error('Не удалось загрузить Яндекс.Карты'))
       document.head.appendChild(script)
@@ -36,7 +33,7 @@ function loadYandex(apiKey) {
 }
 
 /**
- * Yandex-карта с тем же API, что был у LeafletMap:
+ * Yandex-карта на JS API v2.1.
  *
  * pickerSingle (admin):
  *   - один передвигаемый пин
@@ -48,10 +45,10 @@ function loadYandex(apiKey) {
 export default function YandexMap({
   className = '',
   height = 400,
-  center = BLAGO_CENTER, // [lng, lat]
+  center = BLAGO_CENTER,
   zoom = BLAGO_ZOOM,
   pickerSingle = false,
-  value = null, // [lat, lng]
+  value = null,
   onPick = null,
   markers = [],
   onMarkerClick = null,
@@ -68,35 +65,30 @@ export default function YandexMap({
     cbRef.current = { onPick, onMarkerClick }
   }, [onPick, onMarkerClick])
 
-  // Инициализация карты — один раз
   useEffect(() => {
     if (!apiKey) {
       setError(
-        'Яндекс.Карты не подключены: добавьте NEXT_PUBLIC_YANDEX_MAPS_KEY в env (developer.tech.yandex.ru)'
+        'Яндекс-карта не подключена: добавьте NEXT_PUBLIC_YANDEX_MAPS_KEY в env (developer.tech.yandex.ru → JavaScript API и HTTP Геокодер).'
       )
       return
     }
     let cancelled = false
     loadYandex(apiKey)
-      .then((ymaps3) => {
+      .then((ymaps) => {
         if (cancelled || !containerRef.current || mapRef.current) return
-        ymapsRef.current = ymaps3
-        const map = new ymaps3.YMap(containerRef.current, {
-          location: { center, zoom },
+        ymapsRef.current = ymaps
+        const map = new ymaps.Map(containerRef.current, {
+          center,
+          zoom,
+          controls: ['zoomControl', 'geolocationControl'],
         })
-        map.addChild(new ymaps3.YMapDefaultSchemeLayer())
-        map.addChild(new ymaps3.YMapDefaultFeaturesLayer())
         if (pickerSingle) {
-          map.addChild(
-            new ymaps3.YMapListener({
-              onClick: (_obj, event) => {
-                const c = event?.coordinates
-                if (!Array.isArray(c) || c.length !== 2) return
-                const [lng, lat] = c
-                cbRef.current.onPick?.(lat, lng)
-              },
-            })
-          )
+          map.events.add('click', (e) => {
+            const c = e.get('coords')
+            if (!Array.isArray(c) || c.length !== 2) return
+            const [lat, lng] = c
+            cbRef.current.onPick?.(lat, lng)
+          })
         }
         mapRef.current = map
       })
@@ -116,48 +108,42 @@ export default function YandexMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey])
 
-  // Picker marker (синхронизация по value)
+  // Picker — один драггабл-пин
   useEffect(() => {
-    const ymaps3 = ymapsRef.current
+    const ymaps = ymapsRef.current
     const map = mapRef.current
-    if (!ymaps3 || !map || !pickerSingle) return
+    if (!ymaps || !map || !pickerSingle) return
     const cur = refs.current
     if (!value || !Array.isArray(value) || value.length !== 2) {
       if (cur.pickerMarker) {
-        map.removeChild(cur.pickerMarker)
+        map.geoObjects.remove(cur.pickerMarker)
         cur.pickerMarker = null
       }
       return
     }
-    const [lat, lng] = value
-    const coords = [lng, lat]
+    const coords = [Number(value[0]), Number(value[1])]
     if (cur.pickerMarker) {
-      cur.pickerMarker.update({ coordinates: coords })
+      cur.pickerMarker.geometry.setCoordinates(coords)
       return
     }
-    const el = document.createElement('div')
-    el.style.cssText =
-      'width:24px;height:24px;background:#2563eb;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4);transform:translate(-12px,-12px);'
-    const marker = new ymaps3.YMapMarker(
-      { coordinates: coords, draggable: true, onDragEnd: (c) => {
-          const [ln, la] = c
-          cbRef.current.onPick?.(la, ln)
-        } },
-      el
-    )
-    map.addChild(marker)
-    cur.pickerMarker = marker
+    const placemark = new ymaps.Placemark(coords, {}, { draggable: true })
+    placemark.events.add('dragend', () => {
+      const c = placemark.geometry.getCoordinates()
+      cbRef.current.onPick?.(c[0], c[1])
+    })
+    map.geoObjects.add(placemark)
+    cur.pickerMarker = placemark
   }, [value, pickerSingle])
 
-  // Markers (для общей карты)
+  // Markers — набор пинов
   useEffect(() => {
-    const ymaps3 = ymapsRef.current
+    const ymaps = ymapsRef.current
     const map = mapRef.current
-    if (!ymaps3 || !map || pickerSingle) return
+    if (!ymaps || !map || pickerSingle) return
     const cur = refs.current
     for (const m of cur.markerObjs) {
       try {
-        map.removeChild(m)
+        map.geoObjects.remove(m)
       } catch {}
     }
     cur.markerObjs = []
@@ -166,16 +152,13 @@ export default function YandexMap({
       const lat = Number(m?.lat)
       const lng = Number(m?.lng)
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
-      const el = document.createElement('div')
-      el.style.cssText =
-        'width:24px;height:24px;background:#2563eb;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer;transform:translate(-12px,-12px);'
-      el.addEventListener('click', () => {
+      const placemark = new ymaps.Placemark([lat, lng])
+      placemark.events.add('click', () => {
         if (typeof m.onClick === 'function') m.onClick(m)
         else cbRef.current.onMarkerClick?.(m)
       })
-      const marker = new ymaps3.YMapMarker({ coordinates: [lng, lat] }, el)
-      map.addChild(marker)
-      cur.markerObjs.push(marker)
+      map.geoObjects.add(placemark)
+      cur.markerObjs.push(placemark)
     }
   }, [markers, pickerSingle])
 
