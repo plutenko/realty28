@@ -3,12 +3,13 @@ import { Building2, LayoutGrid, List, Map as MapIcon, SquareStack } from 'lucide
 import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
 import { fetchComplexesFromApi, fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
-import { sanitizeComplexesPayload } from '../lib/complexes'
+import { formatComplexName, formatName, getComplexDeveloper, sanitizeComplexesPayload, sortBuildingsByName } from '../lib/complexes'
 import FiltersSidebar from '../components/apartments/FiltersSidebar'
 import ApartmentCard, { calcCommission } from '../components/apartments/ApartmentCard'
 import ApartmentModal from '../components/apartments/ApartmentModal'
 import CollectionMetaModal from '../components/apartments/CollectionMetaModal'
 import ComplexCard from '../components/apartments/ComplexCard'
+import BuildingChessboard, { mapUnitsToChessboardApartments } from '../components/BuildingChessboard'
 
 const ABS_MIN = 0
 const ABS_MAX = 50000000
@@ -106,6 +107,8 @@ export default function ApartmentsPage() {
 
   const [viewMode, setViewMode] = useState('grid')
   const [pageView, setPageView] = useState('units')
+  const [selectedComplexId, setSelectedComplexId] = useState(null)
+  const [selectedBuildingId, setSelectedBuildingId] = useState(null)
 
   const [selectedDevelopers, setSelectedDevelopers] = useState([])
   const [selectedComplexes, setSelectedComplexes] = useState([])
@@ -155,6 +158,14 @@ export default function ApartmentsPage() {
     if (typeof window === 'undefined') return
     window.localStorage.setItem('apartmentsPageView', pageView)
   }, [pageView])
+
+  // Сбрасываем раскрытую шахматку при выходе из режима «ЖК»
+  useEffect(() => {
+    if (pageView !== 'complexes' && (selectedComplexId || selectedBuildingId)) {
+      setSelectedComplexId(null)
+      setSelectedBuildingId(null)
+    }
+  }, [pageView, selectedComplexId, selectedBuildingId])
 
   useEffect(() => {
     async function load() {
@@ -748,6 +759,80 @@ export default function ApartmentsPage() {
     })
   }, [complexes, hasActiveFilters, availableByBuilding, matchedByBuilding])
 
+  const selectedComplex = useMemo(() => {
+    if (!selectedComplexId) return null
+    return complexes.find((c) => c.id === selectedComplexId) ?? null
+  }, [complexes, selectedComplexId])
+
+  /** Корпуса выбранного ЖК с available > 0 (отсортированные) — для табов выбора корпуса в шахматке */
+  const selectedComplexBuildings = useMemo(() => {
+    if (!selectedComplex) return []
+    return [...(selectedComplex.buildings ?? [])]
+      .filter((b) => (availableByBuilding[b.id] ?? 0) > 0)
+      .sort(sortBuildingsByName)
+  }, [selectedComplex, availableByBuilding])
+
+  const selectedBuilding = useMemo(() => {
+    if (!selectedComplex || !selectedBuildingId) return null
+    return (selectedComplex.buildings ?? []).find((b) => b.id === selectedBuildingId) ?? null
+  }, [selectedComplex, selectedBuildingId])
+
+  const chessboardApartments = useMemo(() => {
+    if (!selectedBuilding) return []
+    return mapUnitsToChessboardApartments(selectedBuilding.units ?? [])
+  }, [selectedBuilding])
+
+  function openComplexChessboard(c) {
+    if (!c) return
+    const buildings = [...(c.buildings ?? [])]
+      .filter((b) => (availableByBuilding[b.id] ?? 0) > 0)
+      .sort(sortBuildingsByName)
+    const fallback = [...(c.buildings ?? [])].sort(sortBuildingsByName)[0]
+    const target = buildings[0] ?? fallback
+    if (!target) return
+    setSelectedComplexId(c.id)
+    setSelectedBuildingId(target.id)
+  }
+
+  function closeComplexChessboard() {
+    setSelectedComplexId(null)
+    setSelectedBuildingId(null)
+  }
+
+  function openUnitFromChessboard(apt) {
+    if (!apt?.id) return
+    const fromUnits = (units ?? []).find((u) => u.id === apt.id)
+    if (fromUnits) {
+      setModalUnit(fromUnits)
+      return
+    }
+    if (!selectedComplex || !selectedBuilding) return
+    const dev = getComplexDeveloper(selectedComplex)
+    const raw = (selectedBuilding.units ?? []).find((u) => u.id === apt.id) || {}
+    setModalUnit({
+      ...raw,
+      building: {
+        id: selectedBuilding.id,
+        name: selectedBuilding.name,
+        address: selectedBuilding.address,
+        floors: selectedBuilding.floors,
+        units_per_floor: selectedBuilding.units_per_floor,
+        units_per_entrance: selectedBuilding.units_per_entrance,
+        handover_status: selectedBuilding.handover_status,
+        handover_quarter: selectedBuilding.handover_quarter,
+        handover_year: selectedBuilding.handover_year,
+        complex: {
+          id: selectedComplex.id,
+          name: selectedComplex.name,
+          website_url: selectedComplex.website_url,
+          realtor_commission_type: selectedComplex.realtor_commission_type,
+          realtor_commission_value: selectedComplex.realtor_commission_value,
+          developer: dev,
+        },
+      },
+    })
+  }
+
   function toggleDeveloper(name) {
     setSelectedDevelopers((prev) =>
       prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]
@@ -1104,6 +1189,81 @@ export default function ApartmentsPage() {
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500"></div>
                 <span className="ml-3 text-sm text-gray-500">Загрузка ЖК...</span>
               </div>
+            ) : selectedComplex && selectedBuilding ? (
+              <div className="rounded-2xl border border-gray-200 bg-white">
+                <div className="flex flex-wrap items-center gap-3 border-b border-gray-200 px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={closeComplexChessboard}
+                    className="rounded-lg bg-gray-200 px-3 py-1.5 text-sm font-medium text-gray-800 transition hover:bg-gray-300"
+                  >
+                    ← К списку ЖК
+                  </button>
+                  <div className="min-w-0">
+                    <h2 className="truncate text-base font-semibold text-gray-900">
+                      {formatComplexName(selectedComplex.name)}
+                    </h2>
+                    <p className="truncate text-xs text-gray-500">
+                      {formatName(getComplexDeveloper(selectedComplex)?.name || '')}
+                    </p>
+                  </div>
+                  {selectedComplexBuildings.length > 1 ? (
+                    <div className="ml-auto flex flex-wrap gap-1">
+                      {selectedComplexBuildings.map((b) => {
+                        const matched = matchedByBuilding[b.id] ?? 0
+                        const available = availableByBuilding[b.id] ?? 0
+                        const counterTxt = hasActiveFilters
+                          ? `${matched}/${available}`
+                          : `${available}`
+                        return (
+                          <button
+                            key={b.id}
+                            type="button"
+                            onClick={() => setSelectedBuildingId(b.id)}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                              b.id === selectedBuildingId
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {formatName(b.name) || 'Корпус'} <span className="opacity-70">({counterTxt})</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="p-4">
+                  {selectedBuilding.floorPlanUrl &&
+                  (!selectedBuilding.floorPlanByFloor ||
+                    Object.keys(selectedBuilding.floorPlanByFloor).length === 0) ? (
+                    <div className="mb-4 rounded-xl border border-slate-800 bg-white p-3">
+                      <div className="mb-2 text-sm font-semibold text-slate-900">
+                        Поэтажный план
+                      </div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={selectedBuilding.floorPlanUrl}
+                        alt="Поэтажный план"
+                        className="w-full rounded-lg border border-slate-200 object-contain"
+                      />
+                    </div>
+                  ) : null}
+                  <BuildingChessboard
+                    apartments={chessboardApartments}
+                    floorsCount={selectedBuilding.floors ?? 0}
+                    unitsPerFloor={selectedBuilding.units_per_floor ?? 4}
+                    unitsPerEntrance={
+                      Array.isArray(selectedBuilding.units_per_entrance)
+                        ? selectedBuilding.units_per_entrance
+                        : null
+                    }
+                    floorPlanByFloor={selectedBuilding.floorPlanByFloor ?? {}}
+                    onUnitClick={openUnitFromChessboard}
+                  />
+                </div>
+              </div>
             ) : visibleComplexes.length === 0 ? (
               <p className="text-sm text-gray-500">
                 {hasActiveFilters
@@ -1120,6 +1280,7 @@ export default function ApartmentsPage() {
                     matchedByBuilding={matchedByBuilding}
                     availableByBuilding={availableByBuilding}
                     hasFilters={hasActiveFilters}
+                    onOpen={() => openComplexChessboard(c)}
                   />
                 ))}
               </div>
