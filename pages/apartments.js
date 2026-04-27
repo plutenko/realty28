@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Building2, LayoutGrid, List, Map as MapIcon, SquareStack } from 'lucide-react'
 import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
-import { fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
+import { fetchComplexesFromApi, fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
+import { sanitizeComplexesPayload } from '../lib/complexes'
 import FiltersSidebar from '../components/apartments/FiltersSidebar'
 import ApartmentCard, { calcCommission } from '../components/apartments/ApartmentCard'
 import ApartmentModal from '../components/apartments/ApartmentModal'
 import CollectionMetaModal from '../components/apartments/CollectionMetaModal'
+import ComplexCard from '../components/apartments/ComplexCard'
 
 const ABS_MIN = 0
 const ABS_MAX = 50000000
@@ -98,6 +100,7 @@ function handoverLabelByKey(key) {
 export default function ApartmentsPage() {
   const { user } = useAuth()
   const [units, setUnits] = useState([])
+  const [complexes, setComplexes] = useState([])
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
 
@@ -159,22 +162,18 @@ export default function ApartmentsPage() {
       setError('')
 
       try {
-        const { data, error: err } = await fetchUnitsFromApi()
-        if (err) {
-          setError(err.message || 'Ошибка загрузки')
+        const [unitsRes, complexesRes] = await Promise.all([
+          fetchUnitsFromApi(),
+          fetchComplexesFromApi(),
+        ])
+        if (unitsRes.error) {
+          setError(unitsRes.error.message || 'Ошибка загрузки')
           setUnits([])
         } else {
-          const units = data ?? []
-          console.log('[apartments] loaded units:', units.length,
-            'by building:', Object.entries(
-              units.reduce((acc, u) => {
-                const key = `${u.building?.complex?.name} / ${u.building?.name}`
-                acc[key] = (acc[key] || 0) + 1
-                return acc
-              }, {})
-            ).sort((a, b) => b[1] - a[1])
-          )
-          setUnits(units)
+          setUnits(unitsRes.data ?? [])
+        }
+        if (!complexesRes.error) {
+          setComplexes(sanitizeComplexesPayload(complexesRes.data ?? []))
         }
       } catch (e) {
         setError(e?.message || 'Ошибка загрузки')
@@ -676,6 +675,79 @@ export default function ApartmentsPage() {
     selectedAreaRanges,
   ])
 
+  const filteredIds = useMemo(() => new Set(filtered.map((u) => u.id)), [filtered])
+
+  const hasActiveFilters = useMemo(() => {
+    return (
+      selectedDevelopers.length > 0 ||
+      selectedComplexes.length > 0 ||
+      selectedBuildingIds.length > 0 ||
+      selectedHandoverKeys.length > 0 ||
+      selectedPpmRanges.length > 0 ||
+      selectedPriceRanges.length > 0 ||
+      selectedRooms.length > 0 ||
+      selectedAreaRanges.length > 0 ||
+      twoLevelOnly ||
+      priceMin > ABS_MIN ||
+      priceMax < ABS_MAX ||
+      floorFrom != null ||
+      floorTo != null ||
+      Boolean(areaFrom) ||
+      Boolean(areaTo)
+    )
+  }, [
+    selectedDevelopers,
+    selectedComplexes,
+    selectedBuildingIds,
+    selectedHandoverKeys,
+    selectedPpmRanges,
+    selectedPriceRanges,
+    selectedRooms,
+    selectedAreaRanges,
+    twoLevelOnly,
+    priceMin,
+    priceMax,
+    floorFrom,
+    floorTo,
+    areaFrom,
+    areaTo,
+  ])
+
+  /** Кол-во подходящих под все фильтры квартир в каждом корпусе */
+  const matchedByBuilding = useMemo(() => {
+    const out = {}
+    for (const u of filtered) {
+      const bid = u?.building?.id
+      if (!bid) continue
+      out[bid] = (out[bid] ?? 0) + 1
+    }
+    return out
+  }, [filtered])
+
+  /** Кол-во доступных (не sold/booked/reserved/closed) квартир в корпусе — общее «из 88» */
+  const availableByBuilding = useMemo(() => {
+    const out = {}
+    for (const u of units ?? []) {
+      const bid = u?.building?.id
+      if (!bid) continue
+      out[bid] = (out[bid] ?? 0) + 1
+    }
+    return out
+  }, [units])
+
+  /** ЖК, у которых хотя бы 1 подходящая квартира под фильтр (или все, если фильтра нет) */
+  const visibleComplexes = useMemo(() => {
+    if (!complexes?.length) return []
+    return complexes.filter((c) => {
+      const buildings = c?.buildings ?? []
+      if (!buildings.length) return false
+      if (!hasActiveFilters) {
+        return buildings.some((b) => (availableByBuilding[b.id] ?? 0) > 0)
+      }
+      return buildings.some((b) => (matchedByBuilding[b.id] ?? 0) > 0)
+    })
+  }, [complexes, hasActiveFilters, availableByBuilding, matchedByBuilding])
+
   function toggleDeveloper(name) {
     setSelectedDevelopers((prev) =>
       prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]
@@ -1027,13 +1099,29 @@ export default function ApartmentsPage() {
                   ))}
                 </div>
               )
+            ) : busy ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500"></div>
+                <span className="ml-3 text-sm text-gray-500">Загрузка ЖК...</span>
+              </div>
+            ) : visibleComplexes.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                {hasActiveFilters
+                  ? 'Нет ЖК с подходящими под фильтр квартирами'
+                  : 'Нет ЖК с доступными квартирами'}
+              </p>
             ) : (
-              <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-                <Building2 size={36} className="mx-auto mb-3 text-gray-400" />
-                <p className="text-sm text-gray-600">
-                  Режим «ЖК» — карточки жилых комплексов с мини-шахматкой и счётчиком
-                  подходящих квартир. Скоро будет доступен.
-                </p>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {visibleComplexes.map((c) => (
+                  <ComplexCard
+                    key={c.id}
+                    complex={c}
+                    filteredIds={filteredIds}
+                    matchedByBuilding={matchedByBuilding}
+                    availableByBuilding={availableByBuilding}
+                    hasFilters={hasActiveFilters}
+                  />
+                ))}
               </div>
             )}
           </div>
