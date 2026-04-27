@@ -939,11 +939,6 @@ export default function ApartmentsPage() {
     })
   }
 
-  function unselectAllFiltered() {
-    const filteredIds = new Set(filtered.map((u) => u.id))
-    setSelectedUnits((prev) => prev.filter((id) => !filteredIds.has(id)))
-  }
-
   function createSelection() {
     if (!selectedUnits.length) {
       alert('Сначала выберите квартиры в карточках')
@@ -1024,14 +1019,6 @@ export default function ApartmentsPage() {
             className="rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             Выбрать все по фильтрам ({filtered.length})
-          </button>
-          <button
-            type="button"
-            onClick={unselectAllFiltered}
-            disabled={filtered.length === 0}
-            className="rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
-            Снять все по фильтрам
           </button>
           <button
             type="button"
