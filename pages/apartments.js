@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/router'
 import { Building2, LayoutGrid, List, Map as MapIcon, SquareStack } from 'lucide-react'
 import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
@@ -99,6 +100,7 @@ function handoverLabelByKey(key) {
 }
 
 export default function ApartmentsPage() {
+  const router = useRouter()
   const { user } = useAuth()
   const [units, setUnits] = useState([])
   const [complexes, setComplexes] = useState([])
@@ -165,6 +167,31 @@ export default function ApartmentsPage() {
       setSelectedComplexId(null)
       setSelectedBuildingId(null)
     }
+  }, [pageView, selectedComplexId, selectedBuildingId])
+
+  // URL ↔ state: читаем при первом готовом router.isReady, дальше пишем в URL на изменения
+  const urlInitialized = useRef(false)
+  useEffect(() => {
+    if (!router.isReady || urlInitialized.current) return
+    const q = router.query
+    if (q.view === 'complexes' || q.view === 'units') setPageView(q.view)
+    if (typeof q.complex === 'string' && q.complex) setSelectedComplexId(q.complex)
+    if (typeof q.building === 'string' && q.building) setSelectedBuildingId(q.building)
+    urlInitialized.current = true
+  }, [router.isReady, router.query])
+
+  useEffect(() => {
+    if (!urlInitialized.current) return
+    const next = {}
+    if (pageView !== 'units') next.view = pageView
+    if (selectedComplexId) next.complex = selectedComplexId
+    if (selectedBuildingId) next.building = selectedBuildingId
+    const sameView = (router.query.view ?? null) === (next.view ?? null)
+    const sameComplex = (router.query.complex ?? null) === (next.complex ?? null)
+    const sameBuilding = (router.query.building ?? null) === (next.building ?? null)
+    if (sameView && sameComplex && sameBuilding) return
+    router.replace({ pathname: router.pathname, query: next }, undefined, { shallow: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageView, selectedComplexId, selectedBuildingId])
 
   useEffect(() => {
