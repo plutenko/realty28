@@ -1048,34 +1048,32 @@ export default function ApartmentsPage() {
           ) : null}
           </div>
 
-          {pageView === 'units' && (
-            <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                className={`rounded-lg border p-2 transition ${
-                  viewMode === 'grid'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
-                aria-label="Grid"
-              >
-                <LayoutGrid size={18} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={`rounded-lg border p-2 transition ${
-                  viewMode === 'list'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
-                aria-label="List"
-              >
-                <List size={18} />
-              </button>
-            </div>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              className={`rounded-lg border p-2 transition ${
+                viewMode === 'grid'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+              aria-label="Grid"
+            >
+              <LayoutGrid size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`rounded-lg border p-2 transition ${
+                viewMode === 'list'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+              aria-label="List"
+            >
+              <List size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-6">
@@ -1283,7 +1281,13 @@ export default function ApartmentsPage() {
                   : 'Нет домов с доступными квартирами'}
               </p>
             ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div
+                className={
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3'
+                    : 'flex flex-col gap-4'
+                }
+              >
                 {visibleBuildingCards.map(({ complex: c, building: b, matched, available }) => (
                   <ComplexCard
                     key={b.id}
@@ -1293,6 +1297,7 @@ export default function ApartmentsPage() {
                     matched={matched}
                     available={available}
                     hasFilters={hasActiveFilters}
+                    listView={viewMode === 'list'}
                     onOpen={() => openBuildingChessboard(c, b)}
                   />
                 ))}
