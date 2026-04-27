@@ -972,59 +972,6 @@ export default function ApartmentsPage() {
       <CatalogTabs />
 
       <div className="px-4 py-4">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <PageViewTab
-              active={pageView === 'units'}
-              onClick={() => setPageView('units')}
-              icon={<SquareStack size={16} />}
-              label="Квартиры"
-            />
-            <PageViewTab
-              active={pageView === 'complexes'}
-              onClick={() => setPageView('complexes')}
-              icon={<Building2 size={16} />}
-              label="ЖК"
-            />
-            <PageViewTab
-              active={false}
-              disabled
-              icon={<MapIcon size={16} />}
-              label="Карта"
-              title="В разработке"
-            />
-          </div>
-
-          {pageView === 'units' && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                className={`rounded-lg border p-2 transition ${
-                  viewMode === 'grid'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
-                aria-label="Grid"
-              >
-                <LayoutGrid size={20} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={`rounded-lg border p-2 transition ${
-                  viewMode === 'list'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
-                aria-label="List"
-              >
-                <List size={20} />
-              </button>
-            </div>
-          )}
-        </div>
-
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-3">
           <div className="text-sm text-gray-700">
             Выбрано квартир: <span className="font-semibold">{selectedUnits.length}</span>
@@ -1076,21 +1023,43 @@ export default function ApartmentsPage() {
               Сбросить выбор
             </button>
           ) : null}
+
+          <div className="ml-auto flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+            <span className="relative flex h-3 w-3 shrink-0" aria-hidden="true">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
+            </span>
+            <div className="min-w-0 leading-tight">
+              <div className="text-[11px] text-gray-600">Вознаграждение в рынке</div>
+              <div className="text-base font-bold text-emerald-700">
+                {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(totalCommission)} ₽
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-6">
           <div className="w-[300px] shrink-0 space-y-4">
-            <div className="flex items-center gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-              <span className="relative flex h-3 w-3 shrink-0" aria-hidden="true">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
-              </span>
-              <div className="min-w-0">
-                <div className="text-sm text-gray-600">Вознаграждение в рынке</div>
-                <div className="text-xl font-bold text-emerald-700">
-                  {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(totalCommission)} ₽
-                </div>
-              </div>
+            <div className="flex rounded-xl border border-gray-200 bg-white p-1">
+              <SegBtn
+                active={pageView === 'units'}
+                onClick={() => setPageView('units')}
+                icon={<SquareStack size={14} />}
+                label="Квартиры"
+              />
+              <SegBtn
+                active={pageView === 'complexes'}
+                onClick={() => setPageView('complexes')}
+                icon={<Building2 size={14} />}
+                label="ЖК"
+              />
+              <SegBtn
+                active={false}
+                disabled
+                icon={<MapIcon size={14} />}
+                label="Карта"
+                title="В разработке"
+              />
             </div>
             <FiltersSidebar
             uniqueDevelopers={uniqueDevelopers}
@@ -1156,6 +1125,33 @@ export default function ApartmentsPage() {
                   Ничего не найдено по фильтрам
                 </p>
               ) : (
+                <>
+                  <div className="mb-3 flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('grid')}
+                      className={`rounded-lg border p-2 transition ${
+                        viewMode === 'grid'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                      aria-label="Grid"
+                    >
+                      <LayoutGrid size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('list')}
+                      className={`rounded-lg border p-2 transition ${
+                        viewMode === 'list'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                      aria-label="List"
+                    >
+                      <List size={18} />
+                    </button>
+                  </div>
                 <div
                   className={
                     viewMode === 'grid'
@@ -1186,6 +1182,7 @@ export default function ApartmentsPage() {
                     </div>
                   ))}
                 </div>
+                </>
               )
             ) : busy ? (
               <div className="flex items-center justify-center py-20">
@@ -1422,14 +1419,14 @@ export default function ApartmentsPage() {
   )
 }
 
-function PageViewTab({ active, disabled, onClick, icon, label, title }) {
+function SegBtn({ active, disabled, onClick, icon, label, title }) {
   const base =
-    'inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition'
+    'flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition'
   const stateClass = disabled
-    ? 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400'
+    ? 'cursor-not-allowed text-gray-400'
     : active
-    ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
-    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+    ? 'bg-blue-600 text-white shadow-sm'
+    : 'text-gray-700 hover:bg-gray-100'
   return (
     <button
       type="button"
