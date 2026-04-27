@@ -112,6 +112,26 @@ async function handleCallbackQuery(supabase, cq) {
   const messageId = cq.message?.message_id
   const originalText = cq.message?.text || cq.message?.caption || ''
 
+  // Идемпотентность: Telegram ретраит callback при таймауте webhook'а.
+  // Записываем cq.id в таблицу с PK; если конфликт — это повтор, тихо выходим,
+  // чтобы не задвоить побочки (edit чужих сообщений, уведомления менеджерам и т.п.).
+  // Инцидент 27.04.2026: дубль-webhook затёр winner-card Верховцевой.
+  if (cqId) {
+    const { error: dupErr } = await supabase
+      .from('tg_processed_callbacks')
+      .insert({ cq_id: String(cqId) })
+    if (dupErr) {
+      const msg = String(dupErr.message || '')
+      if (/duplicate key|unique constraint|already exists/i.test(msg)) {
+        console.log('[callback] duplicate cq_id, skipping retry:', cqId)
+        return
+      }
+      // Прочая ошибка (сеть, RLS) — не блокируем основной путь, лучше обработать,
+      // чем заблокировать на инфраструктурном сбое. Просто логируем.
+      console.warn('[callback] idempotency insert failed:', msg)
+    }
+  }
+
   // CRM: первый-беру
   const leadMatch = data.match(/^lead_(take|skip):(.+)$/)
   if (leadMatch) {
@@ -403,20 +423,26 @@ async function handleLeadCallback(supabase, cq, action, leadId) {
     // ДО любых TG-вызовов. Если Telegram-эдиты упадут — у нас в БД останется
     // консистентное состояние (lead.assigned + событие taken), запасной cleanup
     // сможет разобрать ситуацию. Раньше handler терял события при таймаутах TG.
-    await supabase.from('leads').update({ reaction_seconds: reactionSec }).eq('id', leadId).then(
-      () => null,
-      e => console.error('[lead-take] reaction update', e?.message || e)
-    )
-    await supabase.from('lead_events').insert({
-      lead_id: leadId,
-      actor_user_id: profile.id,
-      event_type: 'taken',
-      to_status: 'new',
-      meta: { reaction_seconds: reactionSec },
-    }).then(
-      () => null,
-      e => console.error('[lead-take] event insert', e?.message || e)
-    )
+    {
+      const { error: rxErr } = await supabase
+        .from('leads')
+        .update({ reaction_seconds: reactionSec })
+        .eq('id', leadId)
+      if (rxErr) console.error('[lead-take] reaction update failed:', rxErr.message)
+    }
+    {
+      // Раньше тут стоял .then(success, error), который ловил только JS-исключения
+      // и пропускал ошибки PostgREST (вида {error: ...}). Из-за этого молча терялись
+      // события 'taken' — было трудно отлаживать инциденты.
+      const { error: evErr } = await supabase.from('lead_events').insert({
+        lead_id: leadId,
+        actor_user_id: profile.id,
+        event_type: 'taken',
+        to_status: 'new',
+        meta: { reaction_seconds: reactionSec },
+      })
+      if (evErr) console.error('[lead-take] event insert failed:', evErr.message)
+    }
 
     // Мгновенный ack
     try { await answerCallbackQuery(cqId, '✅ Вы взяли заявку') } catch (e) { console.error('[lead-take] ack', e?.message || e) }
