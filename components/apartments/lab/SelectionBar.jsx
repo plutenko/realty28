@@ -40,8 +40,8 @@ export default function SelectionBar({
             <div className="text-sm text-gray-500">Список пуст</div>
           ) : (
             <div
-              className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+              className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-3 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-rose-300 [&::-webkit-scrollbar-track]:bg-transparent"
+              style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin', scrollbarColor: 'rgb(253 164 175) transparent' }}
             >
               {selectedList.map((u) => {
                 const c = u?.building?.complex
