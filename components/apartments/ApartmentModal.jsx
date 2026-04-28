@@ -6,6 +6,7 @@ import {
   formatPriceRub,
   formatRooms as formatRoomsBase,
 } from '../../lib/format'
+import FavoriteHeart from './FavoriteHeart'
 
 const formatRooms = (rooms) => formatRoomsBase(rooms, { long: true })
 
@@ -144,17 +145,10 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
               </span>
             ) : null}
             {onAddToCollection && (
-              <button
-                type="button"
-                onClick={() => onAddToCollection(unit.id)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  isSelected
-                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                {isSelected ? '✓ В подборке' : '+ В подборку'}
-              </button>
+              <FavoriteHeart
+                selected={isSelected}
+                onToggle={() => onAddToCollection(unit.id)}
+              />
             )}
             <button
               onClick={onClose}

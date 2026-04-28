@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Phone, Plus, Check, ImageOff } from 'lucide-react'
+import { Phone, ImageOff } from 'lucide-react'
 import {
   calcCommission,
   entranceFromPosition,
@@ -8,6 +8,7 @@ import {
   formatRooms,
   pricePerM2,
 } from '../../../lib/format'
+import FavoriteHeart from '../FavoriteHeart'
 
 function normalizePhone(phone) {
   return String(phone ?? '').replace(/[^\d+]/g, '')
@@ -127,21 +128,13 @@ export default function ApartmentCardLab({
         listView ? 'sm:flex-row' : ''
       }`}
     >
-      {/* В подборку — иконка в правом верхнем углу */}
+      {/* В подборку — сердечко в правом верхнем углу с пульс-анимацией */}
       {!collectionView ? (
-        <button
-          type="button"
-          onClick={stopAndRun(() => onToggleSelect?.(unit.id))}
-          className={`absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full shadow-md transition ${
-            selected
-              ? 'bg-blue-600 text-white hover:bg-blue-500'
-              : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600'
-          }`}
-          title={selected ? 'Убрать из подборки' : 'Добавить в подборку'}
-          aria-label={selected ? 'Убрать из подборки' : 'Добавить в подборку'}
-        >
-          {selected ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-        </button>
+        <FavoriteHeart
+          selected={selected}
+          onToggle={stopAndRun(() => onToggleSelect?.(unit.id))}
+          className="absolute right-2 top-2 z-10"
+        />
       ) : null}
 
       {/* Фото / план — фикс. высота, плейсхолдер если нет */}
