@@ -284,22 +284,26 @@ export default function FiltersSidebarLab({
         <CustomRangeBlock>
           <div className="grid grid-cols-2 gap-2">
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="От, ₽"
-              value={priceMin === absMin ? '' : priceMin}
-              onChange={(e) =>
-                onPriceMinChange(e.target.value === '' ? absMin : Number(e.target.value))
-              }
-              className="w-full rounded-xl bg-gray-100 px-3 py-2 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={priceMin === absMin ? '' : Number(priceMin).toLocaleString('ru-RU')}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, '')
+                onPriceMinChange(raw === '' ? absMin : Number(raw))
+              }}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-black placeholder-gray-500 focus:border-blue-500 focus:outline-none"
             />
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="До, ₽"
-              value={priceMax === absMax ? '' : priceMax}
-              onChange={(e) =>
-                onPriceMaxChange(e.target.value === '' ? absMax : Number(e.target.value))
-              }
-              className="w-full rounded-xl bg-gray-100 px-3 py-2 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={priceMax === absMax ? '' : Number(priceMax).toLocaleString('ru-RU')}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, '')
+                onPriceMaxChange(raw === '' ? absMax : Number(raw))
+              }}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-black placeholder-gray-500 focus:border-blue-500 focus:outline-none"
             />
           </div>
         </CustomRangeBlock>
@@ -355,18 +359,20 @@ export default function FiltersSidebarLab({
         <CustomRangeBlock>
           <div className="grid grid-cols-2 gap-2">
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="От, м²"
               value={areaFrom}
-              onChange={(e) => onAreaFromChange(e.target.value)}
-              className="w-full rounded-xl bg-gray-100 px-3 py-2 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => onAreaFromChange(e.target.value.replace(/\D/g, ''))}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-black placeholder-gray-500 focus:border-blue-500 focus:outline-none"
             />
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="До, м²"
               value={areaTo}
-              onChange={(e) => onAreaToChange(e.target.value)}
-              className="w-full rounded-xl bg-gray-100 px-3 py-2 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => onAreaToChange(e.target.value.replace(/\D/g, ''))}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-black placeholder-gray-500 focus:border-blue-500 focus:outline-none"
             />
           </div>
         </CustomRangeBlock>
@@ -409,22 +415,26 @@ export default function FiltersSidebarLab({
       >
         <div className="grid grid-cols-2 gap-2">
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             placeholder="От"
             value={floorFrom ?? ''}
-            onChange={(e) =>
-              onFloorFromChange(e.target.value === '' ? null : Number(e.target.value))
-            }
-            className="w-full rounded-xl bg-gray-100 px-3 py-2 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={(e) => {
+              const raw = e.target.value.replace(/\D/g, '')
+              onFloorFromChange(raw === '' ? null : Number(raw))
+            }}
+            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-black placeholder-gray-500 focus:border-blue-500 focus:outline-none"
           />
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             placeholder="До"
             value={floorTo ?? ''}
-            onChange={(e) =>
-              onFloorToChange(e.target.value === '' ? null : Number(e.target.value))
-            }
-            className="w-full rounded-xl bg-gray-100 px-3 py-2 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={(e) => {
+              const raw = e.target.value.replace(/\D/g, '')
+              onFloorToChange(raw === '' ? null : Number(raw))
+            }}
+            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-black placeholder-gray-500 focus:border-blue-500 focus:outline-none"
           />
         </div>
       </FilterBlock>
