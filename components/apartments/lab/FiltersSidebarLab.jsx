@@ -1,6 +1,53 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Search } from 'lucide-react'
-import PriceFilterSection from '../PriceFilterSection'
+import { Search, ChevronDown } from 'lucide-react'
+
+function RangeChips({ ranges, counts, isSelected, onToggle, getKey }) {
+  if (!ranges?.length) return null
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {ranges.map((r, idx) => {
+        const count = counts?.[idx] ?? 0
+        const active = isSelected(idx, r)
+        const disabled = count === 0 && !active
+        const key = getKey ? getKey(idx, r) : idx
+        return (
+          <button
+            key={key}
+            type="button"
+            disabled={disabled}
+            onClick={() => onToggle(idx, r)}
+            className={`rounded-full border px-3 py-1 text-xs transition ${
+              active
+                ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+            } ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
+          >
+            {r.label} <span className="opacity-60">({count})</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function CustomRangeBlock({ label = 'Свой диапазон', children }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-1 text-left text-xs font-medium text-gray-600 transition hover:bg-gray-50"
+      >
+        <span>{label}</span>
+        <ChevronDown
+          className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open ? <div className="mt-2">{children}</div> : null}
+    </div>
+  )
+}
 
 function CountedCheckboxList({ items, counts, selected, onToggle, emptyText }) {
   if (!items.length) {
@@ -242,9 +289,22 @@ export default function FiltersSidebarLab({
     if (!complexSearch.trim()) return complexBuildingsTree ?? []
     const q = complexSearch.trim().toLowerCase()
     return (complexBuildingsTree ?? []).filter((c) =>
-      String(c?.complexName ?? '').toLowerCase().includes(q)
+      String(c?.complexName ?? '').toLowerCase().includes(q) ||
+      String(c?.developerName ?? '').toLowerCase().includes(q)
     )
   }, [complexBuildingsTree, complexSearch])
+
+  const complexTreeByDeveloper = useMemo(() => {
+    const groups = new Map()
+    for (const item of filteredComplexTree) {
+      const dev = item.developerName || 'Без застройщика'
+      if (!groups.has(dev)) groups.set(dev, [])
+      groups.get(dev).push(item)
+    }
+    return [...groups.entries()]
+      .map(([dev, items]) => ({ dev, items }))
+      .sort((a, b) => String(a.dev).localeCompare(String(b.dev), 'ru'))
+  }, [filteredComplexTree])
 
   return (
     <div className="w-[300px] space-y-4">
@@ -311,47 +371,34 @@ export default function FiltersSidebarLab({
         open={openSections.price}
         onToggle={() => toggleSection('price')}
       >
-        <div className="w-full text-left">
-          <PriceFilterSection
-            priceMin={priceMin}
-            priceMax={priceMax}
-            onPriceMinChange={onPriceMinChange}
-            onPriceMaxChange={onPriceMaxChange}
-            absMin={absMin}
-            absMax={absMax}
-          />
-        </div>
-
-        <p className="mb-2 mt-2 text-left text-sm font-medium text-gray-800">
-          Диапазоны цены
-        </p>
-        <div className="space-y-1 text-left">
-          {priceRanges.map((r, idx) => {
-            const count = priceCounts?.[idx] ?? 0
-            const checked = selectedPriceRanges.includes(idx)
-            const disabled = count === 0 && !checked
-            return (
-              <label
-                key={r.label}
-                className={`flex cursor-pointer items-center justify-between gap-3 rounded-md px-1 py-1 transition hover:bg-gray-50 ${
-                  disabled ? 'opacity-40' : ''
-                }`}
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    disabled={disabled}
-                    onChange={() => onTogglePriceRange(idx)}
-                    className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                  />
-                  <span className="truncate text-sm text-gray-900">{r.label}</span>
-                </div>
-                <span className="shrink-0 text-sm text-gray-400">({count})</span>
-              </label>
-            )
-          })}
-        </div>
+        <RangeChips
+          ranges={priceRanges}
+          counts={priceCounts}
+          isSelected={(idx) => selectedPriceRanges.includes(idx)}
+          onToggle={(idx) => onTogglePriceRange(idx)}
+        />
+        <CustomRangeBlock>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="number"
+              placeholder="От, ₽"
+              value={priceMin === absMin ? '' : priceMin}
+              onChange={(e) =>
+                onPriceMinChange(e.target.value === '' ? absMin : Number(e.target.value))
+              }
+              className="w-full rounded-xl bg-gray-100 px-3 py-2 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="number"
+              placeholder="До, ₽"
+              value={priceMax === absMax ? '' : priceMax}
+              onChange={(e) =>
+                onPriceMaxChange(e.target.value === '' ? absMax : Number(e.target.value))
+              }
+              className="w-full rounded-xl bg-gray-100 px-3 py-2 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </CustomRangeBlock>
       </FilterBlock>
 
       {/* 3. Срок сдачи */}
@@ -410,53 +457,31 @@ export default function FiltersSidebarLab({
         open={openSections.area}
         onToggle={() => toggleSection('area')}
       >
-        <div className="flex gap-3">
-          <input
-            type="number"
-            placeholder="От"
-            value={areaFrom}
-            onChange={(e) => onAreaFromChange(e.target.value)}
-            className="w-full rounded-xl bg-gray-100 p-3 text-left text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="number"
-            placeholder="До"
-            value={areaTo}
-            onChange={(e) => onAreaToChange(e.target.value)}
-            className="w-full rounded-xl bg-gray-100 p-3 text-left text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <p className="mb-2 mt-4 text-left text-sm font-medium text-gray-800">
-          Диапазоны площади
-        </p>
-        <div className="space-y-2 text-left">
-          {(areaRanges ?? []).map((r, idx) => {
-            const count = areaCounts?.[idx] ?? 0
-            const checked = selectedAreaRanges.some((x) => x.label === r.label)
-            const disabled = count === 0 && !checked
-            return (
-              <label
-                key={r.label}
-                className={`flex cursor-pointer items-center justify-between gap-3 rounded-md px-1 py-1 transition hover:bg-gray-50 ${
-                  disabled ? 'opacity-40' : ''
-                }`}
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    disabled={disabled}
-                    onChange={() => onToggleAreaRange(r)}
-                    className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                  />
-                  <span className="truncate text-sm text-gray-900">{r.label}</span>
-                </div>
-                <span className="shrink-0 text-sm text-gray-400">({count})</span>
-              </label>
-            )
-          })}
-        </div>
+        <RangeChips
+          ranges={areaRanges}
+          counts={areaCounts}
+          isSelected={(idx, r) => selectedAreaRanges.some((x) => x.label === r.label)}
+          onToggle={(idx, r) => onToggleAreaRange(r)}
+          getKey={(idx, r) => r.label}
+        />
+        <CustomRangeBlock>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="number"
+              placeholder="От, м²"
+              value={areaFrom}
+              onChange={(e) => onAreaFromChange(e.target.value)}
+              className="w-full rounded-xl bg-gray-100 px-3 py-2 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="number"
+              placeholder="До, м²"
+              value={areaTo}
+              onChange={(e) => onAreaToChange(e.target.value)}
+              className="w-full rounded-xl bg-gray-100 px-3 py-2 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </CustomRangeBlock>
       </FilterBlock>
 
       {/* 5. Особенности */}
@@ -520,33 +545,12 @@ export default function FiltersSidebarLab({
         open={openSections.ppm}
         onToggle={() => toggleSection('ppm')}
       >
-        <div className="space-y-1 text-left">
-          {(ppmRanges ?? []).map((r, idx) => {
-            const count = ppmCounts?.[idx] ?? 0
-            const checked = selectedPpmRanges?.includes(idx)
-            const disabled = count === 0 && !checked
-            return (
-              <label
-                key={r.label}
-                className={`flex cursor-pointer items-center justify-between gap-3 rounded-md px-1 py-1 transition hover:bg-gray-50 ${
-                  disabled ? 'opacity-40' : ''
-                }`}
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    disabled={disabled}
-                    onChange={() => onTogglePpmRange(idx)}
-                    className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                  />
-                  <span className="truncate text-sm text-gray-900">{r.label}</span>
-                </div>
-                <span className="shrink-0 text-sm text-gray-400">({count})</span>
-              </label>
-            )
-          })}
-        </div>
+        <RangeChips
+          ranges={ppmRanges}
+          counts={ppmCounts}
+          isSelected={(idx) => (selectedPpmRanges ?? []).includes(idx)}
+          onToggle={(idx) => onTogglePpmRange(idx)}
+        />
       </FilterBlock>
 
       {/* 8. Застройщики (с поиском + счётчики) */}
@@ -584,122 +588,131 @@ export default function FiltersSidebarLab({
             placeholder="Поиск ЖК…"
           />
         ) : null}
-        <div className="space-y-3">
-          {filteredComplexTree.length ? (
-            filteredComplexTree.map(({ complexName, buildings }) => {
-              const allIds = buildings.map((b) => b.id)
-              const totalCount = complexCountsByName?.[complexName] ?? 0
-              const wholeSelected = selectedComplexes.includes(complexName)
-              const allIndividually =
-                allIds.length > 0 &&
-                allIds.every((id) => selectedBuildingIds.includes(id))
-              const someIndividually = allIds.some((id) =>
-                selectedBuildingIds.includes(id)
-              )
-              const indeterminate =
-                !wholeSelected && someIndividually && !allIndividually
-              const parentChecked = wholeSelected || allIndividually
-              const parentDisabled = totalCount === 0 && !parentChecked
-              const litersExpanded = !collapsedZhks.has(complexName)
+        <div className="space-y-4">
+          {complexTreeByDeveloper.length ? (
+            complexTreeByDeveloper.map(({ dev, items }) => (
+              <div key={dev} className="space-y-2">
+                {complexTreeByDeveloper.length > 1 ? (
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                    {dev}
+                  </p>
+                ) : null}
+                {items.map(({ complexName, buildings }) => {
+                  const allIds = buildings.map((b) => b.id)
+                  const totalCount = complexCountsByName?.[complexName] ?? 0
+                  const wholeSelected = selectedComplexes.includes(complexName)
+                  const allIndividually =
+                    allIds.length > 0 &&
+                    allIds.every((id) => selectedBuildingIds.includes(id))
+                  const someIndividually = allIds.some((id) =>
+                    selectedBuildingIds.includes(id)
+                  )
+                  const indeterminate =
+                    !wholeSelected && someIndividually && !allIndividually
+                  const parentChecked = wholeSelected || allIndividually
+                  const parentDisabled = totalCount === 0 && !parentChecked
+                  const litersExpanded = !collapsedZhks.has(complexName)
 
-              return (
-                <div key={complexName} className="rounded-lg border border-gray-100 bg-gray-50/80 p-2">
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      aria-expanded={litersExpanded}
-                      title={litersExpanded ? 'Свернуть литеры' : 'Развернуть литеры'}
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-gray-600 transition hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1"
-                      onClick={() => toggleZhkLiters(complexName)}
-                    >
-                      <span
-                        className={`inline-block text-[10px] leading-none transition-transform duration-200 ease-out motion-reduce:transition-none ${
-                          litersExpanded ? 'rotate-0' : '-rotate-90'
-                        }`}
-                        aria-hidden
-                      >
-                        ▼
-                      </span>
-                    </button>
-                    <label
-                      className={`flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-md px-1 py-0.5 text-sm font-medium text-gray-900 transition hover:bg-white/80 ${
-                        parentDisabled ? 'opacity-40' : ''
-                      }`}
-                    >
-                      <div className="flex min-w-0 items-center gap-2">
-                        <input
-                          type="checkbox"
-                          ref={(el) => {
-                            if (el) el.indeterminate = indeterminate
-                          }}
-                          checked={parentChecked}
-                          disabled={parentDisabled}
-                          onChange={() => {
-                            if (parentChecked && !indeterminate) {
-                              onToggleComplexWhole(complexName, allIds, false)
-                            } else {
-                              onToggleComplexWhole(complexName, allIds, true)
-                            }
-                          }}
-                          className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                        />
-                        <span className="truncate">{complexName}</span>
+                  return (
+                    <div key={complexName} className="rounded-lg border border-gray-100 bg-gray-50/80 p-2">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          aria-expanded={litersExpanded}
+                          title={litersExpanded ? 'Свернуть литеры' : 'Развернуть литеры'}
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-gray-600 transition hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1"
+                          onClick={() => toggleZhkLiters(complexName)}
+                        >
+                          <span
+                            className={`inline-block text-[10px] leading-none transition-transform duration-200 ease-out motion-reduce:transition-none ${
+                              litersExpanded ? 'rotate-0' : '-rotate-90'
+                            }`}
+                            aria-hidden
+                          >
+                            ▼
+                          </span>
+                        </button>
+                        <label
+                          className={`flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-md px-1 py-0.5 text-sm font-medium text-gray-900 transition hover:bg-white/80 ${
+                            parentDisabled ? 'opacity-40' : ''
+                          }`}
+                        >
+                          <div className="flex min-w-0 items-center gap-2">
+                            <input
+                              type="checkbox"
+                              ref={(el) => {
+                                if (el) el.indeterminate = indeterminate
+                              }}
+                              checked={parentChecked}
+                              disabled={parentDisabled}
+                              onChange={() => {
+                                if (parentChecked && !indeterminate) {
+                                  onToggleComplexWhole(complexName, allIds, false)
+                                } else {
+                                  onToggleComplexWhole(complexName, allIds, true)
+                                }
+                              }}
+                              className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                            />
+                            <span className="truncate">{complexName}</span>
+                          </div>
+                          <span className="shrink-0 text-sm text-gray-400">
+                            ({totalCount})
+                          </span>
+                        </label>
                       </div>
-                      <span className="shrink-0 text-sm text-gray-400">
-                        ({totalCount})
-                      </span>
-                    </label>
-                  </div>
 
-                  <div
-                    className={`grid transition-[grid-template-rows] duration-300 ease-in-out motion-reduce:transition-none ${
-                      litersExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
-                    }`}
-                  >
-                    <div className="min-h-0 overflow-hidden">
-                      <div className="mt-2 space-y-1 border-l-2 border-blue-200 pl-3">
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                          Литеры
-                        </p>
-                        {buildings.map((b) => {
-                          const bCount = buildingCountsById?.[b.id] ?? 0
-                          const childChecked =
-                            wholeSelected || selectedBuildingIds.includes(b.id)
-                          const childDisabled = bCount === 0 && !childChecked
-                          return (
-                            <label
-                              key={b.id}
-                              className={`flex cursor-pointer items-center justify-between gap-2 rounded-md py-0.5 pl-1 text-sm text-gray-800 transition hover:bg-white/90 ${
-                                childDisabled ? 'opacity-40' : ''
-                              }`}
-                            >
-                              <div className="flex min-w-0 items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={childChecked}
-                                  disabled={childDisabled}
-                                  onChange={() =>
-                                    onToggleBuilding(complexName, b.id, allIds)
-                                  }
-                                  className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                                />
-                                <span className="truncate">
-                                  {b.name}
-                                  {b.address ? ` (${b.address})` : ''}
-                                </span>
-                              </div>
-                              <span className="shrink-0 text-xs text-gray-400">
-                                ({bCount})
-                              </span>
-                            </label>
-                          )
-                        })}
+                      <div
+                        className={`grid transition-[grid-template-rows] duration-300 ease-in-out motion-reduce:transition-none ${
+                          litersExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                        }`}
+                      >
+                        <div className="min-h-0 overflow-hidden">
+                          <div className="mt-2 space-y-1 border-l-2 border-blue-200 pl-3">
+                            <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                              Литеры
+                            </p>
+                            {buildings.map((b) => {
+                              const bCount = buildingCountsById?.[b.id] ?? 0
+                              const childChecked =
+                                wholeSelected || selectedBuildingIds.includes(b.id)
+                              const childDisabled = bCount === 0 && !childChecked
+                              return (
+                                <label
+                                  key={b.id}
+                                  className={`flex cursor-pointer items-center justify-between gap-2 rounded-md py-0.5 pl-1 text-sm text-gray-800 transition hover:bg-white/90 ${
+                                    childDisabled ? 'opacity-40' : ''
+                                  }`}
+                                >
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={childChecked}
+                                      disabled={childDisabled}
+                                      onChange={() =>
+                                        onToggleBuilding(complexName, b.id, allIds)
+                                      }
+                                      className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                                    />
+                                    <span className="truncate">
+                                      {b.name}
+                                      {b.address ? ` (${b.address})` : ''}
+                                    </span>
+                                  </div>
+                                  <span className="shrink-0 text-xs text-gray-400">
+                                    ({bCount})
+                                  </span>
+                                </label>
+                              )
+                            })}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              )
-            })
+                  )
+                })}
+              </div>
+            ))
           ) : (
             <p className="text-xs text-gray-400">
               {complexSearch ? 'Ничего не найдено' : 'Нет данных'}

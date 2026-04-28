@@ -271,13 +271,16 @@ export default function ApartmentsLabPage() {
   /** ЖК → литеры (корпуса) для вложенного фильтра */
   const complexBuildingsTree = useMemo(() => {
     const byComplex = new Map()
+    const developerByComplex = new Map()
     for (const u of units ?? []) {
       const cn = u?.building?.complex?.name
       const bid = u?.building?.id
       const bn = u?.building?.name
       const addr = u?.building?.address
+      const dev = u?.building?.complex?.developer?.name
       if (!cn || !bid) continue
       if (!byComplex.has(cn)) byComplex.set(cn, new Map())
+      if (dev && !developerByComplex.has(cn)) developerByComplex.set(cn, dev)
       const m = byComplex.get(cn)
       if (!m.has(bid)) m.set(bid, { name: bn ? String(bn).trim() : 'Корпус', address: addr || null })
     }
@@ -290,7 +293,11 @@ export default function ApartmentsLabPage() {
           .sort((a, b) =>
             String(a.name).localeCompare(String(b.name), 'ru', { numeric: true })
           )
-        return { complexName, buildings }
+        return {
+          complexName,
+          developerName: developerByComplex.get(complexName) || null,
+          buildings,
+        }
       })
   }, [units, uniqueComplexes])
 
