@@ -16,7 +16,7 @@ function RangeChips({ ranges, counts, isSelected, onToggle, getKey }) {
             type="button"
             disabled={disabled}
             onClick={() => onToggle(idx, r)}
-            className={`rounded-full border px-3 py-1 text-xs transition ${
+            className={`rounded-full border px-3 py-1.5 text-sm transition ${
               active
                 ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
                 : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
@@ -37,7 +37,7 @@ function CustomRangeBlock({ label = 'Свой диапазон', children }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-1 text-left text-xs font-medium text-gray-600 transition hover:bg-gray-50"
+        className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-1 text-left text-sm font-medium text-gray-600 transition hover:bg-gray-50"
       >
         <span>{label}</span>
         <ChevronDown
@@ -65,7 +65,7 @@ function NameChips({ items, counts, selected, onToggle, emptyText }) {
             type="button"
             disabled={disabled}
             onClick={() => onToggle(name)}
-            className={`rounded-full border px-3 py-1 text-xs transition ${
+            className={`rounded-full border px-3 py-1.5 text-sm transition ${
               active
                 ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
                 : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
@@ -256,7 +256,7 @@ export default function FiltersSidebarLab({
                 type="button"
                 disabled={disabled}
                 onClick={() => onToggleRoom(r.value)}
-                className={`rounded-full border px-3 py-1 text-xs transition ${
+                className={`rounded-full border px-3 py-1.5 text-sm transition ${
                   active
                     ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
                     : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
@@ -327,7 +327,7 @@ export default function FiltersSidebarLab({
                   type="button"
                   disabled={disabled}
                   onClick={() => onToggleHandover(opt.key)}
-                  className={`rounded-full border px-3 py-1 text-xs transition ${
+                  className={`rounded-full border px-3 py-1.5 text-sm transition ${
                     active
                       ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
                       : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
@@ -394,7 +394,7 @@ export default function FiltersSidebarLab({
                 type="button"
                 disabled={disabled}
                 onClick={() => onToggleTwoLevel?.()}
-                className={`rounded-full border px-3 py-1 text-xs transition ${
+                className={`rounded-full border px-3 py-1.5 text-sm transition ${
                   active
                     ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
                     : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
@@ -513,7 +513,7 @@ export default function FiltersSidebarLab({
                                 onToggleComplexWhole(complexName, allIds, true)
                               }
                             }}
-                            className={`flex-1 rounded-full border px-3 py-1 text-xs text-left transition ${
+                            className={`flex-1 rounded-full border px-3 py-1.5 text-sm text-left transition ${
                               someActive
                                 ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
                                 : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
@@ -554,7 +554,7 @@ export default function FiltersSidebarLab({
                                   onClick={() =>
                                     onToggleBuilding(complexName, b.id, allIds)
                                   }
-                                  className={`rounded-full border px-2.5 py-0.5 text-[11px] transition ${
+                                  className={`rounded-full border px-2.5 py-1 text-xs transition ${
                                     childChecked
                                       ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
                                       : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
