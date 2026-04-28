@@ -513,14 +513,14 @@ export default function FiltersSidebarLab({
                                 onToggleComplexWhole(complexName, allIds, true)
                               }
                             }}
-                            className={`flex-1 rounded-full border px-3 py-1.5 text-sm text-left transition ${
+                            className={`flex min-w-0 flex-1 items-center gap-1 rounded-full border px-3 py-1.5 text-sm text-left transition ${
                               someActive
                                 ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
                                 : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                             } ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
                           >
-                            <span className="truncate">{complexName}</span>
-                            <span className="opacity-60"> ({totalCount})</span>
+                            <span className="min-w-0 truncate">{complexName}</span>
+                            <span className="shrink-0 opacity-60">({totalCount})</span>
                           </button>
                           {hasMultipleLiters ? (
                             <button
