@@ -1407,8 +1407,8 @@ export default function ApartmentsLabPage() {
         </div>
 
 
-        <div className="flex gap-6">
-          <div className="w-[300px] shrink-0 space-y-4">
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <div className="w-full shrink-0 space-y-4 lg:w-[300px]">
             <div className="flex rounded-xl border border-gray-200 bg-white p-1">
               <SegBtn
                 active={pageView === 'units'}

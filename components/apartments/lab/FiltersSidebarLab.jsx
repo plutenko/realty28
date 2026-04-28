@@ -222,7 +222,7 @@ export default function FiltersSidebarLab({
   }, [complexBuildingsTree])
 
   return (
-    <div className="w-[300px] space-y-4">
+    <div className="w-full space-y-4 lg:w-[300px]">
       <h2 className="text-lg font-bold text-gray-900">Фильтр</h2>
 
       {hasActiveFilters && onResetFilters ? (
