@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronUp, ChevronDown, Plus, X, Trash2, Heart } from 'lucide-react'
+import { ChevronUp, ChevronDown, Plus, X, Heart, ImageOff } from 'lucide-react'
 import { calcCommission, formatPriceRub, formatRooms } from '../../../lib/format'
 
 const MAX_UNITS = 20
@@ -33,49 +33,67 @@ export default function SelectionBar({
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-rose-200 bg-rose-50 shadow-[0_-4px_16px_rgba(244,63,94,0.12)]">
-      {/* Раскрываемый список выбранных */}
+      {/* Раскрываемая горизонтальная лента мини-карточек */}
       {expanded ? (
-        <div className="max-h-[40vh] overflow-y-auto border-b border-rose-100 bg-rose-50/60 px-4 py-3">
-          <div className="mx-auto max-w-7xl space-y-1.5">
-            {selectedList.length === 0 ? (
-              <div className="text-sm text-gray-500">Список пуст</div>
-            ) : (
-              selectedList.map((u) => {
+        <div className="border-b border-rose-100 bg-rose-50/60 px-4 py-3">
+          {selectedList.length === 0 ? (
+            <div className="text-sm text-gray-500">Список пуст</div>
+          ) : (
+            <div
+              className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
+              {selectedList.map((u) => {
                 const c = u?.building?.complex
                 const b = u?.building
                 const ap = calcCommission(u).amount
+                const photo = u?.layout_image_url || u?.finish_image_url || null
                 return (
                   <div
                     key={u.id}
-                    className="flex items-center gap-3 rounded-lg bg-white px-3 py-2 text-sm shadow-sm"
+                    className="relative flex w-[85%] shrink-0 snap-center gap-2.5 rounded-lg bg-white p-2 shadow-sm sm:w-[280px] sm:snap-start"
                   >
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium text-gray-900">
+                    <div className="flex h-16 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md bg-gray-50">
+                      {photo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={photo}
+                          alt=""
+                          className="h-full w-full object-contain"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <ImageOff className="h-5 w-5 text-gray-300" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 pr-5">
+                      <div className="truncate text-xs font-semibold text-gray-900">
                         {c?.name ?? '—'} · {b?.name ?? '—'} · №{u?.number ?? '—'}
                       </div>
-                      <div className="truncate text-xs text-gray-500">
+                      <div className="truncate text-[11px] text-gray-500">
                         {formatRooms(u?.rooms)} · {u?.area ?? '—'} м² ·{' '}
                         {formatPriceRub(u?.price)} ₽
-                        {ap != null ? (
-                          <span className="ml-2 text-emerald-600">
-                            💰 {formatPriceRub(ap)} ₽
-                          </span>
-                        ) : null}
                       </div>
+                      {ap != null ? (
+                        <div className="truncate text-[11px] text-emerald-600">
+                          💰 {formatPriceRub(ap)} ₽
+                        </div>
+                      ) : null}
                     </div>
                     <button
                       type="button"
                       onClick={() => onRemoveUnit?.(u.id)}
-                      className="shrink-0 rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                      className="absolute right-1 top-1 rounded-full p-1 text-gray-400 hover:bg-rose-50 hover:text-rose-600"
                       title="Убрать из подборки"
+                      aria-label="Убрать из подборки"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 )
-              })
-            )}
-          </div>
+              })}
+            </div>
+          )}
         </div>
       ) : null}
 
