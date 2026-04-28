@@ -1306,11 +1306,6 @@ export default function ApartmentsLabPage() {
           </div>
         </div>
 
-        {pageView === 'units' && activeFilterChips.length > 0 ? (
-          <div className="mb-3">
-            <ActiveFilterChips chips={activeFilterChips} />
-          </div>
-        ) : null}
 
         <div className="flex gap-6">
           <div className="w-[300px] shrink-0 space-y-4">

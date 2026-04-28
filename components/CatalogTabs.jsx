@@ -20,10 +20,10 @@ export default function CatalogTabs({ children }) {
   }, [])
 
   const tabClass = (href) =>
-    `rounded-lg px-4 py-2 text-sm font-medium transition ${
+    `relative px-1 py-1 text-sm transition ${
       path === href
-        ? 'bg-blue-500 text-white'
-        : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+        ? 'font-semibold text-gray-900 after:absolute after:inset-x-0 after:-bottom-[14px] after:h-0.5 after:bg-blue-600 after:content-[""]'
+        : 'text-gray-500 hover:text-gray-800'
     }`
 
   const role = profile?.role
@@ -37,7 +37,7 @@ export default function CatalogTabs({ children }) {
   return (
     <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 bg-white px-4 py-3 shadow-sm">
       {/* Табы */}
-      <div className="flex gap-2">
+      <div className="flex gap-5">
         <Link href="/apartments" className={tabClass('/apartments')}>
           Квартиры
         </Link>

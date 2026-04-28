@@ -17,7 +17,7 @@ function MultiCheckboxList({ items, selected, onToggle, emptyText }) {
             type="checkbox"
             checked={selected.includes(name)}
             onChange={() => onToggle(name)}
-            className="accent-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+            className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
           />
           <span className="truncate">{name}</span>
         </label>
@@ -217,7 +217,7 @@ export default function FiltersSidebar({
                     checked={checked}
                     disabled={disabled}
                     onChange={() => onTogglePriceRange(idx)}
-                    className="accent-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                    className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                   />
                   <span className="truncate text-sm text-gray-900">{r.label}</span>
                 </div>
@@ -252,7 +252,7 @@ export default function FiltersSidebar({
                       checked={checked}
                       disabled={disabled}
                       onChange={() => onToggleHandover(opt.key)}
-                      className="accent-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                      className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                     />
                     <span className="truncate text-sm text-gray-900">{opt.label}</span>
                   </div>
@@ -289,7 +289,7 @@ export default function FiltersSidebar({
                     checked={checked}
                     disabled={disabled}
                     onChange={() => onTogglePpmRange(idx)}
-                    className="accent-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                    className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                   />
                   <span className="truncate text-sm text-gray-900">{r.label}</span>
                 </div>
@@ -325,7 +325,7 @@ export default function FiltersSidebar({
                     !selectedRooms.includes(r.value)
                   }
                   onChange={() => onToggleRoom(r.value)}
-                  className="accent-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                  className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                 />
                 <span className="truncate">{r.label}</span>
               </div>
@@ -346,7 +346,7 @@ export default function FiltersSidebar({
               checked={Boolean(twoLevelOnly)}
               disabled={(twoLevelCount ?? 0) === 0 && !twoLevelOnly}
               onChange={() => onToggleTwoLevel?.()}
-              className="accent-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+              className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
             />
             <span className="truncate">Двухуровневые</span>
           </div>
@@ -426,7 +426,7 @@ export default function FiltersSidebar({
                     checked={checked}
                     disabled={disabled}
                     onChange={() => onToggleAreaRange(r)}
-                    className="accent-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                    className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                   />
                   <span className="truncate text-sm text-gray-900">{r.label}</span>
                 </div>
@@ -480,7 +480,7 @@ export default function FiltersSidebar({
                       type="button"
                       aria-expanded={litersExpanded}
                       title={litersExpanded ? 'Свернуть литеры' : 'Развернуть литеры'}
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-gray-600 transition hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-1"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-gray-600 transition hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1"
                       onClick={() => toggleZhkLiters(complexName)}
                     >
                       <span
@@ -512,7 +512,7 @@ export default function FiltersSidebar({
                               onToggleComplexWhole(complexName, allIds, true)
                             }
                           }}
-                          className="accent-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                          className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                         />
                         <span className="truncate">{complexName}</span>
                       </div>
@@ -552,7 +552,7 @@ export default function FiltersSidebar({
                                   onChange={() =>
                                     onToggleBuilding(complexName, b.id, allIds)
                                   }
-                                  className="accent-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                                  className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                                 />
                                 <span className="truncate">
                                   {b.name}
