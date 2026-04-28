@@ -11,7 +11,6 @@ import ApartmentCardLab from '../components/apartments/lab/ApartmentCardLab'
 import SelectionBar from '../components/apartments/lab/SelectionBar'
 import ActiveFilterChips from '../components/apartments/lab/ActiveFilterChips'
 import SortDropdown, { applySort } from '../components/apartments/lab/SortDropdown'
-import QuickChips from '../components/apartments/lab/QuickChips'
 import ShareCollectionModal from '../components/apartments/lab/ShareCollectionModal'
 import { calcCommission } from '../lib/format'
 import ApartmentModal from '../components/apartments/ApartmentModal'
@@ -1315,17 +1314,6 @@ export default function ApartmentsLabPage() {
       </CatalogTabs>
 
       <div className="px-4 py-4 pb-32">
-        {pageView === 'units' ? (
-          <div className="mb-3">
-            <QuickChips
-              selectedRooms={selectedRooms}
-              onSetRooms={setSelectedRooms}
-              handoverOptions={handoverOptions}
-              selectedHandoverKeys={selectedHandoverKeys}
-              onSetHandoverKeys={setSelectedHandoverKeys}
-            />
-          </div>
-        ) : null}
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-3">
             <div className="text-sm text-gray-700">

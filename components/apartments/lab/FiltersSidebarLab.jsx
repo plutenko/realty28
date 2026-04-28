@@ -54,6 +54,53 @@ function SearchInput({ value, onChange, placeholder }) {
   )
 }
 
+function HandoverTriState({ handoverOptions, selectedHandoverKeys, onSetHandoverKeys }) {
+  const plannedKeys = (handoverOptions ?? [])
+    .map((o) => o.key)
+    .filter((k) => k !== 'delivered')
+
+  const onlyDelivered =
+    selectedHandoverKeys.length === 1 && selectedHandoverKeys[0] === 'delivered'
+  const allPlanned =
+    plannedKeys.length > 0 &&
+    selectedHandoverKeys.length === plannedKeys.length &&
+    plannedKeys.every((k) => selectedHandoverKeys.includes(k))
+
+  let mode = 'all'
+  if (onlyDelivered) mode = 'delivered'
+  else if (allPlanned) mode = 'in_progress'
+
+  function setMode(next) {
+    if (next === 'all') return onSetHandoverKeys([])
+    if (next === 'delivered') return onSetHandoverKeys(['delivered'])
+    if (next === 'in_progress') return onSetHandoverKeys(plannedKeys)
+  }
+
+  const chips = [
+    { id: 'all', label: 'Все' },
+    { id: 'delivered', label: 'Готовое' },
+    { id: 'in_progress', label: 'В стройке' },
+  ]
+  const baseChip = 'flex-1 rounded-full border px-2 py-1 text-xs transition'
+  const activeChip = 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
+  const inactiveChip = 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+
+  return (
+    <div className="mb-3 flex gap-1.5">
+      {chips.map((c) => (
+        <button
+          key={c.id}
+          type="button"
+          onClick={() => setMode(c.id)}
+          className={`${baseChip} ${mode === c.id ? activeChip : inactiveChip}`}
+        >
+          {c.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function FilterBlock({ title, open, onToggle, children }) {
   return (
     <div className="rounded-xl bg-white p-4 shadow">
@@ -313,6 +360,17 @@ export default function FiltersSidebarLab({
         open={openSections.handover}
         onToggle={() => toggleSection('handover')}
       >
+        <HandoverTriState
+          handoverOptions={handoverOptions}
+          selectedHandoverKeys={selectedHandoverKeys}
+          onSetHandoverKeys={(keys) => {
+            const current = selectedHandoverKeys
+            const toAdd = keys.filter((k) => !current.includes(k))
+            const toRemove = current.filter((k) => !keys.includes(k))
+            for (const k of toAdd) onToggleHandover(k)
+            for (const k of toRemove) onToggleHandover(k)
+          }}
+        />
         <div className="space-y-1 text-left">
           {(handoverOptions ?? []).length ? (
             handoverOptions.map((opt) => {
