@@ -140,6 +140,9 @@ export default function FiltersSidebarLab({
   twoLevelOnly,
   onToggleTwoLevel,
   twoLevelCount,
+  renovationOnly,
+  onToggleRenovation,
+  renovationCount,
   floorFrom,
   floorTo,
   onFloorFromChange,
@@ -385,25 +388,39 @@ export default function FiltersSidebarLab({
         onToggle={() => toggleSection('features')}
       >
         <div className="flex flex-wrap gap-1.5">
-          {(() => {
-            const count = twoLevelCount ?? 0
-            const active = Boolean(twoLevelOnly)
-            const disabled = count === 0 && !active
+          {[
+            {
+              key: 'twolevel',
+              label: 'Двухуровневые',
+              count: twoLevelCount ?? 0,
+              active: Boolean(twoLevelOnly),
+              onToggle: onToggleTwoLevel,
+            },
+            {
+              key: 'renovation',
+              label: 'С ремонтом',
+              count: renovationCount ?? 0,
+              active: Boolean(renovationOnly),
+              onToggle: onToggleRenovation,
+            },
+          ].map((f) => {
+            const disabled = f.count === 0 && !f.active
             return (
               <button
+                key={f.key}
                 type="button"
                 disabled={disabled}
-                onClick={() => onToggleTwoLevel?.()}
+                onClick={() => f.onToggle?.()}
                 className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                  active
+                  f.active
                     ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
                     : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                 } ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
               >
-                Двухуровневые <span className="opacity-60">({count})</span>
+                {f.label} <span className="opacity-60">({f.count})</span>
               </button>
             )
-          })()}
+          })}
         </div>
       </FilterBlock>
 

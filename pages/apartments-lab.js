@@ -154,6 +154,7 @@ export default function ApartmentsLabPage() {
   const [selectedPriceRanges, setSelectedPriceRanges] = useState([])
   const [selectedRooms, setSelectedRooms] = useState([])
   const [twoLevelOnly, setTwoLevelOnly] = useState(false)
+  const [renovationOnly, setRenovationOnly] = useState(false)
   const [floorFrom, setFloorFrom] = useState(null)
   const [floorTo, setFloorTo] = useState(null)
   const [areaFrom, setAreaFrom] = useState('')
@@ -500,6 +501,19 @@ export default function ApartmentsLabPage() {
     }).length
   }, [baseFiltered, selectedPriceRanges, priceMin, priceMax, selectedAreaRanges])
 
+  const renovationCount = useMemo(() => {
+    return baseFiltered.filter((u) => {
+      const p = Number(u?.price ?? 0)
+      const matchSlider = p >= priceMin && p <= priceMax
+      const priceMatches =
+        matchSlider &&
+        (selectedPriceRanges.length === 0 ||
+          selectedPriceRanges.some((idx) => priceOkForIndex(u, idx)))
+      const matchAreaQuick = unitAreaQuickRangesMatch(u, selectedAreaRanges)
+      return priceMatches && matchAreaQuick && u?.has_renovation === true
+    }).length
+  }, [baseFiltered, selectedPriceRanges, priceMin, priceMax, selectedAreaRanges])
+
   /** Счётчики по корзинам площади: все прочие фильтры, без учёта выбранных чекбоксов площади */
   const areaCounts = useMemo(() => {
     return areaRanges.map((range) => {
@@ -626,11 +640,13 @@ export default function ApartmentsLabPage() {
         const matchRoom = roomsOk(u, selectedRooms)
         const matchAreaQuick = unitAreaQuickRangesMatch(u, selectedAreaRanges)
         const matchTwoLevel = !twoLevelOnly || Number(u?.span_floors ?? 1) >= 2
+        const matchRenovation = !renovationOnly || u?.has_renovation === true
         return (
           pMatches &&
           matchRoom &&
           matchAreaQuick &&
           matchTwoLevel &&
+          matchRenovation &&
           u?.building?.complex?.developer?.name === name
         )
       }).length
@@ -646,6 +662,7 @@ export default function ApartmentsLabPage() {
     selectedRooms,
     selectedAreaRanges,
     twoLevelOnly,
+    renovationOnly,
   ])
 
   const handoverCountsByKey = useMemo(() => {
@@ -774,6 +791,7 @@ export default function ApartmentsLabPage() {
         })
 
       const matchTwoLevel = !twoLevelOnly || Number(u?.span_floors ?? 1) >= 2
+      const matchRenovation = !renovationOnly || u?.has_renovation === true
 
       return (
         notSold &&
@@ -785,6 +803,7 @@ export default function ApartmentsLabPage() {
         matchPriceRanges &&
         matchRooms &&
         matchTwoLevel &&
+        matchRenovation &&
         unitMatchesPpmRanges(u, selectedPpmRanges) &&
         (floorFrom == null || (u?.floor ?? 0) >= floorFrom) &&
         (floorTo == null || (u?.floor ?? 0) <= floorTo) &&
@@ -804,6 +823,7 @@ export default function ApartmentsLabPage() {
     selectedPriceRanges,
     selectedRooms,
     twoLevelOnly,
+    renovationOnly,
     floorFrom,
     floorTo,
     areaFrom,
@@ -826,6 +846,7 @@ export default function ApartmentsLabPage() {
       selectedRooms.length > 0 ||
       selectedAreaRanges.length > 0 ||
       twoLevelOnly ||
+      renovationOnly ||
       priceMin > ABS_MIN ||
       priceMax < ABS_MAX ||
       floorFrom != null ||
@@ -843,6 +864,7 @@ export default function ApartmentsLabPage() {
     selectedRooms,
     selectedAreaRanges,
     twoLevelOnly,
+    renovationOnly,
     priceMin,
     priceMax,
     floorFrom,
@@ -866,6 +888,13 @@ export default function ApartmentsLabPage() {
         key: 'twolevel',
         label: 'Двухуровневые',
         onRemove: () => setTwoLevelOnly(false),
+      })
+    }
+    if (renovationOnly) {
+      chips.push({
+        key: 'renovation',
+        label: 'С ремонтом',
+        onRemove: () => setRenovationOnly(false),
       })
     }
     selectedPriceRanges.forEach((idx) => {
@@ -1140,6 +1169,7 @@ export default function ApartmentsLabPage() {
     setSelectedRooms([])
     setSelectedAreaRanges([])
     setTwoLevelOnly(false)
+    setRenovationOnly(false)
     setPriceMin(ABS_MIN)
     setPriceMax(ABS_MAX)
     setFloorFrom(null)
@@ -1425,6 +1455,9 @@ export default function ApartmentsLabPage() {
             twoLevelOnly={twoLevelOnly}
             onToggleTwoLevel={() => setTwoLevelOnly((v) => !v)}
             twoLevelCount={twoLevelCount}
+            renovationOnly={renovationOnly}
+            onToggleRenovation={() => setRenovationOnly((v) => !v)}
+            renovationCount={renovationCount}
             complexCountsByName={complexCountsByName}
             buildingCountsById={buildingCountsById}
             handoverOptions={handoverOptions}
