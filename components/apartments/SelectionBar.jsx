@@ -136,7 +136,7 @@ export default function SelectionBar({
             title="Снять выбор со всех"
           >
             <X className="h-4 w-4" />
-            <span className="hidden sm:inline">Очистить</span>
+            <span className="hidden sm:inline">Очистить подборку</span>
           </button>
           <button
             type="button"
