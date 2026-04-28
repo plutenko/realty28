@@ -1290,7 +1290,7 @@ export default function ApartmentsLabPage() {
           </div>
           <a
             href="/apartments"
-            className="mt-4 inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
+            className="mt-4 inline-block rounded-lg border border-blue-500 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
           >
             Перейти на /apartments
           </a>
@@ -1354,8 +1354,8 @@ export default function ApartmentsLabPage() {
               onClick={() => setViewMode('grid')}
               className={`rounded-lg border p-2 transition ${
                 viewMode === 'grid'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
               }`}
               aria-label="Grid"
             >
@@ -1366,8 +1366,8 @@ export default function ApartmentsLabPage() {
               onClick={() => setViewMode('list')}
               className={`rounded-lg border p-2 transition ${
                 viewMode === 'list'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
               }`}
               aria-label="List"
             >
@@ -1529,10 +1529,10 @@ export default function ApartmentsLabPage() {
                             key={b.id}
                             type="button"
                             onClick={() => setSelectedBuildingId(b.id)}
-                            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                            className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                               b.id === selectedBuildingId
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-gray-200 bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                           >
                             {formatName(b.name) || 'Корпус'} <span className="opacity-70">({counterTxt})</span>
@@ -1721,7 +1721,7 @@ export default function ApartmentsLabPage() {
                     createSelection()
                   }}
                   disabled={creatingCollection || selectedUnits.length === 0 || selectedUnits.length > 20}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                  className="rounded-xl border border-blue-500 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400"
                   title={selectedUnits.length > 20 ? `Максимум 20 квартир в подборке, выбрано ${selectedUnits.length}` : 'Создать подборку'}
                 >
                   {creatingCollection ? 'Создаём…' : selectedUnits.length > 20 ? `Лимит: 20 (у вас ${selectedUnits.length})` : 'Создать подборку'}
@@ -1812,7 +1812,7 @@ function MapView({ busy, markers, hasFilters, picked, onPin, onClosePopup, onOpe
             <button
               type="button"
               onClick={() => onOpenChessboard(picked.complex, picked.building)}
-              className="mt-3 w-full rounded-xl bg-blue-600 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
+              className="mt-3 w-full rounded-xl border border-blue-500 bg-blue-50 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
             >
               Смотреть шахматку
             </button>
@@ -1829,7 +1829,7 @@ function SegBtn({ active, disabled, onClick, icon, label, title }) {
   const stateClass = disabled
     ? 'cursor-not-allowed text-gray-400'
     : active
-    ? 'bg-blue-600 text-white shadow-sm'
+    ? 'border border-blue-500 bg-blue-50 text-blue-700'
     : 'text-gray-700 hover:bg-gray-100'
   return (
     <button

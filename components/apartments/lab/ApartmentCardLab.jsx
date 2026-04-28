@@ -261,7 +261,7 @@ export default function ApartmentCardLab({
                         {phone ? (
                           <a
                             href={tel ? `tel:${tel}` : undefined}
-                            className="rounded bg-blue-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-blue-500"
+                            className="rounded border border-blue-500 bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 hover:bg-blue-100"
                           >
                             Позвонить
                           </a>

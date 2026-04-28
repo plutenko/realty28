@@ -73,7 +73,7 @@ export default function ShareCollectionModal({ link, title, onClose }) {
                 className={`flex shrink-0 items-center gap-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
                   copied
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                    : 'border-blue-600 bg-blue-600 text-white hover:bg-blue-500'
+                    : 'border-blue-500 bg-blue-50 text-blue-700 hover:bg-blue-100'
                 }`}
               >
                 {copied ? (
