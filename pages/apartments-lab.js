@@ -6,7 +6,7 @@ import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
 import { fetchComplexesFromApi, fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
 import { formatComplexName, formatName, getComplexDeveloper, sanitizeComplexesPayload, sortBuildingsByName } from '../lib/complexes'
-import FiltersSidebar from '../components/apartments/FiltersSidebar'
+import FiltersSidebarLab from '../components/apartments/lab/FiltersSidebarLab'
 import ApartmentCardLab from '../components/apartments/lab/ApartmentCardLab'
 import SelectionBar from '../components/apartments/lab/SelectionBar'
 import ActiveFilterChips from '../components/apartments/lab/ActiveFilterChips'
@@ -577,6 +577,69 @@ export default function ApartmentsLabPage() {
     priceMin,
     priceMax,
     selectedAreaRanges,
+  ])
+
+  const baseFilteredNoDeveloper = useMemo(() => {
+    return (units ?? []).filter((u) => {
+      const floorVal = u?.floor ?? 0
+      const st = String(u?.status ?? '').toLowerCase()
+      const notSold = st !== 'sold' && st !== 'booked' && st !== 'reserved' && st !== 'closed'
+      const handoverKey = getHandoverKeyForUnit(u)
+      return (
+        notSold &&
+        unitMatchesComplexBuildingFilter(u, selectedComplexes, selectedBuildingIds) &&
+        (selectedHandoverKeys.length === 0 || selectedHandoverKeys.includes(handoverKey)) &&
+        unitMatchesPpmRanges(u, selectedPpmRanges) &&
+        (floorFrom == null || floorVal >= floorFrom) &&
+        (floorTo == null || floorVal <= floorTo) &&
+        unitAreaMatches(u, areaFrom, areaTo)
+      )
+    })
+  }, [
+    units,
+    selectedComplexes,
+    selectedBuildingIds,
+    selectedHandoverKeys,
+    selectedPpmRanges,
+    floorFrom,
+    floorTo,
+    areaFrom,
+    areaTo,
+  ])
+
+  const developerCountsByName = useMemo(() => {
+    const out = {}
+    for (const name of uniqueDevelopers) {
+      out[name] = baseFilteredNoDeveloper.filter((u) => {
+        const p = Number(u?.price ?? 0)
+        const matchSlider = p >= priceMin && p <= priceMax
+        const pMatches =
+          matchSlider &&
+          (selectedPriceRanges.length === 0 ||
+            selectedPriceRanges.some((idx) => priceOkForIndex(u, idx)))
+        const matchRoom = roomsOk(u, selectedRooms)
+        const matchAreaQuick = unitAreaQuickRangesMatch(u, selectedAreaRanges)
+        const matchTwoLevel = !twoLevelOnly || Number(u?.span_floors ?? 1) >= 2
+        return (
+          pMatches &&
+          matchRoom &&
+          matchAreaQuick &&
+          matchTwoLevel &&
+          u?.building?.complex?.developer?.name === name
+        )
+      }).length
+    }
+    return out
+  }, [
+    baseFilteredNoDeveloper,
+    uniqueDevelopers,
+    priceRanges,
+    priceMin,
+    priceMax,
+    selectedPriceRanges,
+    selectedRooms,
+    selectedAreaRanges,
+    twoLevelOnly,
   ])
 
   const handoverCountsByKey = useMemo(() => {
@@ -1276,15 +1339,6 @@ export default function ApartmentsLabPage() {
             >
               Выбрать все по фильтрам ({filtered.length})
             </button>
-            {activeFilterChips.length > 0 ? (
-              <button
-                type="button"
-                onClick={resetAllFilters}
-                className="rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                Сбросить все фильтры ({activeFilterChips.length})
-              </button>
-            ) : null}
           </div>
 
           <div className="ml-auto flex items-center gap-2">
@@ -1341,8 +1395,12 @@ export default function ApartmentsLabPage() {
                 label="Карта"
               />
             </div>
-            <FiltersSidebar
+            <FiltersSidebarLab
+            hasActiveFilters={hasActiveFilters}
+            onResetFilters={resetAllFilters}
+            activeFilterCount={activeFilterChips.length}
             uniqueDevelopers={uniqueDevelopers}
+            developerCountsByName={developerCountsByName}
             complexBuildingsTree={complexBuildingsTree}
             selectedDevelopers={selectedDevelopers}
             selectedComplexes={selectedComplexes}
