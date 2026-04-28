@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Search, ChevronDown } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 
 function RangeChips({ ranges, counts, isSelected, onToggle, getKey }) {
   if (!ranges?.length) return null
@@ -49,54 +49,32 @@ function CustomRangeBlock({ label = 'Свой диапазон', children }) {
   )
 }
 
-function CountedCheckboxList({ items, counts, selected, onToggle, emptyText }) {
-  if (!items.length) {
+function NameChips({ items, counts, selected, onToggle, emptyText }) {
+  if (!items?.length) {
     return <p className="text-xs text-gray-400">{emptyText}</p>
   }
   return (
-    <div className="space-y-1">
+    <div className="flex flex-wrap gap-1.5">
       {items.map((name) => {
         const count = counts?.[name] ?? 0
-        const checked = selected.includes(name)
-        const disabled = count === 0 && !checked
+        const active = selected.includes(name)
+        const disabled = count === 0 && !active
         return (
-          <label
+          <button
             key={name}
-            className={`flex cursor-pointer items-center justify-between gap-2 rounded-md px-1 py-1 text-sm text-gray-900 transition hover:bg-gray-50 ${
-              disabled ? 'opacity-40' : ''
-            }`}
+            type="button"
+            disabled={disabled}
+            onClick={() => onToggle(name)}
+            className={`rounded-full border px-3 py-1 text-xs transition ${
+              active
+                ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+            } ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
           >
-            <div className="flex min-w-0 items-center gap-2">
-              <input
-                type="checkbox"
-                checked={checked}
-                disabled={disabled}
-                onChange={() => onToggle(name)}
-                className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-              />
-              <span className="truncate">{name}</span>
-            </div>
-            {counts ? (
-              <span className="shrink-0 text-xs text-gray-400">({count})</span>
-            ) : null}
-          </label>
+            {name} <span className="opacity-60">({count})</span>
+          </button>
         )
       })}
-    </div>
-  )
-}
-
-function SearchInput({ value, onChange, placeholder }) {
-  return (
-    <div className="relative mb-2">
-      <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-      <input
-        type="search"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-8 pr-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
-      />
     </div>
   )
 }
@@ -249,8 +227,6 @@ export default function FiltersSidebarLab({
   }
 
   const [collapsedZhks, setCollapsedZhks] = useState(() => new Set())
-  const [developerSearch, setDeveloperSearch] = useState('')
-  const [complexSearch, setComplexSearch] = useState('')
 
   const initializedRef = useRef(false)
   useEffect(() => {
@@ -277,26 +253,9 @@ export default function FiltersSidebarLab({
     { label: '4+', value: 4 },
   ]
 
-  const filteredDevelopers = useMemo(() => {
-    if (!developerSearch.trim()) return uniqueDevelopers ?? []
-    const q = developerSearch.trim().toLowerCase()
-    return (uniqueDevelopers ?? []).filter((n) =>
-      String(n).toLowerCase().includes(q)
-    )
-  }, [uniqueDevelopers, developerSearch])
-
-  const filteredComplexTree = useMemo(() => {
-    if (!complexSearch.trim()) return complexBuildingsTree ?? []
-    const q = complexSearch.trim().toLowerCase()
-    return (complexBuildingsTree ?? []).filter((c) =>
-      String(c?.complexName ?? '').toLowerCase().includes(q) ||
-      String(c?.developerName ?? '').toLowerCase().includes(q)
-    )
-  }, [complexBuildingsTree, complexSearch])
-
   const complexTreeByDeveloper = useMemo(() => {
     const groups = new Map()
-    for (const item of filteredComplexTree) {
+    for (const item of (complexBuildingsTree ?? [])) {
       const dev = item.developerName || 'Без застройщика'
       if (!groups.has(dev)) groups.set(dev, [])
       groups.get(dev).push(item)
@@ -304,7 +263,7 @@ export default function FiltersSidebarLab({
     return [...groups.entries()]
       .map(([dev, items]) => ({ dev, items }))
       .sort((a, b) => String(a.dev).localeCompare(String(b.dev), 'ru'))
-  }, [filteredComplexTree])
+  }, [complexBuildingsTree])
 
   return (
     <div className="w-[300px] space-y-4">
@@ -333,35 +292,27 @@ export default function FiltersSidebarLab({
         open={openSections.rooms}
         onToggle={() => toggleSection('rooms')}
       >
-        <div className="grid grid-cols-2 gap-2">
-          {roomsList.map((r) => (
-            <label
-              key={r.value}
-              className={`flex cursor-pointer items-center justify-between gap-2 rounded-md px-1 py-1 text-sm text-gray-900 transition hover:bg-gray-50 ${
-                (roomCountsByValue?.[r.value] ?? 0) === 0 &&
-                !selectedRooms.includes(r.value)
-                  ? 'opacity-40'
-                  : ''
-              }`}
-            >
-              <div className="flex min-w-0 items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={selectedRooms.includes(r.value)}
-                  disabled={
-                    (roomCountsByValue?.[r.value] ?? 0) === 0 &&
-                    !selectedRooms.includes(r.value)
-                  }
-                  onChange={() => onToggleRoom(r.value)}
-                  className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                />
-                <span className="truncate">{r.label}</span>
-              </div>
-              <span className="shrink-0 text-xs text-gray-400">
-                ({roomCountsByValue?.[r.value] ?? 0})
-              </span>
-            </label>
-          ))}
+        <div className="flex flex-wrap gap-1.5">
+          {roomsList.map((r) => {
+            const count = roomCountsByValue?.[r.value] ?? 0
+            const active = selectedRooms.includes(r.value)
+            const disabled = count === 0 && !active
+            return (
+              <button
+                key={r.value}
+                type="button"
+                disabled={disabled}
+                onClick={() => onToggleRoom(r.value)}
+                className={`rounded-full border px-3 py-1 text-xs transition ${
+                  active
+                    ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                } ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
+              >
+                {r.label} <span className="opacity-60">({count})</span>
+              </button>
+            )
+          })}
         </div>
       </FilterBlock>
 
@@ -418,37 +369,32 @@ export default function FiltersSidebarLab({
             for (const k of toRemove) onToggleHandover(k)
           }}
         />
-        <div className="space-y-1 text-left">
-          {(handoverOptions ?? []).length ? (
-            handoverOptions.map((opt) => {
+        {(handoverOptions ?? []).length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {handoverOptions.map((opt) => {
               const count = handoverCountsByKey?.[opt.key] ?? 0
-              const checked = selectedHandoverKeys.includes(opt.key)
-              const disabled = count === 0 && !checked
+              const active = selectedHandoverKeys.includes(opt.key)
+              const disabled = count === 0 && !active
               return (
-                <label
+                <button
                   key={opt.key}
-                  className={`flex cursor-pointer items-center justify-between gap-3 rounded-md px-1 py-1 transition hover:bg-gray-50 ${
-                    disabled ? 'opacity-40' : ''
-                  }`}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onToggleHandover(opt.key)}
+                  className={`rounded-full border px-3 py-1 text-xs transition ${
+                    active
+                      ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  } ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
                 >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      disabled={disabled}
-                      onChange={() => onToggleHandover(opt.key)}
-                      className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                    />
-                    <span className="truncate text-sm text-gray-900">{opt.label}</span>
-                  </div>
-                  <span className="shrink-0 text-sm text-gray-400">({count})</span>
-                </label>
+                  {opt.label} <span className="opacity-60">({count})</span>
+                </button>
               )
-            })
-          ) : (
-            <p className="text-xs text-gray-400">Нет данных</p>
-          )}
-        </div>
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400">Нет данных</p>
+        )}
       </FilterBlock>
 
       {/* 4. Площадь */}
@@ -490,25 +436,27 @@ export default function FiltersSidebarLab({
         open={openSections.features}
         onToggle={() => toggleSection('features')}
       >
-        <label
-          className={`flex cursor-pointer items-center justify-between gap-2 rounded-md px-1 py-1 text-sm text-gray-900 transition hover:bg-gray-50 ${
-            (twoLevelCount ?? 0) === 0 && !twoLevelOnly ? 'opacity-40' : ''
-          }`}
-        >
-          <div className="flex min-w-0 items-center gap-2">
-            <input
-              type="checkbox"
-              checked={Boolean(twoLevelOnly)}
-              disabled={(twoLevelCount ?? 0) === 0 && !twoLevelOnly}
-              onChange={() => onToggleTwoLevel?.()}
-              className="accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-            />
-            <span className="truncate">Двухуровневые</span>
-          </div>
-          <span className="shrink-0 text-xs text-gray-400">
-            ({twoLevelCount ?? 0})
-          </span>
-        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {(() => {
+            const count = twoLevelCount ?? 0
+            const active = Boolean(twoLevelOnly)
+            const disabled = count === 0 && !active
+            return (
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => onToggleTwoLevel?.()}
+                className={`rounded-full border px-3 py-1 text-xs transition ${
+                  active
+                    ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                } ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
+              >
+                Двухуровневые <span className="opacity-60">({count})</span>
+              </button>
+            )
+          })()}
+        </div>
       </FilterBlock>
 
       {/* 6. Этаж */}
@@ -553,41 +501,27 @@ export default function FiltersSidebarLab({
         />
       </FilterBlock>
 
-      {/* 8. Застройщики (с поиском + счётчики) */}
+      {/* 8. Застройщики */}
       <FilterBlock
         title="Застройщики"
         open={openSections.developers}
         onToggle={() => toggleSection('developers')}
       >
-        {(uniqueDevelopers?.length ?? 0) > 5 ? (
-          <SearchInput
-            value={developerSearch}
-            onChange={setDeveloperSearch}
-            placeholder="Поиск застройщика…"
-          />
-        ) : null}
-        <CountedCheckboxList
-          items={filteredDevelopers}
+        <NameChips
+          items={uniqueDevelopers}
           counts={developerCountsByName}
           selected={selectedDevelopers}
           onToggle={onToggleDeveloper}
-          emptyText={developerSearch ? 'Ничего не найдено' : 'Нет данных'}
+          emptyText="Нет данных"
         />
       </FilterBlock>
 
-      {/* 9. ЖК (с поиском) */}
+      {/* 9. ЖК */}
       <FilterBlock
         title="ЖК"
         open={openSections.complexes}
         onToggle={() => toggleSection('complexes')}
       >
-        {(complexBuildingsTree?.length ?? 0) > 5 ? (
-          <SearchInput
-            value={complexSearch}
-            onChange={setComplexSearch}
-            placeholder="Поиск ЖК…"
-          />
-        ) : null}
         <div className="space-y-4">
           {complexTreeByDeveloper.length ? (
             complexTreeByDeveloper.map(({ dev, items }) => (
@@ -715,7 +649,7 @@ export default function FiltersSidebarLab({
             ))
           ) : (
             <p className="text-xs text-gray-400">
-              {complexSearch ? 'Ничего не найдено' : 'Нет данных'}
+              Нет данных
             </p>
           )}
         </div>
