@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronUp, ChevronDown, Plus, X, Trash2 } from 'lucide-react'
+import { ChevronUp, ChevronDown, Plus, X, Trash2, Heart } from 'lucide-react'
 import { calcCommission, formatPriceRub, formatRooms } from '../../../lib/format'
 
 const MAX_UNITS = 20
@@ -32,10 +32,10 @@ export default function SelectionBar({
   const overLimit = selectedUnits.length > MAX_UNITS
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-rose-200 bg-rose-50 shadow-[0_-4px_16px_rgba(244,63,94,0.12)]">
       {/* Раскрываемый список выбранных */}
       {expanded ? (
-        <div className="max-h-[40vh] overflow-y-auto border-b border-gray-100 bg-gray-50 px-4 py-3">
+        <div className="max-h-[40vh] overflow-y-auto border-b border-rose-100 bg-rose-50/60 px-4 py-3">
           <div className="mx-auto max-w-7xl space-y-1.5">
             {selectedList.length === 0 ? (
               <div className="text-sm text-gray-500">Список пуст</div>
@@ -84,10 +84,10 @@ export default function SelectionBar({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-1 text-left transition hover:bg-gray-50"
+          className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-1 text-left transition hover:bg-rose-100/60"
           title={expanded ? 'Свернуть' : 'Раскрыть список'}
         >
-          <span className="text-xl" aria-hidden="true">🛒</span>
+          <Heart className="h-6 w-6 shrink-0 text-rose-500" fill="currentColor" strokeWidth={0} aria-hidden="true" />
           <div className="min-w-0">
             <div className="text-sm font-semibold text-gray-900">
               {selectedUnits.length} {pluralize(selectedUnits.length)}
