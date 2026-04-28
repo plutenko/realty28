@@ -110,7 +110,7 @@ export default function ApartmentCardLab({
     : booked
     ? 'ring-1 ring-amber-300'
     : selected
-    ? 'ring-1 ring-rose-300'
+    ? 'ring-1 ring-rose-200'
     : 'ring-1 ring-green-200'
 
   const handleCardClick = () => {
@@ -124,9 +124,9 @@ export default function ApartmentCardLab({
 
   return (
     <div
-      className={`group relative flex flex-col overflow-hidden rounded-xl bg-white shadow transition hover:shadow-lg ${ringClass} ${
-        listView ? 'sm:flex-row' : ''
-      }`}
+      className={`group relative flex flex-col overflow-hidden rounded-xl shadow transition hover:shadow-lg ${
+        selected ? 'bg-rose-50' : 'bg-white'
+      } ${ringClass} ${listView ? 'sm:flex-row' : ''}`}
     >
       {/* В подборку — сердечко в правом верхнем углу с пульс-анимацией */}
       {!collectionView ? (
