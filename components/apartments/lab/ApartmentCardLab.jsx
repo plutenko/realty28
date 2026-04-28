@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Phone, Info, ImageOff } from 'lucide-react'
+import { Phone, Plus, Check, ImageOff } from 'lucide-react'
 import {
   calcCommission,
   entranceFromPosition,
@@ -123,10 +123,27 @@ export default function ApartmentCardLab({
 
   return (
     <div
-      className={`group flex flex-col overflow-hidden rounded-xl bg-white shadow transition hover:shadow-lg ${ringClass} ${
+      className={`group relative flex flex-col overflow-hidden rounded-xl bg-white shadow transition hover:shadow-lg ${ringClass} ${
         listView ? 'sm:flex-row' : ''
       }`}
     >
+      {/* В подборку — иконка в правом верхнем углу */}
+      {!collectionView ? (
+        <button
+          type="button"
+          onClick={stopAndRun(() => onToggleSelect?.(unit.id))}
+          className={`absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full shadow-md transition ${
+            selected
+              ? 'bg-blue-600 text-white hover:bg-blue-500'
+              : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600'
+          }`}
+          title={selected ? 'Убрать из подборки' : 'Добавить в подборку'}
+          aria-label={selected ? 'Убрать из подборки' : 'Добавить в подборку'}
+        >
+          {selected ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+        </button>
+      ) : null}
+
       {/* Фото / план — фикс. высота, плейсхолдер если нет */}
       <div
         className={`shrink-0 cursor-pointer overflow-hidden bg-gray-50 ${
@@ -210,42 +227,21 @@ export default function ApartmentCardLab({
           </div>
         ) : null}
 
-        {/* Действия */}
+        {/* Контакты застройщика — кнопка снизу */}
         {!collectionView ? (
-          <div className="mt-auto flex items-center justify-between gap-2 pt-2">
-            <label
-              className="flex cursor-pointer items-center gap-1.5 text-sm text-gray-700"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <input
-                type="checkbox"
-                className="h-4 w-4"
-                checked={selected}
-                onChange={() => onToggleSelect?.(unit.id)}
-              />
-              <span>В подборку</span>
-            </label>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={stopAndRun(() => setContactsOpen((v) => !v))}
-                className={`rounded-md p-1.5 transition ${
-                  contactsOpen ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-100'
-                }`}
-                title="Контакты застройщика"
-              >
-                <Phone className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={stopAndRun(() => onOpenDetails?.(unit))}
-                className="rounded-md p-1.5 text-gray-500 transition hover:bg-gray-100"
-                title="Подробнее"
-              >
-                <Info className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={stopAndRun(() => setContactsOpen((v) => !v))}
+            className={`mt-auto flex items-center gap-1.5 self-start rounded-md px-2 py-1 text-xs font-medium transition ${
+              contactsOpen
+                ? 'bg-blue-50 text-blue-600'
+                : 'text-gray-500 hover:bg-gray-100'
+            }`}
+            title="Контакты застройщика"
+          >
+            <Phone className="h-3.5 w-3.5" />
+            <span>{contactsOpen ? 'Скрыть контакты' : 'Контакты застройщика'}</span>
+          </button>
         ) : null}
 
         {/* Раскрываемые контакты — без посредника-кнопки «Показать» */}

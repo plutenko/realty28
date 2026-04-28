@@ -124,7 +124,7 @@ export default function SelectionBar({
             type="button"
             onClick={onCreateCollection}
             disabled={creating || overLimit || selectedUnits.length === 0}
-            className="flex items-center gap-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-gray-300"
+            className="flex items-center gap-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-gray-300"
             title={
               overLimit
                 ? `В подборке максимум ${MAX_UNITS} квартир`
