@@ -83,7 +83,7 @@ export default function ComplexCard({
         <button
           type="button"
           onClick={onOpen}
-          className="shrink-0 rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-600 sm:self-center"
+          className="shrink-0 rounded-xl border border-blue-500 bg-blue-50 px-5 py-2.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100 sm:self-center"
         >
           Шахматка
         </button>
@@ -126,7 +126,7 @@ export default function ComplexCard({
         <button
           type="button"
           onClick={onOpen}
-          className="mt-4 w-full rounded-xl bg-blue-500 py-2.5 text-sm font-medium text-white transition hover:bg-blue-600"
+          className="mt-4 w-full rounded-xl border border-blue-500 bg-blue-50 py-2.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
         >
           Смотреть шахматку
         </button>

@@ -1338,7 +1338,7 @@ export default function ApartmentsLabPage() {
               <button
                 type="button"
                 onClick={resetAllFilters}
-                className="rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="rounded-xl border border-blue-500 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100"
               >
                 Сбросить все фильтры ({activeFilterChips.length})
               </button>

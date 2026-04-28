@@ -269,7 +269,7 @@ export default function ApartmentModal({ unit, onClose, onAddToCollection, isSel
                         {phone && (
                           <a
                             href={tel ? `tel:${tel}` : undefined}
-                            className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-500 transition"
+                            className="rounded-lg border border-blue-500 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 transition"
                           >
                             Позвонить
                           </a>
