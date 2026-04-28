@@ -1327,6 +1327,15 @@ export default function ApartmentsLabPage() {
             >
               Выбрать все по фильтрам ({filtered.length})
             </button>
+            {activeFilterChips.length > 0 ? (
+              <button
+                type="button"
+                onClick={resetAllFilters}
+                className="rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Сбросить все фильтры ({activeFilterChips.length})
+              </button>
+            ) : null}
           </div>
 
           <div className="ml-auto flex items-center gap-2">
@@ -1384,9 +1393,6 @@ export default function ApartmentsLabPage() {
               />
             </div>
             <FiltersSidebarLab
-            hasActiveFilters={hasActiveFilters}
-            onResetFilters={resetAllFilters}
-            activeFilterCount={activeFilterChips.length}
             uniqueDevelopers={uniqueDevelopers}
             developerCountsByName={developerCountsByName}
             complexBuildingsTree={complexBuildingsTree}
