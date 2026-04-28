@@ -110,7 +110,7 @@ export default function ApartmentCardLab({
     : booked
     ? 'ring-1 ring-amber-300'
     : selected
-    ? 'ring-2 ring-blue-500'
+    ? 'ring-2 ring-rose-400'
     : 'ring-1 ring-green-200'
 
   const handleCardClick = () => {
