@@ -8,6 +8,10 @@ import { fetchComplexesFromApi, fetchUnitsFromApi } from '../lib/fetchUnitsFromA
 import { formatComplexName, formatName, getComplexDeveloper, sanitizeComplexesPayload, sortBuildingsByName } from '../lib/complexes'
 import FiltersSidebar from '../components/apartments/FiltersSidebar'
 import ApartmentCard from '../components/apartments/ApartmentCard'
+import SelectionBar from '../components/apartments/SelectionBar'
+import ActiveFilterChips from '../components/apartments/ActiveFilterChips'
+import SortDropdown, { applySort } from '../components/apartments/SortDropdown'
+import ShareCollectionModal from '../components/apartments/ShareCollectionModal'
 import { calcCommission } from '../lib/format'
 import ApartmentModal from '../components/apartments/ApartmentModal'
 import CollectionMetaModal from '../components/apartments/CollectionMetaModal'
@@ -25,6 +29,12 @@ const YandexMap = dynamic(() => import('../components/YandexMap'), {
 
 const ABS_MIN = 0
 const ABS_MAX = 50000000
+
+function formatMln(v) {
+  const n = Number(v)
+  if (!Number.isFinite(n) || n <= 0) return '0'
+  return `${(n / 1_000_000).toFixed(0)} млн ₽`
+}
 
 const priceRanges = [
   { label: 'До 7 млн ₽', min: 0, max: 7000000 },
@@ -112,7 +122,7 @@ function handoverLabelByKey(key) {
 
 export default function ApartmentsPage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
   const [units, setUnits] = useState([])
   const [complexes, setComplexes] = useState([])
   const [busy, setBusy] = useState(true)
@@ -144,16 +154,20 @@ export default function ApartmentsPage() {
   const [selectedPriceRanges, setSelectedPriceRanges] = useState([])
   const [selectedRooms, setSelectedRooms] = useState([])
   const [twoLevelOnly, setTwoLevelOnly] = useState(false)
+  const [renovationOnly, setRenovationOnly] = useState(false)
   const [floorFrom, setFloorFrom] = useState(null)
   const [floorTo, setFloorTo] = useState(null)
   const [areaFrom, setAreaFrom] = useState('')
   const [areaTo, setAreaTo] = useState('')
   const [selectedAreaRanges, setSelectedAreaRanges] = useState([])
+  const [sortBy, setSortBy] = useState('default')
   const [selectedUnits, setSelectedUnits] = useState([])
   const [modalUnit, setModalUnit] = useState(null)
   const [creatingCollection, setCreatingCollection] = useState(false)
   const [collectionModalOpen, setCollectionModalOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
+  const [shareLink, setShareLink] = useState(null)
+  const [shareTitle, setShareTitle] = useState('')
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -258,13 +272,16 @@ export default function ApartmentsPage() {
   /** ЖК → литеры (корпуса) для вложенного фильтра */
   const complexBuildingsTree = useMemo(() => {
     const byComplex = new Map()
+    const developerByComplex = new Map()
     for (const u of units ?? []) {
       const cn = u?.building?.complex?.name
       const bid = u?.building?.id
       const bn = u?.building?.name
       const addr = u?.building?.address
+      const dev = u?.building?.complex?.developer?.name
       if (!cn || !bid) continue
       if (!byComplex.has(cn)) byComplex.set(cn, new Map())
+      if (dev && !developerByComplex.has(cn)) developerByComplex.set(cn, dev)
       const m = byComplex.get(cn)
       if (!m.has(bid)) m.set(bid, { name: bn ? String(bn).trim() : 'Корпус', address: addr || null })
     }
@@ -277,7 +294,11 @@ export default function ApartmentsPage() {
           .sort((a, b) =>
             String(a.name).localeCompare(String(b.name), 'ru', { numeric: true })
           )
-        return { complexName, buildings }
+        return {
+          complexName,
+          developerName: developerByComplex.get(complexName) || null,
+          buildings,
+        }
       })
   }, [units, uniqueComplexes])
 
@@ -480,6 +501,19 @@ export default function ApartmentsPage() {
     }).length
   }, [baseFiltered, selectedPriceRanges, priceMin, priceMax, selectedAreaRanges])
 
+  const renovationCount = useMemo(() => {
+    return baseFiltered.filter((u) => {
+      const p = Number(u?.price ?? 0)
+      const matchSlider = p >= priceMin && p <= priceMax
+      const priceMatches =
+        matchSlider &&
+        (selectedPriceRanges.length === 0 ||
+          selectedPriceRanges.some((idx) => priceOkForIndex(u, idx)))
+      const matchAreaQuick = unitAreaQuickRangesMatch(u, selectedAreaRanges)
+      return priceMatches && matchAreaQuick && u?.has_renovation === true
+    }).length
+  }, [baseFiltered, selectedPriceRanges, priceMin, priceMax, selectedAreaRanges])
+
   /** Счётчики по корзинам площади: все прочие фильтры, без учёта выбранных чекбоксов площади */
   const areaCounts = useMemo(() => {
     return areaRanges.map((range) => {
@@ -563,6 +597,72 @@ export default function ApartmentsPage() {
     priceMin,
     priceMax,
     selectedAreaRanges,
+  ])
+
+  const baseFilteredNoDeveloper = useMemo(() => {
+    return (units ?? []).filter((u) => {
+      const floorVal = u?.floor ?? 0
+      const st = String(u?.status ?? '').toLowerCase()
+      const notSold = st !== 'sold' && st !== 'booked' && st !== 'reserved' && st !== 'closed'
+      const handoverKey = getHandoverKeyForUnit(u)
+      return (
+        notSold &&
+        unitMatchesComplexBuildingFilter(u, selectedComplexes, selectedBuildingIds) &&
+        (selectedHandoverKeys.length === 0 || selectedHandoverKeys.includes(handoverKey)) &&
+        unitMatchesPpmRanges(u, selectedPpmRanges) &&
+        (floorFrom == null || floorVal >= floorFrom) &&
+        (floorTo == null || floorVal <= floorTo) &&
+        unitAreaMatches(u, areaFrom, areaTo)
+      )
+    })
+  }, [
+    units,
+    selectedComplexes,
+    selectedBuildingIds,
+    selectedHandoverKeys,
+    selectedPpmRanges,
+    floorFrom,
+    floorTo,
+    areaFrom,
+    areaTo,
+  ])
+
+  const developerCountsByName = useMemo(() => {
+    const out = {}
+    for (const name of uniqueDevelopers) {
+      out[name] = baseFilteredNoDeveloper.filter((u) => {
+        const p = Number(u?.price ?? 0)
+        const matchSlider = p >= priceMin && p <= priceMax
+        const pMatches =
+          matchSlider &&
+          (selectedPriceRanges.length === 0 ||
+            selectedPriceRanges.some((idx) => priceOkForIndex(u, idx)))
+        const matchRoom = roomsOk(u, selectedRooms)
+        const matchAreaQuick = unitAreaQuickRangesMatch(u, selectedAreaRanges)
+        const matchTwoLevel = !twoLevelOnly || Number(u?.span_floors ?? 1) >= 2
+        const matchRenovation = !renovationOnly || u?.has_renovation === true
+        return (
+          pMatches &&
+          matchRoom &&
+          matchAreaQuick &&
+          matchTwoLevel &&
+          matchRenovation &&
+          u?.building?.complex?.developer?.name === name
+        )
+      }).length
+    }
+    return out
+  }, [
+    baseFilteredNoDeveloper,
+    uniqueDevelopers,
+    priceRanges,
+    priceMin,
+    priceMax,
+    selectedPriceRanges,
+    selectedRooms,
+    selectedAreaRanges,
+    twoLevelOnly,
+    renovationOnly,
   ])
 
   const handoverCountsByKey = useMemo(() => {
@@ -691,6 +791,7 @@ export default function ApartmentsPage() {
         })
 
       const matchTwoLevel = !twoLevelOnly || Number(u?.span_floors ?? 1) >= 2
+      const matchRenovation = !renovationOnly || u?.has_renovation === true
 
       return (
         notSold &&
@@ -702,6 +803,7 @@ export default function ApartmentsPage() {
         matchPriceRanges &&
         matchRooms &&
         matchTwoLevel &&
+        matchRenovation &&
         unitMatchesPpmRanges(u, selectedPpmRanges) &&
         (floorFrom == null || (u?.floor ?? 0) >= floorFrom) &&
         (floorTo == null || (u?.floor ?? 0) <= floorTo) &&
@@ -721,12 +823,15 @@ export default function ApartmentsPage() {
     selectedPriceRanges,
     selectedRooms,
     twoLevelOnly,
+    renovationOnly,
     floorFrom,
     floorTo,
     areaFrom,
     areaTo,
     selectedAreaRanges,
   ])
+
+  const sortedFiltered = useMemo(() => applySort(filtered, sortBy), [filtered, sortBy])
 
   const filteredIds = useMemo(() => new Set(filtered.map((u) => u.id)), [filtered])
 
@@ -741,6 +846,7 @@ export default function ApartmentsPage() {
       selectedRooms.length > 0 ||
       selectedAreaRanges.length > 0 ||
       twoLevelOnly ||
+      renovationOnly ||
       priceMin > ABS_MIN ||
       priceMax < ABS_MAX ||
       floorFrom != null ||
@@ -758,12 +864,143 @@ export default function ApartmentsPage() {
     selectedRooms,
     selectedAreaRanges,
     twoLevelOnly,
+    renovationOnly,
     priceMin,
     priceMax,
     floorFrom,
     floorTo,
     areaFrom,
     areaTo,
+  ])
+
+  const activeFilterChips = useMemo(() => {
+    const chips = []
+    selectedRooms.forEach((v) => {
+      const label = v === 0 ? 'Студии' : v === 4 ? '4+ комнаты' : `${v}к`
+      chips.push({
+        key: `room-${v}`,
+        label,
+        onRemove: () => setSelectedRooms((prev) => prev.filter((r) => r !== v)),
+      })
+    })
+    if (twoLevelOnly) {
+      chips.push({
+        key: 'twolevel',
+        label: 'Двухуровневые',
+        onRemove: () => setTwoLevelOnly(false),
+      })
+    }
+    if (renovationOnly) {
+      chips.push({
+        key: 'renovation',
+        label: 'С ремонтом',
+        onRemove: () => setRenovationOnly(false),
+      })
+    }
+    selectedPriceRanges.forEach((idx) => {
+      const r = priceRanges[idx]
+      if (!r) return
+      chips.push({
+        key: `price-${idx}`,
+        label: r.label,
+        onRemove: () => setSelectedPriceRanges((prev) => prev.filter((i) => i !== idx)),
+      })
+    })
+    selectedHandoverKeys.forEach((key) => {
+      const opt = handoverOptions.find((o) => o.key === key)
+      chips.push({
+        key: `handover-${key}`,
+        label: opt?.label ?? key,
+        onRemove: () => setSelectedHandoverKeys((prev) => prev.filter((k) => k !== key)),
+      })
+    })
+    selectedPpmRanges.forEach((idx) => {
+      const r = ppmRanges[idx]
+      if (!r) return
+      chips.push({
+        key: `ppm-${idx}`,
+        label: r.label,
+        onRemove: () => setSelectedPpmRanges((prev) => prev.filter((i) => i !== idx)),
+      })
+    })
+    selectedAreaRanges.forEach((r) => {
+      chips.push({
+        key: `area-${r.label}`,
+        label: r.label,
+        onRemove: () => setSelectedAreaRanges((prev) => prev.filter((x) => x.label !== r.label)),
+      })
+    })
+    if (priceMin > ABS_MIN || priceMax < ABS_MAX) {
+      chips.push({
+        key: 'price-range',
+        label: `Цена: ${formatMln(priceMin)}–${formatMln(priceMax)}`,
+        onRemove: () => {
+          setPriceMin(ABS_MIN)
+          setPriceMax(ABS_MAX)
+        },
+      })
+    }
+    if (floorFrom != null || floorTo != null) {
+      chips.push({
+        key: 'floor-range',
+        label: `Этаж: ${floorFrom ?? '…'}–${floorTo ?? '…'}`,
+        onRemove: () => {
+          setFloorFrom(null)
+          setFloorTo(null)
+        },
+      })
+    }
+    if (areaFrom || areaTo) {
+      chips.push({
+        key: 'area-range',
+        label: `Площадь: ${areaFrom || '…'}–${areaTo || '…'} м²`,
+        onRemove: () => {
+          setAreaFrom('')
+          setAreaTo('')
+        },
+      })
+    }
+    selectedDevelopers.forEach((name) => {
+      chips.push({
+        key: `dev-${name}`,
+        label: name,
+        onRemove: () => setSelectedDevelopers((prev) => prev.filter((d) => d !== name)),
+      })
+    })
+    selectedComplexes.forEach((name) => {
+      chips.push({
+        key: `complex-${name}`,
+        label: name,
+        onRemove: () => setSelectedComplexes((prev) => prev.filter((c) => c !== name)),
+      })
+    })
+    selectedBuildingIds.forEach((id) => {
+      chips.push({
+        key: `bld-${id}`,
+        label: 'Корпус',
+        onRemove: () => setSelectedBuildingIds((prev) => prev.filter((b) => b !== id)),
+      })
+    })
+    return chips
+  }, [
+    selectedRooms,
+    twoLevelOnly,
+    selectedPriceRanges,
+    priceRanges,
+    selectedHandoverKeys,
+    handoverOptions,
+    selectedPpmRanges,
+    ppmRanges,
+    selectedAreaRanges,
+    priceMin,
+    priceMax,
+    floorFrom,
+    floorTo,
+    areaFrom,
+    areaTo,
+    selectedDevelopers,
+    selectedComplexes,
+    selectedBuildingIds,
   ])
 
   /** Кол-во подходящих под все фильтры квартир в каждом корпусе */
@@ -932,6 +1169,7 @@ export default function ApartmentsPage() {
     setSelectedRooms([])
     setSelectedAreaRanges([])
     setTwoLevelOnly(false)
+    setRenovationOnly(false)
     setPriceMin(ABS_MIN)
     setPriceMax(ABS_MAX)
     setFloorFrom(null)
@@ -1055,8 +1293,13 @@ export default function ApartmentsPage() {
       const publicHost = process.env.NEXT_PUBLIC_COLLECTION_HOST
       const baseUrl = publicHost ? `https://${publicHost}` : window.location.origin
       const link = `${baseUrl}/collections/${body.token}`
-      await navigator.clipboard.writeText(link)
-      alert(`Ссылка скопирована: ${link}`)
+      try {
+        await navigator.clipboard.writeText(link)
+      } catch {
+        // не критично — модаль покажет ссылку и позволит скопировать
+      }
+      setShareLink(link)
+      setShareTitle(values.title || '')
       setSelectedUnits([])
       setCollectionModalOpen(false)
     } catch (e) {
@@ -1066,8 +1309,32 @@ export default function ApartmentsPage() {
     }
   }
 
+  if (!authLoading && profile?.role !== 'admin') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4 text-center">
+        <div className="rounded-xl bg-white p-8 shadow">
+          <div className="text-2xl">🔒</div>
+          <div className="mt-2 text-base font-semibold text-gray-900">Доступ ограничен</div>
+          <div className="mt-1 text-sm text-gray-600">
+            Лабораторная страница доступна только администраторам.
+          </div>
+          <a
+            href="/apartments"
+            className="mt-4 inline-block rounded-lg border border-blue-500 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+          >
+            Перейти на /apartments
+          </a>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-gray-100">
+      <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs text-amber-800">
+        🧪 Лабораторная версия каталога. Изменения здесь не влияют на боевую страницу{' '}
+        <a href="/apartments" className="underline">/apartments</a>.
+      </div>
       <CatalogTabs>
         <div className="hidden items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 sm:flex">
           <span className="relative flex h-3 w-3 shrink-0" aria-hidden="true">
@@ -1083,60 +1350,42 @@ export default function ApartmentsPage() {
         </div>
       </CatalogTabs>
 
-      <div className="px-4 py-4">
+      <div className="px-4 py-4 pb-32">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-3">
-          <div className="text-sm text-gray-700">
-            Выбрано квартир: <span className="font-semibold">{selectedUnits.length}</span>
-          </div>
-          <button
-            type="button"
-            onClick={selectAllFiltered}
-            disabled={filtered.length === 0}
-            className="rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
-            Выбрать все по фильтрам ({filtered.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setCartOpen(true)}
-            disabled={selectedUnits.length === 0}
-            className="rounded-xl border border-blue-600 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
-          >
-            🛒 Корзина ({selectedUnits.length})
-          </button>
-          <button
-            type="button"
-            onClick={createSelection}
-            disabled={creatingCollection || selectedUnits.length === 0 || selectedUnits.length > 20}
-            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            title={selectedUnits.length > 20 ? `Максимум 20 квартир в подборке, выбрано ${selectedUnits.length}` : 'Создать подборку'}
-          >
-            {creatingCollection
-              ? 'Создаём…'
-              : selectedUnits.length > 20
-              ? `Лимит: 20 (у вас ${selectedUnits.length})`
-              : 'Создать подборку'}
-          </button>
-          {selectedUnits.length > 0 ? (
+            <div className="text-sm text-gray-700">
+              Найдено: <span className="font-semibold">{filtered.length}</span>
+            </div>
             <button
               type="button"
-              onClick={() => setSelectedUnits([])}
-              className="rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              onClick={selectAllFiltered}
+              disabled={filtered.length === 0}
+              className="rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
-              Сбросить выбор
+              Выбрать все по фильтрам ({filtered.length})
             </button>
-          ) : null}
+            {activeFilterChips.length > 0 ? (
+              <button
+                type="button"
+                onClick={resetAllFilters}
+                className="rounded-xl border border-blue-500 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100"
+              >
+                Сбросить все фильтры ({activeFilterChips.length})
+              </button>
+            ) : null}
           </div>
 
           <div className="ml-auto flex items-center gap-2">
+            {pageView === 'units' ? (
+              <SortDropdown value={sortBy} onChange={setSortBy} />
+            ) : null}
             <button
               type="button"
               onClick={() => setViewMode('grid')}
               className={`rounded-lg border p-2 transition ${
                 viewMode === 'grid'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
               }`}
               aria-label="Grid"
             >
@@ -1147,8 +1396,8 @@ export default function ApartmentsPage() {
               onClick={() => setViewMode('list')}
               className={`rounded-lg border p-2 transition ${
                 viewMode === 'list'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
               }`}
               aria-label="List"
             >
@@ -1157,8 +1406,9 @@ export default function ApartmentsPage() {
           </div>
         </div>
 
-        <div className="flex gap-6">
-          <div className="w-[300px] shrink-0 space-y-4">
+
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <div className="w-full shrink-0 space-y-4 lg:w-[300px]">
             <div className="flex rounded-xl border border-gray-200 bg-white p-1">
               <SegBtn
                 active={pageView === 'units'}
@@ -1180,9 +1430,8 @@ export default function ApartmentsPage() {
               />
             </div>
             <FiltersSidebar
-            onResetFilters={resetAllFilters}
-            hasActiveFilters={hasActiveFilters}
             uniqueDevelopers={uniqueDevelopers}
+            developerCountsByName={developerCountsByName}
             complexBuildingsTree={complexBuildingsTree}
             selectedDevelopers={selectedDevelopers}
             selectedComplexes={selectedComplexes}
@@ -1206,6 +1455,9 @@ export default function ApartmentsPage() {
             twoLevelOnly={twoLevelOnly}
             onToggleTwoLevel={() => setTwoLevelOnly((v) => !v)}
             twoLevelCount={twoLevelCount}
+            renovationOnly={renovationOnly}
+            onToggleRenovation={() => setRenovationOnly((v) => !v)}
+            renovationCount={renovationCount}
             complexCountsByName={complexCountsByName}
             buildingCountsById={buildingCountsById}
             handoverOptions={handoverOptions}
@@ -1252,27 +1504,15 @@ export default function ApartmentsPage() {
                       : 'flex flex-col gap-4'
                   }
                 >
-                  {filtered.map((u) => (
-                    <div
+                  {sortedFiltered.map((u) => (
+                    <ApartmentCard
                       key={u.id}
-                      className={`rounded-2xl p-1 ${
-                        selectedUnits.includes(u.id)
-                          ? 'ring-2 ring-blue-500 ring-offset-1'
-                          : 'ring-1 ring-transparent'
-                      }`}
-                    >
-                      <label className="mb-2 flex cursor-pointer items-center gap-2 rounded-lg bg-white px-2 py-1 text-sm text-gray-700 shadow-sm">
-                        <input
-                          type="checkbox"
-                          checked={selectedUnits.includes(u.id)}
-                          onChange={() => toggleSelectedUnit(u.id)}
-                        />
-                        В подборку
-                      </label>
-                      <div onClick={() => setModalUnit(u)} className="cursor-pointer">
-                        <ApartmentCard unit={u} listView={viewMode === 'list'} />
-                      </div>
-                    </div>
+                      unit={u}
+                      selected={selectedUnits.includes(u.id)}
+                      onToggleSelect={toggleSelectedUnit}
+                      onOpenDetails={() => setModalUnit(u)}
+                      listView={viewMode === 'list'}
+                    />
                   ))}
                 </div>
               )
@@ -1322,10 +1562,10 @@ export default function ApartmentsPage() {
                             key={b.id}
                             type="button"
                             onClick={() => setSelectedBuildingId(b.id)}
-                            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                            className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                               b.id === selectedBuildingId
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-gray-200 bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                           >
                             {formatName(b.name) || 'Корпус'} <span className="opacity-70">({counterTxt})</span>
@@ -1514,7 +1754,7 @@ export default function ApartmentsPage() {
                     createSelection()
                   }}
                   disabled={creatingCollection || selectedUnits.length === 0 || selectedUnits.length > 20}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                  className="rounded-xl border border-blue-500 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400"
                   title={selectedUnits.length > 20 ? `Максимум 20 квартир в подборке, выбрано ${selectedUnits.length}` : 'Создать подборку'}
                 >
                   {creatingCollection ? 'Создаём…' : selectedUnits.length > 20 ? `Лимит: 20 (у вас ${selectedUnits.length})` : 'Создать подборку'}
@@ -1524,6 +1764,23 @@ export default function ApartmentsPage() {
           </div>
         </div>
       )}
+
+      <SelectionBar
+        selectedUnits={selectedUnits}
+        units={units}
+        onCreateCollection={createSelection}
+        onClearAll={() => setSelectedUnits([])}
+        onRemoveUnit={toggleSelectedUnit}
+        creating={creatingCollection}
+      />
+
+      {shareLink ? (
+        <ShareCollectionModal
+          link={shareLink}
+          title={shareTitle}
+          onClose={() => setShareLink(null)}
+        />
+      ) : null}
     </div>
   )
 }
@@ -1588,7 +1845,7 @@ function MapView({ busy, markers, hasFilters, picked, onPin, onClosePopup, onOpe
             <button
               type="button"
               onClick={() => onOpenChessboard(picked.complex, picked.building)}
-              className="mt-3 w-full rounded-xl bg-blue-600 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
+              className="mt-3 w-full rounded-xl border border-blue-500 bg-blue-50 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
             >
               Смотреть шахматку
             </button>
@@ -1605,7 +1862,7 @@ function SegBtn({ active, disabled, onClick, icon, label, title }) {
   const stateClass = disabled
     ? 'cursor-not-allowed text-gray-400'
     : active
-    ? 'bg-blue-600 text-white shadow-sm'
+    ? 'border border-blue-500 bg-blue-50 text-blue-700'
     : 'text-gray-700 hover:bg-gray-100'
   return (
     <button

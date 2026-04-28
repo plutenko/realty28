@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ChevronUp, ChevronDown, Plus, X, Heart, ImageOff } from 'lucide-react'
-import { calcCommission, formatPriceRub, formatRooms } from '../../../lib/format'
+import { calcCommission, formatPriceRub, formatRooms } from '../../lib/format'
 
 const MAX_UNITS = 20
 
