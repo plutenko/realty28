@@ -84,7 +84,7 @@ export default function SelectionBar({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-1 text-left transition hover:bg-rose-100/60"
+          className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-1 text-left transition hover:bg-white"
           title={expanded ? 'Свернуть' : 'Раскрыть список'}
         >
           <Heart className="h-6 w-6 shrink-0 text-rose-500" fill="currentColor" strokeWidth={0} aria-hidden="true" />
