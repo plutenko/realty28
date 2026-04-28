@@ -1,9 +1,5 @@
 import { useMemo, useState } from 'react'
-
-function formatPriceRub(n) {
-  if (n == null || Number.isNaN(Number(n))) return '—'
-  return Number(n).toLocaleString('ru-RU')
-}
+import { formatPriceRub } from '../lib/format'
 
 /** DB-строка или объект шахматки: коммерция не попадает в жилую сетку. */
 export function isCommercialUnitRow(u) {
