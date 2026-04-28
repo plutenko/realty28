@@ -534,7 +534,9 @@ export default function FiltersSidebarLab({
                                 className={`h-3.5 w-3.5 transition-transform ${litersExpanded ? 'rotate-180' : ''}`}
                               />
                             </button>
-                          ) : null}
+                          ) : (
+                            <div className="h-6 w-6 shrink-0" aria-hidden />
+                          )}
                         </div>
 
                         {hasMultipleLiters && litersExpanded ? (
