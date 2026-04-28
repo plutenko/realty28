@@ -122,7 +122,7 @@ function handoverLabelByKey(key) {
 
 export default function ApartmentsPage() {
   const router = useRouter()
-  const { user, profile, loading: authLoading } = useAuth()
+  const { user } = useAuth()
   const [units, setUnits] = useState([])
   const [complexes, setComplexes] = useState([])
   const [busy, setBusy] = useState(true)
@@ -1309,32 +1309,8 @@ export default function ApartmentsPage() {
     }
   }
 
-  if (!authLoading && profile?.role !== 'admin') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4 text-center">
-        <div className="rounded-xl bg-white p-8 shadow">
-          <div className="text-2xl">🔒</div>
-          <div className="mt-2 text-base font-semibold text-gray-900">Доступ ограничен</div>
-          <div className="mt-1 text-sm text-gray-600">
-            Лабораторная страница доступна только администраторам.
-          </div>
-          <a
-            href="/apartments"
-            className="mt-4 inline-block rounded-lg border border-blue-500 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
-          >
-            Перейти на /apartments
-          </a>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex min-h-screen flex-col bg-gray-100">
-      <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs text-amber-800">
-        🧪 Лабораторная версия каталога. Изменения здесь не влияют на боевую страницу{' '}
-        <a href="/apartments" className="underline">/apartments</a>.
-      </div>
       <CatalogTabs>
         <div className="hidden items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 sm:flex">
           <span className="relative flex h-3 w-3 shrink-0" aria-hidden="true">
