@@ -69,7 +69,7 @@ export default function CatalogTabs({ children }) {
   }
 
   return (
-    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 bg-white px-4 py-3 shadow-sm">
+    <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-gray-200 bg-white px-4 shadow-sm">
       {/* Табы */}
       <div className="flex gap-5">
         <Link href="/apartments" className={tabClass('/apartments')}>
