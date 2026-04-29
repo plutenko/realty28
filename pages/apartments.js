@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import { Building2, LayoutGrid, List, Map as MapIcon, SquareStack } from 'lucide-react'
 import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
+import FlyingHeart from '../components/FlyingHeart'
 import { fetchComplexesFromApi, fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
 import { formatComplexName, formatName, getComplexDeveloper, sanitizeComplexesPayload, sortBuildingsByName } from '../lib/complexes'
 import FiltersSidebar from '../components/apartments/FiltersSidebar'
@@ -168,6 +169,7 @@ export default function ApartmentsPage() {
   const [cartOpen, setCartOpen] = useState(false)
   const [shareLink, setShareLink] = useState(null)
   const [shareTitle, setShareTitle] = useState('')
+  const [flyingHeart, setFlyingHeart] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -1302,6 +1304,7 @@ export default function ApartmentsPage() {
       setShareTitle(values.title || '')
       setSelectedUnits([])
       setCollectionModalOpen(false)
+      setFlyingHeart(true)
     } catch (e) {
       alert(e?.message || 'Ошибка создания подборки')
     } finally {
@@ -1755,6 +1758,17 @@ export default function ApartmentsPage() {
           link={shareLink}
           title={shareTitle}
           onClose={() => setShareLink(null)}
+        />
+      ) : null}
+
+      {flyingHeart ? (
+        <FlyingHeart
+          onComplete={() => {
+            setFlyingHeart(false)
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('collections:incrementUnread'))
+            }
+          }}
         />
       ) : null}
     </div>

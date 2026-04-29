@@ -8,6 +8,7 @@ export default function CatalogTabs({ children }) {
   const path = router.pathname
   const { user, profile, signOut } = useAuth()
   const [open, setOpen] = useState(false)
+  const [unreadCollections, setUnreadCollections] = useState(0)
   const ref = useRef(null)
 
   // Закрывать дропдаун при клике вне
@@ -18,6 +19,39 @@ export default function CatalogTabs({ children }) {
     document.addEventListener('mousedown', handle)
     return () => document.removeEventListener('mousedown', handle)
   }, [])
+
+  // Состояние «непрочитанных» подборок (живёт в localStorage)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const initial = Number(window.localStorage.getItem('collections_unread_count') || '0')
+    setUnreadCollections(Number.isFinite(initial) ? initial : 0)
+
+    function handleIncr() {
+      setUnreadCollections((v) => {
+        const next = v + 1
+        window.localStorage.setItem('collections_unread_count', String(next))
+        return next
+      })
+    }
+    function handleReset() {
+      setUnreadCollections(0)
+      window.localStorage.setItem('collections_unread_count', '0')
+    }
+    window.addEventListener('collections:incrementUnread', handleIncr)
+    window.addEventListener('collections:resetUnread', handleReset)
+    return () => {
+      window.removeEventListener('collections:incrementUnread', handleIncr)
+      window.removeEventListener('collections:resetUnread', handleReset)
+    }
+  }, [])
+
+  // Сбрасываем счётчик при заходе на /my-collections
+  useEffect(() => {
+    if (path === '/my-collections' && typeof window !== 'undefined') {
+      window.localStorage.setItem('collections_unread_count', '0')
+      setUnreadCollections(0)
+    }
+  }, [path])
 
   const tabClass = (href) =>
     `relative px-1 py-1 text-sm transition ${
@@ -45,8 +79,17 @@ export default function CatalogTabs({ children }) {
           Коммерция
         </Link>
         {user && (
-          <Link href="/my-collections" className={tabClass('/my-collections')}>
-            Мои подборки
+          <Link
+            href="/my-collections"
+            data-target="my-collections-link"
+            className={`${tabClass('/my-collections')} inline-flex items-center gap-1.5`}
+          >
+            <span>Мои подборки</span>
+            {unreadCollections > 0 ? (
+              <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white">
+                +{unreadCollections}
+              </span>
+            ) : null}
           </Link>
         )}
         {user && (

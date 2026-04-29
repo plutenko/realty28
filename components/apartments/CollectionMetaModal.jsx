@@ -135,7 +135,7 @@ export default function CollectionMetaModal({
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg border border-blue-500 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400"
           >
             {submitting ? (isEdit ? 'Сохраняем…' : 'Создаём…') : (isEdit ? 'Сохранить' : 'Создать подборку')}
           </button>
