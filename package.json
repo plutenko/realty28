@@ -23,6 +23,7 @@
     "rc-slider": "^11.1.9",
     "react": "latest",
     "react-dom": "latest",
+    "react-easy-crop": "^5.5.7",
     "tailwindcss": "latest",
     "xlsx": "^0.18.5"
   },

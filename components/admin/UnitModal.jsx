@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import CropImageModal from './CropImageModal'
 
 export default function UnitModal({
   activeCell,
@@ -15,6 +16,7 @@ export default function UnitModal({
   floorPlanUrl,
 }) {
   const [pasteTarget, setPasteTarget] = useState('unit_layout')
+  const [cropOpen, setCropOpen] = useState(false)
 
   if (!activeCell) return null
 
@@ -217,13 +219,23 @@ export default function UnitModal({
                     />
                   </label>
                   {activeCell.unit?.layout_image_url && (
-                    <button
-                      type="button"
-                      className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
-                      onClick={() => removeUnitMedia('unit_layout', activeCell.unit.id)}
-                    >
-                      Удалить
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        className="rounded border border-blue-500 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                        onClick={() => setCropOpen(true)}
+                        disabled={mediaBusy}
+                      >
+                        Обрезать
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
+                        onClick={() => removeUnitMedia('unit_layout', activeCell.unit.id)}
+                      >
+                        Удалить
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -327,6 +339,19 @@ export default function UnitModal({
           </button>
         </div>
       </form>
+
+      {cropOpen && activeCell.unit?.layout_image_url ? (
+        <CropImageModal
+          imageUrl={activeCell.unit.layout_image_url}
+          busy={mediaBusy}
+          onClose={() => setCropOpen(false)}
+          onSave={async (blob) => {
+            const file = new File([blob], `cropped-${Date.now()}.png`, { type: 'image/png' })
+            await uploadUnitMedia('unit_layout', file, activeCell.unit.id)
+            setCropOpen(false)
+          }}
+        />
+      ) : null}
     </div>
   )
 }
