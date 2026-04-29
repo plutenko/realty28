@@ -55,12 +55,40 @@ export default function FlyingHeart({ onComplete }) {
         className="absolute left-1/2 top-1/2 transition-all duration-[850ms] ease-out"
         style={style}
       >
-        <Heart
-          className="h-28 w-28 text-rose-500 drop-shadow-2xl"
-          fill="currentColor"
-          strokeWidth={0}
-        />
+        <div className="relative">
+          {/* Размытое розовое сияние сзади */}
+          <div
+            className="absolute inset-0 -m-6 rounded-full bg-rose-400/60 blur-2xl"
+            style={{ animation: phase === 'grow' ? 'fh-pulse 900ms ease-in-out infinite alternate' : 'none' }}
+            aria-hidden
+          />
+          {/* Внутреннее свечение */}
+          <div
+            className="absolute inset-0 -m-2 rounded-full bg-rose-300/70 blur-md"
+            style={{ animation: phase === 'grow' ? 'fh-pulse 900ms ease-in-out infinite alternate' : 'none' }}
+            aria-hidden
+          />
+          <Heart
+            className="relative h-28 w-28 text-rose-500"
+            fill="currentColor"
+            strokeWidth={0}
+            style={{
+              animation: phase === 'grow' ? 'fh-beat 900ms ease-in-out infinite alternate' : 'none',
+              filter: 'drop-shadow(0 0 12px rgba(244,63,94,0.55))',
+            }}
+          />
+        </div>
       </div>
+      <style jsx>{`
+        @keyframes fh-pulse {
+          0% { transform: scale(0.9); opacity: 0.55; }
+          100% { transform: scale(1.25); opacity: 0.95; }
+        }
+        @keyframes fh-beat {
+          0% { transform: scale(0.96); }
+          100% { transform: scale(1.08); }
+        }
+      `}</style>
     </div>
   )
 }
