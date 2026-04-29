@@ -346,7 +346,7 @@ export default function UnitModal({
           busy={mediaBusy}
           onClose={() => setCropOpen(false)}
           onSave={async (blob) => {
-            const file = new File([blob], `cropped-${Date.now()}.png`, { type: 'image/png' })
+            const file = new File([blob], `cropped-${Date.now()}.jpg`, { type: 'image/jpeg' })
             await uploadUnitMedia('unit_layout', file, activeCell.unit.id)
             setCropOpen(false)
           }}

@@ -153,6 +153,10 @@ async function getCroppedBlob(imageUrl, area) {
   canvas.width = Math.max(1, Math.round(area.width))
   canvas.height = Math.max(1, Math.round(area.height))
   const ctx = canvas.getContext('2d')
+  // JPEG не поддерживает прозрачность — заливаем фон белым,
+  // иначе прозрачные области (если есть) станут чёрными.
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
   ctx.drawImage(
     img,
     area.x,
@@ -170,7 +174,7 @@ async function getCroppedBlob(imageUrl, area) {
         if (blob) resolve(blob)
         else reject(new Error('Не удалось создать изображение'))
       },
-      'image/png',
+      'image/jpeg',
       0.92
     )
   })
