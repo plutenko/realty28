@@ -17,6 +17,8 @@ export default function CropImageModal({ imageUrl, onSave, onClose, busy }) {
 
   // Грузим картинку как blob → objectURL, чтобы canvas не был tainted
   // и react-easy-crop корректно работал с CORS-картинками из Supabase Storage.
+  // Для SVG предварительно растеризуем в высоком разрешении (3000px по
+  // длинной стороне), чтобы кроп получился чётким, а не мутным.
   useEffect(() => {
     let cancelled = false
     let createdUrl = null
@@ -25,7 +27,13 @@ export default function CropImageModal({ imageUrl, onSave, onClose, busy }) {
     fetch(imageUrl, { mode: 'cors' })
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        const blob = await r.blob()
+        let blob = await r.blob()
+        const isSvg =
+          blob.type === 'image/svg+xml' ||
+          /\.svg(?:\?|#|$)/i.test(imageUrl)
+        if (isSvg) {
+          blob = await rasterizeSvgBlob(blob, 3000)
+        }
         if (cancelled) return
         createdUrl = URL.createObjectURL(blob)
         setLocalUrl(createdUrl)
@@ -147,6 +155,44 @@ function loadImage(url) {
   })
 }
 
+/**
+ * Растеризует SVG-blob в PNG-blob с заданным длинным размером.
+ * Браузер при drawImage(svgImg, 0,0, w, h) перерендеривает SVG
+ * во вновь указанном разрешении — линии остаются чёткими,
+ * получаем raster без потери качества.
+ */
+async function rasterizeSvgBlob(svgBlob, longSide = 3000) {
+  const url = URL.createObjectURL(svgBlob)
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image()
+      i.onload = () => resolve(i)
+      i.onerror = () => reject(new Error('Не удалось распарсить SVG'))
+      i.src = url
+    })
+    const w0 = img.naturalWidth || img.width || longSide
+    const h0 = img.naturalHeight || img.height || longSide
+    const ratio = longSide / Math.max(w0, h0, 1)
+    const w = Math.max(1, Math.round(w0 * ratio))
+    const h = Math.max(1, Math.round(h0 * ratio))
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, w, h)
+    ctx.drawImage(img, 0, 0, w, h)
+    return await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('Не удалось растеризовать SVG'))),
+        'image/png'
+      )
+    })
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
 async function getCroppedBlob(imageUrl, area) {
   const img = await loadImage(imageUrl)
   const canvas = document.createElement('canvas')
@@ -174,8 +220,8 @@ async function getCroppedBlob(imageUrl, area) {
         if (blob) resolve(blob)
         else reject(new Error('Не удалось создать изображение'))
       },
-      'image/jpeg',
-      0.92
+      'image/webp',
+      0.9
     )
   })
 }
