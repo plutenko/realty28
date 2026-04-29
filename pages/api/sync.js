@@ -10,6 +10,9 @@ export default async function handler(req, res) {
     return;
   }
   try {
+    const skipImages =
+      String(req.query?.skipImages ?? '').trim() === '1' ||
+      String(req.query?.skipImages ?? '').toLowerCase() === 'true';
     const sourceId = req.query?.id ? String(req.query.id) : "";
     if (sourceId) {
       const supabaseModule = await import("../../lib/supabaseServer");
@@ -70,7 +73,7 @@ export default async function handler(req, res) {
         return;
       }
       try {
-        const one = await syncSource(source, supabase);
+        const one = await syncSource(source, supabase, { skipImages });
         res.status(200).json({
           ok: true,
           total: 1,
@@ -95,7 +98,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    const results = await syncAllSources();
+    const results = await syncAllSources({ skipImages });
     const failed = results.filter((r) => !r.ok);
     res.status(200).json({
       ok: failed.length === 0,

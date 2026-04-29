@@ -381,6 +381,7 @@ export default function AdminSourcesPage() {
   const [busy, setBusy] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncingSourceId, setSyncingSourceId] = useState('')
+  const [skipImagesOnSync, setSkipImagesOnSync] = useState(true)
   const [msg, setMsg] = useState('')
   const [syncResult, setSyncResult] = useState(null)
   /** null = loading; whether personal Google OAuth has refresh_token in DB (via /api/auth/google-sheets/status). */
@@ -827,7 +828,8 @@ export default function AdminSourcesPage() {
     setMsg('')
     setSyncResult(null)
     try {
-      const res = await fetch('/api/sync', { method: 'POST' })
+      const url = `/api/sync${skipImagesOnSync ? '?skipImages=1' : ''}`
+      const res = await fetch(url, { method: 'POST' })
       const body = await res.json()
       if (!res.ok) {
         setMsg(body?.error || 'Ошибка синхронизации')
@@ -874,7 +876,7 @@ export default function AdminSourcesPage() {
     setSyncingSourceId(source.id)
     setMsg('')
     try {
-      const res = await fetch(`/api/sync?id=${encodeURIComponent(source.id)}`, {
+      const res = await fetch(`/api/sync?id=${encodeURIComponent(source.id)}${skipImagesOnSync ? '&skipImages=1' : ''}`, {
         method: 'POST',
       })
       const text = await res.text()
@@ -949,7 +951,7 @@ export default function AdminSourcesPage() {
         )}
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={runSyncNow}
@@ -958,6 +960,15 @@ export default function AdminSourcesPage() {
         >
           {syncing ? 'Синхронизация...' : 'Синхронизировать сейчас'}
         </button>
+        <label className="flex items-center gap-2 text-xs text-slate-300 select-none cursor-pointer">
+          <input
+            type="checkbox"
+            checked={skipImagesOnSync}
+            onChange={(e) => setSkipImagesOnSync(e.target.checked)}
+            className="accent-blue-500"
+          />
+          <span>Не подгружать планировки и поэтажные планы (быстрее)</span>
+        </label>
         <span className="text-xs text-slate-400">
           Cron Vercel: каждый день в 06:00 UTC. Кнопка «Синк» в строке — синхронизация только этого источника;
           «Синхронизировать сейчас» — все источники, включая Profitbase.
