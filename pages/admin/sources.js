@@ -382,6 +382,7 @@ export default function AdminSourcesPage() {
   const [syncing, setSyncing] = useState(false)
   const [syncingSourceId, setSyncingSourceId] = useState('')
   const [skipImagesOnSync, setSkipImagesOnSync] = useState(true)
+  const [perSourceSkipImages, setPerSourceSkipImages] = useState({})
   const [msg, setMsg] = useState('')
   const [syncResult, setSyncResult] = useState(null)
   /** null = loading; whether personal Google OAuth has refresh_token in DB (via /api/auth/google-sheets/status). */
@@ -849,6 +850,14 @@ export default function AdminSourcesPage() {
     }
   }
 
+  function getSkipImagesFor(id) {
+    return perSourceSkipImages[id] ?? skipImagesOnSync
+  }
+
+  function toggleSkipImagesFor(id, value) {
+    setPerSourceSkipImages((m) => ({ ...m, [id]: value }))
+  }
+
   async function runSyncOne(source) {
     if (!source?.building_id) {
       const t = 'У этого источника не выбран дом (building). Откройте «Изм.», укажите ЖК и корпус, сохраните — затем снова «Синк».'
@@ -876,7 +885,7 @@ export default function AdminSourcesPage() {
     setSyncingSourceId(source.id)
     setMsg('')
     try {
-      const res = await fetch(`/api/sync?id=${encodeURIComponent(source.id)}${skipImagesOnSync ? '&skipImages=1' : ''}`, {
+      const res = await fetch(`/api/sync?id=${encodeURIComponent(source.id)}${getSkipImagesFor(source.id) ? '&skipImages=1' : ''}`, {
         method: 'POST',
       })
       const text = await res.text()
@@ -1573,6 +1582,18 @@ export default function AdminSourcesPage() {
                           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
                         )}
                       </button>
+                      <label
+                        title="Не подгружать планировки и поэтажные планы при синке этого источника (быстрее)"
+                        className="flex shrink-0 cursor-pointer select-none items-center gap-1 text-[11px] text-slate-400 hover:text-slate-200"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={getSkipImagesFor(r.id)}
+                          onChange={(e) => toggleSkipImagesFor(r.id, e.target.checked)}
+                          className="h-3 w-3 accent-blue-500"
+                        />
+                        <span>без планировок</span>
+                      </label>
                       <span>{ownerComplex?.name || '—'} · {ownerBuilding?.name || '—'}</span>
                     </div>
                   </td>
