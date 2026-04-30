@@ -48,7 +48,12 @@ export default async function handler(req, res) {
       user_role: profilesById[d.user_id]?.role || null,
     }))
 
-    return res.status(200).json({ devices: enriched })
+    const { data: pendings } = await supabase
+      .from('pending_logins')
+      .select('user_id, status, device_label, created_at, expires_at, approved_at')
+      .order('created_at', { ascending: false })
+
+    return res.status(200).json({ devices: enriched, pendingLogins: pendings ?? [] })
   }
 
   if (req.method === 'DELETE') {
