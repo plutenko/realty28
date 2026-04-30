@@ -1124,6 +1124,23 @@ export default function AdminUnitsPage() {
     fetch('/api/units?invalidate=1').catch(() => {})
     fetch('/api/complexes?invalidate=1').catch(() => {})
     fetch('/api/buildings-summary?invalidate=1').catch(() => {})
+    // И сбрасываем edge-кеш Cloudflare для тех же путей
+    ;(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        await fetch('/api/cf-purge', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            paths: ['/api/units', '/api/complexes', '/api/buildings-summary'],
+          }),
+        })
+      } catch {}
+    })()
     return body
   }
 
