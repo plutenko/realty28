@@ -18,17 +18,16 @@ export default function AdminSecurityPage() {
 
   async function load() {
     if (!supabase || !user) return
-    // Загрузить список риелторов
-    const { data: rs } = await supabase
-      .from('profiles')
-      .select('id, email, name, role, telegram_chat_id, created_at')
-      .order('name')
-    setRealtors(rs ?? [])
 
-    const me = (rs ?? []).find((r) => r.id === user.id)
+    // Свой telegram_chat_id берём напрямую (RLS пускает к собственному профилю)
+    const { data: me } = await supabase
+      .from('profiles')
+      .select('telegram_chat_id')
+      .eq('id', user.id)
+      .maybeSingle()
     setMyTgChatId(me?.telegram_chat_id || null)
 
-    // Загрузить устройства через серверный endpoint (service_role в обход RLS)
+    // Все остальные данные — через серверный endpoint (service_role в обход RLS)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
@@ -39,6 +38,7 @@ export default function AdminSecurityPage() {
         if (res.ok) {
           setDevices(data.devices ?? [])
           setPendingLogins(data.pendingLogins ?? [])
+          setRealtors(data.profiles ?? [])
         }
       }
     } catch {}
