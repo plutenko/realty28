@@ -11,8 +11,12 @@ export default async function handler(req, res) {
   }
   if (req.method !== 'GET') return res.status(405).end()
 
-  // Браузер сам шлёт If-None-Match при следующем заходе, при совпадении ETag — 304 (0 байт).
-  res.setHeader('Cache-Control', 'private, must-revalidate, max-age=0')
+  // public — даём кешировать на CF-edge и любых промежуточных кешах.
+  // s-maxage=300: edge держит 5 мин (соответствует серверному кешу)
+  // stale-while-revalidate=86400: пока ETag не изменится, edge может отдавать
+  //   старую версию ещё сутки и обновлять в фоне
+  // ETag + browser If-None-Match → 304 продолжают работать как раньше.
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400')
 
   const now = Date.now()
   const fresh = req.query?.fresh === '1' || req.query?.invalidate === '1'

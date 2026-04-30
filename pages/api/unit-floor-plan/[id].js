@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   const id = String(req.query?.id || '').trim()
   if (!id) return res.status(400).json({ error: 'id required' })
 
-  res.setHeader('Cache-Control', 'private, must-revalidate, max-age=0')
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400')
 
   const cached = cache.get(id)
   if (cached && Date.now() - cached.ts < TTL) {
