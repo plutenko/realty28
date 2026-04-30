@@ -48,9 +48,23 @@ function messengerLabel(messenger) {
 }
 
 export default function ApartmentModal({ unit, onClose, onAddToCollection, isSelected, collectionView = false, floorPlanUrl = null }) {
-  // Источник URL поэтажного плана: поле unit.floor_plan_url (из /api/units)
-  // или переданный prop (для страниц, где поле ещё не подключено).
-  const effectiveFloorPlanUrl = unit?.floor_plan_url || floorPlanUrl
+  // Поэтажный план грузим лениво при открытии модалки — раньше URL приходил в каждом
+  // юните /api/units (130 КБ на 1933 квартиры), сейчас отдельный /api/unit-floor-plan/[id].
+  const [lazyFloorPlanUrl, setLazyFloorPlanUrl] = useState(null)
+  useEffect(() => {
+    setLazyFloorPlanUrl(null)
+    if (!unit?.id) return
+    if (unit.floor_plan_url || floorPlanUrl) return // уже передали извне
+    let cancelled = false
+    fetch(`/api/unit-floor-plan/${encodeURIComponent(unit.id)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d?.url) setLazyFloorPlanUrl(d.url)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [unit?.id, unit?.floor_plan_url, floorPlanUrl])
+  const effectiveFloorPlanUrl = unit?.floor_plan_url || floorPlanUrl || lazyFloorPlanUrl
   const [zoomedSrc, setZoomedSrc] = useState(null)
   const b = unit?.building
   const c = b?.complex
