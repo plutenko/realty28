@@ -1498,24 +1498,13 @@ export default function ApartmentsPage() {
                   Ничего не найдено по фильтрам
                 </p>
               ) : (
-                <div
-                  className={
-                    viewMode === 'grid'
-                      ? 'grid grid-cols-3 gap-4'
-                      : 'flex flex-col gap-4'
-                  }
-                >
-                  {sortedFiltered.map((u) => (
-                    <ApartmentCard
-                      key={u.id}
-                      unit={u}
-                      selected={selectedUnits.includes(u.id)}
-                      onToggleSelect={toggleSelectedUnit}
-                      onOpenDetails={() => setModalUnit(u)}
-                      listView={viewMode === 'list'}
-                    />
-                  ))}
-                </div>
+                <ChunkedApartmentList
+                  units={sortedFiltered}
+                  viewMode={viewMode}
+                  selectedUnits={selectedUnits}
+                  onToggleSelect={toggleSelectedUnit}
+                  onOpenDetails={(u) => setModalUnit(u)}
+                />
               )
             ) : pageView === 'map' ? (
               <MapView
@@ -1794,6 +1783,67 @@ export default function ApartmentsPage() {
         />
       ) : null}
     </div>
+  )
+}
+
+/** Грид с chunked-rendering: первые 60 карточек сразу, по скроллу через
+ *  IntersectionObserver добавляем по 60. Защита от лагов на 1933 карточках —
+ *  держим в DOM ~60-300 элементов вместо всех. */
+function ChunkedApartmentList({ units, viewMode, selectedUnits, onToggleSelect, onOpenDetails }) {
+  const CHUNK = 60
+  const [visibleCount, setVisibleCount] = useState(CHUNK)
+  const sentinelRef = useRef(null)
+
+  // При смене фильтра/сортировки сбрасываем счётчик, чтобы юзер не видел подгруженные
+  // далеко-вниз карточки от прошлой выдачи.
+  useEffect(() => {
+    setVisibleCount(CHUNK)
+  }, [units])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    if (visibleCount >= units.length) return
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((c) => Math.min(c + CHUNK, units.length))
+        }
+      },
+      { rootMargin: '400px 0px' } // подгружаем заранее
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [visibleCount, units.length])
+
+  const visible = visibleCount >= units.length ? units : units.slice(0, visibleCount)
+
+  return (
+    <>
+      <div
+        className={
+          viewMode === 'grid'
+            ? 'grid grid-cols-3 gap-4'
+            : 'flex flex-col gap-4'
+        }
+      >
+        {visible.map((u) => (
+          <ApartmentCard
+            key={u.id}
+            unit={u}
+            selected={selectedUnits.includes(u.id)}
+            onToggleSelect={onToggleSelect}
+            onOpenDetails={() => onOpenDetails(u)}
+            listView={viewMode === 'list'}
+          />
+        ))}
+      </div>
+      {visibleCount < units.length && (
+        <div ref={sentinelRef} className="flex h-20 items-center justify-center">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-blue-500" />
+        </div>
+      )}
+    </>
   )
 }
 

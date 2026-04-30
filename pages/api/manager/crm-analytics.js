@@ -46,6 +46,9 @@ export default async function handler(req, res) {
     bucket = 'month'
   }
 
+  // Soft-cap: даже за год лидов сейчас < 5k, лимит 50k защищает от случайного
+  // вычитывания миллионов записей если в будущем база сильно вырастет.
+  // Когда будет много данных — переходим на SQL-агрегацию (GROUP BY).
   let q = supabase
     .from('leads')
     .select(`
@@ -54,6 +57,7 @@ export default async function handler(req, res) {
       lead_sources(id, name, kind),
       profiles:assigned_user_id(id, name, email)
     `)
+    .limit(50000)
   if (sinceIso) q = q.gte('created_at', sinceIso)
   const { data: leads, error } = await q
   if (error) return res.status(500).json({ error: error.message })
