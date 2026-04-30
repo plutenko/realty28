@@ -179,6 +179,37 @@ export default function ApartmentsPage() {
     if (saved === 'grid' || saved === 'list') setViewMode(saved)
     const savedPage = window.localStorage.getItem('apartmentsPageView')
     if (savedPage === 'units' || savedPage === 'complexes' || savedPage === 'map') setPageView(savedPage)
+    // Восстанавливаем фильтры и подборку, чтобы F5 не сбрасывал работу риелтора
+    try {
+      const rawFilters = window.localStorage.getItem('apartmentsFilters')
+      if (rawFilters) {
+        const f = JSON.parse(rawFilters)
+        if (Array.isArray(f.selectedDevelopers)) setSelectedDevelopers(f.selectedDevelopers)
+        if (Array.isArray(f.selectedComplexes)) setSelectedComplexes(f.selectedComplexes)
+        if (Array.isArray(f.selectedBuildingIds)) setSelectedBuildingIds(f.selectedBuildingIds)
+        if (Array.isArray(f.selectedHandoverKeys)) setSelectedHandoverKeys(f.selectedHandoverKeys)
+        if (Array.isArray(f.selectedPpmRanges)) setSelectedPpmRanges(f.selectedPpmRanges)
+        if (Array.isArray(f.selectedPriceRanges)) setSelectedPriceRanges(f.selectedPriceRanges)
+        if (Array.isArray(f.selectedRooms)) setSelectedRooms(f.selectedRooms)
+        if (Array.isArray(f.selectedAreaRanges)) setSelectedAreaRanges(f.selectedAreaRanges)
+        if (Number.isFinite(f.priceMin)) setPriceMin(f.priceMin)
+        if (Number.isFinite(f.priceMax)) setPriceMax(f.priceMax)
+        if (typeof f.twoLevelOnly === 'boolean') setTwoLevelOnly(f.twoLevelOnly)
+        if (typeof f.renovationOnly === 'boolean') setRenovationOnly(f.renovationOnly)
+        if (f.floorFrom == null || Number.isFinite(f.floorFrom)) setFloorFrom(f.floorFrom)
+        if (f.floorTo == null || Number.isFinite(f.floorTo)) setFloorTo(f.floorTo)
+        if (typeof f.areaFrom === 'string') setAreaFrom(f.areaFrom)
+        if (typeof f.areaTo === 'string') setAreaTo(f.areaTo)
+        if (typeof f.sortBy === 'string') setSortBy(f.sortBy)
+      }
+      const rawSelected = window.localStorage.getItem('apartmentsSelectedUnits')
+      if (rawSelected) {
+        const arr = JSON.parse(rawSelected)
+        if (Array.isArray(arr) && arr.every((x) => typeof x === 'string')) {
+          setSelectedUnits(arr)
+        }
+      }
+    } catch {}
   }, [])
 
   useEffect(() => {
@@ -190,6 +221,29 @@ export default function ApartmentsPage() {
     if (typeof window === 'undefined') return
     window.localStorage.setItem('apartmentsPageView', pageView)
   }, [pageView])
+
+  // Сохранение фильтров — пишем как один JSON
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const f = {
+      selectedDevelopers, selectedComplexes, selectedBuildingIds, selectedHandoverKeys,
+      selectedPpmRanges, selectedPriceRanges, selectedRooms, selectedAreaRanges,
+      priceMin, priceMax, twoLevelOnly, renovationOnly,
+      floorFrom, floorTo, areaFrom, areaTo, sortBy,
+    }
+    try { window.localStorage.setItem('apartmentsFilters', JSON.stringify(f)) } catch {}
+  }, [
+    selectedDevelopers, selectedComplexes, selectedBuildingIds, selectedHandoverKeys,
+    selectedPpmRanges, selectedPriceRanges, selectedRooms, selectedAreaRanges,
+    priceMin, priceMax, twoLevelOnly, renovationOnly,
+    floorFrom, floorTo, areaFrom, areaTo, sortBy,
+  ])
+
+  // Сохранение подборки (selectedUnits) — отдельно, чтобы не дёргать большой JSON фильтров
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try { window.localStorage.setItem('apartmentsSelectedUnits', JSON.stringify(selectedUnits)) } catch {}
+  }, [selectedUnits])
 
   // Сбрасываем раскрытую шахматку при выходе из режима «ЖК»
   useEffect(() => {
