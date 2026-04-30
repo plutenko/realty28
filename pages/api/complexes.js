@@ -11,6 +11,8 @@ export default async function handler(req, res) {
   }
   if (req.method !== 'GET') return res.status(405).end()
 
+  res.setHeader('Cache-Control', 'private, must-revalidate, max-age=0')
+
   const now = Date.now()
   const fresh = req.query?.fresh === '1' || req.query?.invalidate === '1'
   if (!fresh && cache.data && now - cache.ts < TTL) {
@@ -22,25 +24,20 @@ export default async function handler(req, res) {
   if (!supabase) return res.status(500).json({ error: 'DB not configured' })
 
   try {
+    // /api/complexes теперь про структуру (ЖК → корпуса с координатами/планировками/handover).
+    // Сами квартиры тащит /api/units, чтобы не дублировать ~1 МБ данных в обоих ответах.
     const { data: complexes, error: cErr } = await supabase
       .from('complexes')
       .select(`
         id, name, city, website_url, realtor_commission_type, realtor_commission_value, developer_id,
         developers ( id, name, developer_managers ( id, name, phone, short_description, messenger, messenger_contact, created_at ) ),
         buildings (
-          id, name, address, floors, units_per_floor, units_per_entrance, handover_status, handover_quarter, handover_year, lat, lng,
-          units ( id, floor, number, position, entrance, rooms, area, layout_title, layout_image_url, finish_image_url, price, price_per_meter, status, span_columns, span_floors, is_commercial, has_renovation )
+          id, name, address, floors, units_per_floor, units_per_entrance, handover_status, handover_quarter, handover_year, lat, lng
         )
       `)
       .order('name')
 
     if (cErr) throw cErr
-    const excludeStatuses = new Set(['sold', 'closed'])
-    for (const c of complexes ?? []) {
-      for (const b of c.buildings ?? []) {
-        b.units = (b.units ?? []).filter(u => !excludeStatuses.has(String(u.status ?? '').toLowerCase()))
-      }
-    }
     const rows = complexes ?? []
     const ids = rows.map(c => c.id)
 

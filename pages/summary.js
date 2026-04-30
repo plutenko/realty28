@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
+import { attachBuildingsToUnits, fetchComplexesFromApi, fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
 import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
 
@@ -76,7 +76,12 @@ export default function SummaryPage() {
 
   useEffect(() => {
     ;(async () => {
-      const { data: allUnits } = await fetchUnitsFromApi()
+      const [{ data: allUnitsRaw }, { data: complexes }] = await Promise.all([
+        fetchUnitsFromApi(),
+        fetchComplexesFromApi(),
+      ])
+      // /api/units возвращает только building_id — денормализуем на клиенте
+      const allUnits = attachBuildingsToUnits(allUnitsRaw, complexes)
       const byBuilding = new Map()
       for (const u of allUnits ?? []) {
         const bid = u.building?.id

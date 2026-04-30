@@ -11,6 +11,8 @@ export default async function handler(req, res) {
   }
   if (req.method !== 'GET') return res.status(405).end()
 
+  res.setHeader('Cache-Control', 'private, must-revalidate, max-age=0')
+
   const now = Date.now()
   const fresh = req.query?.fresh === '1' || req.query?.invalidate === '1'
   if (!fresh && cache.data && now - cache.ts < TTL) {

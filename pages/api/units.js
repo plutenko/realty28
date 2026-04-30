@@ -11,6 +11,9 @@ export default async function handler(req, res) {
   }
   if (req.method !== 'GET') return res.status(405).end()
 
+  // Браузер сам шлёт If-None-Match при следующем заходе, при совпадении ETag — 304 (0 байт).
+  res.setHeader('Cache-Control', 'private, must-revalidate, max-age=0')
+
   const now = Date.now()
   const fresh = req.query?.fresh === '1' || req.query?.invalidate === '1'
   if (!fresh && cache.data && now - cache.ts < TTL) {
@@ -36,19 +39,13 @@ export default async function handler(req, res) {
 
     if (cErr) throw cErr
 
-    const buildingCtx = new Map()
+    // Только список ID корпусов нужен для запроса /units. Сами объекты building/complex/
+    // developer на клиенте подтягиваются из /api/complexes, чтобы не дублировать их в
+    // каждой квартире (раньше payload /api/units был ~3 МБ из-за вложенного building).
+    const buildingIds = []
     for (const c of complexes ?? []) {
-      const dev = Array.isArray(c.developer) ? c.developer[0] : c.developer
-      for (const b of c.buildings ?? []) {
-        buildingCtx.set(b.id, {
-          building: b,
-          complex: { id: c.id, name: c.name, website_url: c.website_url, realtor_commission_type: c.realtor_commission_type, realtor_commission_value: c.realtor_commission_value },
-          developer: dev ? { ...dev, developer_managers: dev.developer_managers ?? [] } : null,
-        })
-      }
+      for (const b of c.buildings ?? []) buildingIds.push(b.id)
     }
-
-    const buildingIds = [...buildingCtx.keys()]
 
     // Поэтажные планы — может быть несколько на этаж (если дом с разными
     // планировками по подъездам). Ключи: (building_id, floor_level, entrance)
@@ -95,8 +92,6 @@ export default async function handler(req, res) {
 
       if (uErr) throw uErr
       for (const u of units ?? []) {
-        const ctx = buildingCtx.get(u.building_id)
-        if (!ctx) continue
         // Приоритет: персональный план квартиры (FSK: SVG этажа с подсветкой
         // этой квартиры) > общий план этажа из images (MacroCRM/Amurstroy).
         let plan = null
@@ -107,14 +102,7 @@ export default async function handler(req, res) {
           if (!plan) plan = floorPlanAllMap.get(`${u.building_id}::${u.floor}`) ?? null
         }
         const floor_plan_url = u.floor_plan_url || plan
-        flat.push({
-          ...u,
-          floor_plan_url,
-          building: {
-            ...ctx.building,
-            complex: { ...ctx.complex, developer: ctx.developer },
-          },
-        })
+        flat.push({ ...u, floor_plan_url })
       }
       if (!units || units.length < PAGE) break
       from += PAGE

@@ -5,7 +5,7 @@ import { Building2, LayoutGrid, List, Map as MapIcon, SquareStack } from 'lucide
 import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
 import FlyingHeart from '../components/FlyingHeart'
-import { fetchBuildingsSummaryFromApi, fetchComplexesFromApi, fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
+import { attachBuildingsToUnits, fetchBuildingsSummaryFromApi, fetchComplexesFromApi, fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
 import { formatComplexName, formatName, getComplexDeveloper, sanitizeComplexesPayload, sortBuildingsByName } from '../lib/complexes'
 import FiltersSidebar from '../components/apartments/FiltersSidebar'
 import ApartmentCard from '../components/apartments/ApartmentCard'
@@ -233,6 +233,7 @@ export default function ApartmentsPage() {
       setUnitsBusy(true)
       setError('')
 
+      let loadedComplexes = []
       try {
         // Лёгкая пара (карта + список ЖК) — рендерим как только она доехала
         const [summaryRes, complexesRes] = await Promise.all([
@@ -241,7 +242,8 @@ export default function ApartmentsPage() {
         ])
         if (!summaryRes.error) setBuildingsSummary(summaryRes.data ?? [])
         if (!complexesRes.error) {
-          setComplexes(sanitizeComplexesPayload(complexesRes.data ?? []))
+          loadedComplexes = sanitizeComplexesPayload(complexesRes.data ?? [])
+          setComplexes(loadedComplexes)
         }
       } catch (e) {
         setError(e?.message || 'Ошибка загрузки')
@@ -249,14 +251,16 @@ export default function ApartmentsPage() {
         setBusy(false)
       }
 
-      // Тяжёлый /api/units — догружаем в фоне, не блокируя карту/ЖК
+      // Тяжёлый /api/units — догружаем в фоне, не блокируя карту/ЖК.
+      // Сейчас /api/units возвращает только building_id; денормализация на клиенте
+      // через attachBuildingsToUnits — поднимает u.building.complex.* как раньше.
       try {
         const unitsRes = await fetchUnitsFromApi()
         if (unitsRes.error) {
           setError(unitsRes.error.message || 'Ошибка загрузки')
           setUnits([])
         } else {
-          setUnits(unitsRes.data ?? [])
+          setUnits(attachBuildingsToUnits(unitsRes.data ?? [], loadedComplexes))
         }
       } catch (e) {
         setError(e?.message || 'Ошибка загрузки')
