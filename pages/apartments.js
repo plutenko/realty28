@@ -5,7 +5,7 @@ import { Building2, LayoutGrid, List, Map as MapIcon, SquareStack } from 'lucide
 import { useAuth } from '../lib/authContext'
 import CatalogTabs from '../components/CatalogTabs'
 import FlyingHeart from '../components/FlyingHeart'
-import { fetchComplexesFromApi, fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
+import { fetchBuildingsSummaryFromApi, fetchComplexesFromApi, fetchUnitsFromApi } from '../lib/fetchUnitsFromApi'
 import { formatComplexName, formatName, getComplexDeveloper, sanitizeComplexesPayload, sortBuildingsByName } from '../lib/complexes'
 import FiltersSidebar from '../components/apartments/FiltersSidebar'
 import ApartmentCard from '../components/apartments/ApartmentCard'
@@ -126,7 +126,9 @@ export default function ApartmentsPage() {
   const { user } = useAuth()
   const [units, setUnits] = useState([])
   const [complexes, setComplexes] = useState([])
+  const [buildingsSummary, setBuildingsSummary] = useState([])
   const [busy, setBusy] = useState(true)
+  const [unitsBusy, setUnitsBusy] = useState(true)
   const [error, setError] = useState('')
 
   const [viewMode, setViewMode] = useState('grid')
@@ -228,27 +230,39 @@ export default function ApartmentsPage() {
   useEffect(() => {
     async function load() {
       setBusy(true)
+      setUnitsBusy(true)
       setError('')
 
       try {
-        const [unitsRes, complexesRes] = await Promise.all([
-          fetchUnitsFromApi(),
+        // Лёгкая пара (карта + список ЖК) — рендерим как только она доехала
+        const [summaryRes, complexesRes] = await Promise.all([
+          fetchBuildingsSummaryFromApi(),
           fetchComplexesFromApi(),
         ])
+        if (!summaryRes.error) setBuildingsSummary(summaryRes.data ?? [])
+        if (!complexesRes.error) {
+          setComplexes(sanitizeComplexesPayload(complexesRes.data ?? []))
+        }
+      } catch (e) {
+        setError(e?.message || 'Ошибка загрузки')
+      } finally {
+        setBusy(false)
+      }
+
+      // Тяжёлый /api/units — догружаем в фоне, не блокируя карту/ЖК
+      try {
+        const unitsRes = await fetchUnitsFromApi()
         if (unitsRes.error) {
           setError(unitsRes.error.message || 'Ошибка загрузки')
           setUnits([])
         } else {
           setUnits(unitsRes.data ?? [])
         }
-        if (!complexesRes.error) {
-          setComplexes(sanitizeComplexesPayload(complexesRes.data ?? []))
-        }
       } catch (e) {
         setError(e?.message || 'Ошибка загрузки')
         setUnits([])
       } finally {
-        setBusy(false)
+        setUnitsBusy(false)
       }
     }
 
@@ -1027,32 +1041,36 @@ export default function ApartmentsPage() {
     return out
   }, [units])
 
-  /** ЖК, у которых хотя бы 1 подходящая квартира под фильтр (или все, если фильтра нет) */
-  /** Пины корпусов для карты: только корпуса с заполненными координатами и подходящими квартирами */
+  /** Пины корпусов для карты: только корпуса с заполненными координатами и подходящими квартирами.
+   *  База — лёгкий /api/buildings-summary (рендерим сразу), фильтр matched применяется
+   *  когда тяжёлый /api/units догрузился. */
   const mapMarkers = useMemo(() => {
-    if (!complexes?.length) return []
+    const source = buildingsSummary?.length ? buildingsSummary : []
+    const unitsLoaded = (units?.length ?? 0) > 0
     const out = []
-    for (const c of complexes) {
-      for (const b of c.buildings ?? []) {
-        const lat = Number(b?.lat)
-        const lng = Number(b?.lng)
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
-        const matched = matchedByBuilding[b.id] ?? 0
-        const available = availableByBuilding[b.id] ?? 0
-        if (hasActiveFilters ? matched <= 0 : available <= 0) continue
-        out.push({
-          id: b.id,
-          complex: c,
-          building: b,
-          lat,
-          lng,
-          matched,
-          available,
-        })
+    for (const b of source) {
+      const lat = Number(b?.lat)
+      const lng = Number(b?.lng)
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
+      const matched = matchedByBuilding[b.id] ?? 0
+      const available = b.available_count ?? 0
+      if (hasActiveFilters && unitsLoaded) {
+        if (matched <= 0) continue
+      } else {
+        if (available <= 0) continue
       }
+      out.push({
+        id: b.id,
+        complex: b.complex,
+        building: b,
+        lat,
+        lng,
+        matched,
+        available,
+      })
     }
     return out
-  }, [complexes, hasActiveFilters, matchedByBuilding, availableByBuilding])
+  }, [buildingsSummary, hasActiveFilters, matchedByBuilding, units])
 
   /** Плоский список карточек корпусов: 1 карточка = 1 building. Скрываем те, у которых
    *  при активных фильтрах 0 совпадений, иначе — те, у которых 0 доступных квартир. */
@@ -1464,7 +1482,7 @@ export default function ApartmentsPage() {
 
           <div className="min-w-0 flex-1">
             {pageView === 'units' ? (
-              busy ? (
+              unitsBusy ? (
                 <div className="flex items-center justify-center py-20">
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500"></div>
                   <span className="ml-3 text-sm text-gray-500">Загрузка квартир...</span>
