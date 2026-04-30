@@ -119,17 +119,10 @@ export default function AdminSecurityPage() {
     }
   }
 
-  const realtorById = new Map(realtors.map((r) => [r.id, r]))
-
   const access = useMemo(() => {
     const realtorList = realtors.filter((r) => r.role === 'realtor')
-    const latestDeviceByUser = new Map()
-    for (const d of devices) {
-      const prev = latestDeviceByUser.get(d.user_id)
-      if (!prev || new Date(d.last_used_at) > new Date(prev.last_used_at)) {
-        latestDeviceByUser.set(d.user_id, d)
-      }
-    }
+    const realtorMap = new Map(realtorList.map((r) => [r.id, r]))
+
     const latestPendingByUser = new Map()
     for (const p of pendingLogins) {
       const prev = latestPendingByUser.get(p.user_id)
@@ -140,22 +133,25 @@ export default function AdminSecurityPage() {
 
     const active = []
     const expired = []
+    const userIdsWithDevice = new Set()
+
+    // По одной строке на каждое устройство — чтобы у одного риелтора могло быть несколько строк
+    for (const d of devices) {
+      const realtor = realtorMap.get(d.user_id)
+      if (!realtor) continue
+      userIdsWithDevice.add(d.user_id)
+      const row = { realtor, device: d }
+      if (approveStillValid(d.last_approved_at)) active.push(row)
+      else expired.push(row)
+    }
+
     const triedNotIn = []
     const never = []
-
     for (const r of realtorList) {
-      const device = latestDeviceByUser.get(r.id) || null
+      if (userIdsWithDevice.has(r.id)) continue
       const pending = latestPendingByUser.get(r.id) || null
-      const row = { realtor: r, device, pending }
-      if (device && approveStillValid(device.last_approved_at)) {
-        active.push(row)
-      } else if (device) {
-        expired.push(row)
-      } else if (pending) {
-        triedNotIn.push(row)
-      } else {
-        never.push(row)
-      }
+      if (pending) triedNotIn.push({ realtor: r, pending })
+      else never.push({ realtor: r })
     }
 
     const byName = (a, b) => (a.realtor.name || '').localeCompare(b.realtor.name || '', 'ru')
@@ -379,144 +375,100 @@ export default function AdminSecurityPage() {
       </section>
 
       {/* Все риелторы — статус доступа */}
-      <section className="mb-8 rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
         <h2 className="text-lg font-semibold">Все риелторы — статус доступа</h2>
         <p className="mt-2 text-sm text-slate-400">
-          Разбивка всех риелторов из базы по тому, как они работают со входом.
+          Все риелторы из базы, разбитые по статусу входа. Удалите устройство, чтобы потребовать
+          повторное подтверждение.
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
-          <div className="rounded-xl border border-emerald-700/50 bg-emerald-950/30 p-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
-              Активный доступ
-            </div>
-            <div className="mt-1 text-2xl font-semibold text-emerald-200">{access.active.length}</div>
-            <div className="text-emerald-400/70">approve свежий (&lt; 7 дн)</div>
-          </div>
-          <div className="rounded-xl border border-amber-700/50 bg-amber-950/30 p-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-300">
-              Approve просрочен
-            </div>
-            <div className="mt-1 text-2xl font-semibold text-amber-200">{access.expired.length}</div>
-            <div className="text-amber-400/70">заходил, но &gt; 7 дн</div>
-          </div>
-          <div className="rounded-xl border border-rose-700/50 bg-rose-950/30 p-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-rose-300">
-              Пытался войти, не одобрен
-            </div>
-            <div className="mt-1 text-2xl font-semibold text-rose-200">{access.triedNotIn.length}</div>
-            <div className="text-rose-400/70">pending без устройства</div>
-          </div>
-          <div className="rounded-xl border border-slate-700/60 bg-slate-950/40 p-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-              Никогда не пытался
-            </div>
-            <div className="mt-1 text-2xl font-semibold text-slate-300">{access.never.length}</div>
-            <div className="text-slate-500">нет ни одной попытки</div>
-          </div>
+          <StatCard color="emerald" title="Активный доступ" count={access.active.length} hint="approve свежий (< 7 дн)" />
+          <StatCard color="amber" title="Approve просрочен" count={access.expired.length} hint="заходил, но > 7 дн" />
+          <StatCard color="rose" title="Пытался войти, не одобрен" count={access.triedNotIn.length} hint="pending без устройства" />
+          <StatCard color="slate" title="Никогда не пытался" count={access.never.length} hint="нет ни одной попытки" />
         </div>
 
         <div className="mt-5 space-y-5">
-          <AccessGroup
+          <AccessTable
             color="emerald"
             title="Активный доступ"
             hint="Заходил, approve действителен (< 7 дней)"
             rows={access.active}
-            renderMeta={(row) => `вход ${fmt(row.device.last_used_at)} · approve ${fmt(row.device.last_approved_at)}`}
+            getKey={(row) => row.device.id}
+            columns={[
+              { label: 'Риелтор', cell: (row) => row.realtor.name || row.realtor.email },
+              { label: 'Устройство', cell: (row) => row.device.label || '—' },
+              { label: 'Добавлено', cell: (row) => fmt(row.device.created_at), muted: true },
+              { label: 'Последний вход', cell: (row) => fmt(row.device.last_used_at), muted: true },
+              { label: 'Approve', cell: (row) => fmt(row.device.last_approved_at), muted: true },
+              {
+                label: '',
+                w: 'w-24',
+                cell: (row) => (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteDevice(row.device.id)}
+                    className="text-rose-400 hover:underline"
+                  >
+                    Удалить
+                  </button>
+                ),
+              },
+            ]}
           />
-          <AccessGroup
+          <AccessTable
             color="amber"
-            title="Approve просрочен"
-            hint="Заходил, но прошло больше 7 дней — при следующем входе придёт новый запрос"
+            title="Approve просрочен / устройство не одобрено"
+            hint="Прошло > 7 дней или approve ещё не давался — при следующем входе придёт новый запрос"
             rows={access.expired}
-            renderMeta={(row) =>
-              `последний вход ${fmt(row.device.last_used_at)} · approve ${fmt(row.device.last_approved_at)}`
-            }
+            getKey={(row) => row.device.id}
+            columns={[
+              { label: 'Риелтор', cell: (row) => row.realtor.name || row.realtor.email },
+              { label: 'Устройство', cell: (row) => row.device.label || '—' },
+              { label: 'Добавлено', cell: (row) => fmt(row.device.created_at), muted: true },
+              { label: 'Последний вход', cell: (row) => fmt(row.device.last_used_at), muted: true },
+              { label: 'Approve', cell: (row) => fmt(row.device.last_approved_at), muted: true },
+              {
+                label: '',
+                w: 'w-24',
+                cell: (row) => (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteDevice(row.device.id)}
+                    className="text-rose-400 hover:underline"
+                  >
+                    Удалить
+                  </button>
+                ),
+              },
+            ]}
           />
-          <AccessGroup
+          <AccessTable
             color="rose"
             title="Пытался войти, не одобрен"
             hint="Был pending, но устройство так и не подтвердили — войти не может"
             rows={access.triedNotIn}
-            renderMeta={(row) =>
-              `последняя попытка ${fmt(row.pending.created_at)} · статус ${row.pending.status}`
-            }
+            getKey={(row) => row.realtor.id}
+            columns={[
+              { label: 'Риелтор', cell: (row) => row.realtor.name || row.realtor.email },
+              { label: 'Устройство (попытка)', cell: (row) => row.pending.device_label || '—' },
+              { label: 'Последняя попытка', cell: (row) => fmt(row.pending.created_at), muted: true },
+              { label: 'Статус', cell: (row) => row.pending.status, muted: true },
+            ]}
           />
-          <AccessGroup
+          <AccessTable
             color="slate"
             title="Никогда не пытался войти"
             hint="Аккаунт создан, но ни одной попытки входа в систему"
             rows={access.never}
-            renderMeta={(row) => `аккаунт создан ${fmt(row.realtor.created_at)}`}
+            getKey={(row) => row.realtor.id}
+            columns={[
+              { label: 'Риелтор', cell: (row) => row.realtor.name || row.realtor.email },
+              { label: 'Email', cell: (row) => row.realtor.email, muted: true },
+              { label: 'Аккаунт создан', cell: (row) => fmt(row.realtor.created_at), muted: true },
+            ]}
           />
-        </div>
-      </section>
-
-      {/* Устройства риелторов */}
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
-        <h2 className="text-lg font-semibold">Зарегистрированные устройства</h2>
-        <p className="mt-2 text-sm text-slate-400">
-          Устройства с которых разрешён вход риелторам. Удалите, чтобы потребовать повторное
-          подтверждение.
-        </p>
-
-        <div className="mt-4 overflow-x-auto rounded-xl border border-slate-800">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-800 bg-slate-900/80">
-              <tr>
-                <th className="p-3">Пользователь</th>
-                <th className="p-3">Устройство</th>
-                <th className="p-3">Добавлено</th>
-                <th className="p-3">Последний вход</th>
-                <th className="p-3">Approve</th>
-                <th className="w-28 p-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {devices.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-4 text-center text-slate-500">
-                    Устройств пока нет
-                  </td>
-                </tr>
-              ) : (
-                devices.map((d) => {
-                  const r = realtorById.get(d.user_id)
-                  const name = d.user_name || r?.name || d.user_email || r?.email || '—'
-                  const role = d.user_role || r?.role || '—'
-                  return (
-                    <tr key={d.id} className="border-b border-slate-800/80">
-                      <td className="p-3">
-                        <div className="font-medium">{name}</div>
-                        <div className="text-xs text-slate-500">{role}</div>
-                      </td>
-                      <td className="p-3 text-slate-300">{d.label || '—'}</td>
-                      <td className="p-3 text-xs text-slate-500">
-                        {new Date(d.created_at).toLocaleString('ru-RU')}
-                      </td>
-                      <td className="p-3 text-xs text-slate-500">
-                        {new Date(d.last_used_at).toLocaleString('ru-RU')}
-                      </td>
-                      <td className="p-3 text-xs text-slate-500">
-                        {d.last_approved_at
-                          ? new Date(d.last_approved_at).toLocaleString('ru-RU')
-                          : '—'}
-                      </td>
-                      <td className="p-3">
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteDevice(d.id)}
-                          className="text-rose-400 hover:underline"
-                        >
-                          Удалить
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
         </div>
       </section>
     </AdminLayout>
@@ -524,13 +476,60 @@ export default function AdminSecurityPage() {
 }
 
 const COLOR_MAP = {
-  emerald: { dot: 'bg-emerald-400', text: 'text-emerald-200', border: 'border-emerald-800/40' },
-  amber: { dot: 'bg-amber-400', text: 'text-amber-200', border: 'border-amber-800/40' },
-  rose: { dot: 'bg-rose-400', text: 'text-rose-200', border: 'border-rose-800/40' },
-  slate: { dot: 'bg-slate-500', text: 'text-slate-300', border: 'border-slate-800/60' },
+  emerald: {
+    dot: 'bg-emerald-400',
+    text: 'text-emerald-200',
+    border: 'border-emerald-800/40',
+    cardBorder: 'border-emerald-700/50',
+    cardBg: 'bg-emerald-950/30',
+    cardLabel: 'text-emerald-300',
+    cardCount: 'text-emerald-200',
+    cardHint: 'text-emerald-400/70',
+  },
+  amber: {
+    dot: 'bg-amber-400',
+    text: 'text-amber-200',
+    border: 'border-amber-800/40',
+    cardBorder: 'border-amber-700/50',
+    cardBg: 'bg-amber-950/30',
+    cardLabel: 'text-amber-300',
+    cardCount: 'text-amber-200',
+    cardHint: 'text-amber-400/70',
+  },
+  rose: {
+    dot: 'bg-rose-400',
+    text: 'text-rose-200',
+    border: 'border-rose-800/40',
+    cardBorder: 'border-rose-700/50',
+    cardBg: 'bg-rose-950/30',
+    cardLabel: 'text-rose-300',
+    cardCount: 'text-rose-200',
+    cardHint: 'text-rose-400/70',
+  },
+  slate: {
+    dot: 'bg-slate-500',
+    text: 'text-slate-300',
+    border: 'border-slate-800/60',
+    cardBorder: 'border-slate-700/60',
+    cardBg: 'bg-slate-950/40',
+    cardLabel: 'text-slate-400',
+    cardCount: 'text-slate-300',
+    cardHint: 'text-slate-500',
+  },
 }
 
-function AccessGroup({ color, title, hint, rows, renderMeta }) {
+function StatCard({ color, title, count, hint }) {
+  const c = COLOR_MAP[color] || COLOR_MAP.slate
+  return (
+    <div className={`rounded-xl border ${c.cardBorder} ${c.cardBg} p-3`}>
+      <div className={`text-[11px] font-semibold uppercase tracking-wide ${c.cardLabel}`}>{title}</div>
+      <div className={`mt-1 text-2xl font-semibold ${c.cardCount}`}>{count}</div>
+      <div className={c.cardHint}>{hint}</div>
+    </div>
+  )
+}
+
+function AccessTable({ color, title, hint, rows, columns, getKey }) {
   const c = COLOR_MAP[color] || COLOR_MAP.slate
   return (
     <div className={`rounded-xl border ${c.border} bg-slate-950/30 p-4`}>
@@ -543,14 +542,30 @@ function AccessGroup({ color, title, hint, rows, renderMeta }) {
       {rows.length === 0 ? (
         <p className="mt-2 text-xs text-slate-600">никого</p>
       ) : (
-        <ul className="mt-2 divide-y divide-slate-800/60">
-          {rows.map((row) => (
-            <li key={row.realtor.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-1.5">
-              <span className="text-sm text-slate-200">{row.realtor.name || row.realtor.email}</span>
-              <span className="text-xs text-slate-500">{renderMeta(row)}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-3 overflow-x-auto rounded-lg border border-slate-800/60">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-800/80 bg-slate-900/60">
+              <tr>
+                {columns.map((col, i) => (
+                  <th key={i} className={`p-2.5 text-xs font-semibold uppercase tracking-wide text-slate-400 ${col.w || ''}`}>
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={getKey(row)} className="border-b border-slate-800/50 last:border-b-0">
+                  {columns.map((col, i) => (
+                    <td key={i} className={`p-2.5 ${col.muted ? 'text-xs text-slate-500' : 'text-slate-200'}`}>
+                      {col.cell(row)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   )
