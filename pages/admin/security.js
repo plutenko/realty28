@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import AdminLayout from '../../components/admin/AdminLayout'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/authContext'
-import { approveStillValid } from '../../lib/workingDay'
+import { computeAccessGroups, fmtDate } from '../../lib/securityAccess'
 
 export default function AdminSecurityPage() {
   const { user, profile } = useAuth()
@@ -119,58 +119,11 @@ export default function AdminSecurityPage() {
     }
   }
 
-  const access = useMemo(() => {
-    const realtorList = realtors.filter((r) => r.role === 'realtor')
-    const realtorMap = new Map(realtorList.map((r) => [r.id, r]))
-
-    const latestPendingByUser = new Map()
-    for (const p of pendingLogins) {
-      const prev = latestPendingByUser.get(p.user_id)
-      if (!prev || new Date(p.created_at) > new Date(prev.created_at)) {
-        latestPendingByUser.set(p.user_id, p)
-      }
-    }
-
-    const active = []
-    const expired = []
-    const userIdsWithDevice = new Set()
-
-    // По одной строке на каждое устройство — чтобы у одного риелтора могло быть несколько строк
-    for (const d of devices) {
-      const realtor = realtorMap.get(d.user_id)
-      if (!realtor) continue
-      userIdsWithDevice.add(d.user_id)
-      const row = { realtor, device: d }
-      if (approveStillValid(d.last_approved_at)) active.push(row)
-      else expired.push(row)
-    }
-
-    const triedNotIn = []
-    const never = []
-    for (const r of realtorList) {
-      if (userIdsWithDevice.has(r.id)) continue
-      const pending = latestPendingByUser.get(r.id) || null
-      if (pending) triedNotIn.push({ realtor: r, pending })
-      else never.push({ realtor: r })
-    }
-
-    const byName = (a, b) => (a.realtor.name || '').localeCompare(b.realtor.name || '', 'ru')
-    const byLastUsed = (a, b) =>
-      new Date(b.device?.last_used_at || 0) - new Date(a.device?.last_used_at || 0)
-    const byPending = (a, b) =>
-      new Date(b.pending?.created_at || 0) - new Date(a.pending?.created_at || 0)
-
-    return {
-      active: active.sort(byLastUsed),
-      expired: expired.sort(byLastUsed),
-      triedNotIn: triedNotIn.sort(byPending),
-      never: never.sort(byName),
-    }
-  }, [realtors, devices, pendingLogins])
-
-  function fmt(d) {
-    return d ? new Date(d).toLocaleString('ru-RU') : '—'
-  }
+  const access = useMemo(
+    () => computeAccessGroups({ realtors, devices, pendingLogins }),
+    [realtors, devices, pendingLogins]
+  )
+  const fmt = fmtDate
 
   return (
     <AdminLayout title="Безопасность и устройства">

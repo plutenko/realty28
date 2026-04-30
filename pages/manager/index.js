@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/authContext'
+import { computeAccessGroups, fmtDate } from '../../lib/securityAccess'
 import CatalogTabs from '../../components/CatalogTabs'
 import TeamReportsView from '../../components/reports/TeamReportsView'
 import TelegramBindingsView from '../../components/reports/TelegramBindingsView'
@@ -155,6 +156,7 @@ function LoginLogsView({ logs, loading }) {
 function SecurityTab() {
   const { user } = useAuth()
   const [devices, setDevices] = useState([])
+  const [pendingLogins, setPendingLogins] = useState([])
   const [realtors, setRealtors] = useState([])
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
@@ -163,13 +165,14 @@ function SecurityTab() {
 
   async function load() {
     if (!supabase || !user) return
-    const { data: rs } = await supabase
+    // Свой telegram_chat_id берём напрямую (RLS пускает к собственному профилю)
+    const { data: me } = await supabase
       .from('profiles')
-      .select('id, email, name, role, telegram_chat_id')
-      .order('name')
-    setRealtors(rs ?? [])
-    const me = (rs ?? []).find((r) => r.id === user.id)
+      .select('telegram_chat_id')
+      .eq('id', user.id)
+      .maybeSingle()
     setMyTgChatId(me?.telegram_chat_id || null)
+    // Все остальные данные — через серверный endpoint (service_role в обход RLS)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
@@ -177,7 +180,11 @@ function SecurityTab() {
           headers: { Authorization: `Bearer ${session.access_token}` },
         })
         const data = await res.json()
-        if (res.ok) setDevices(data.devices ?? [])
+        if (res.ok) {
+          setDevices(data.devices ?? [])
+          setPendingLogins(data.pendingLogins ?? [])
+          setRealtors(data.profiles ?? [])
+        }
       }
     } catch {}
   }
@@ -226,7 +233,10 @@ function SecurityTab() {
     else { setMyTgChatId(null); setTgLink(null); load() }
   }
 
-  const realtorById = new Map(realtors.map((r) => [r.id, r]))
+  const access = useMemo(
+    () => computeAccessGroups({ realtors, devices, pendingLogins }),
+    [realtors, devices, pendingLogins]
+  )
 
   return (
     <div className="space-y-6">
@@ -276,52 +286,203 @@ function SecurityTab() {
       </section>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-gray-900">Зарегистрированные устройства</h2>
+        <h2 className="text-lg font-semibold text-gray-900">Все риелторы — статус доступа</h2>
         <p className="mt-2 text-sm text-gray-600">
-          Устройства с которых разрешён вход риелторам. Удалите, чтобы потребовать повторное подтверждение.
+          Все риелторы из базы, разбитые по статусу входа. Удалите устройство, чтобы потребовать
+          повторное подтверждение.
         </p>
-        <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200">
+
+        <div className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+          <ManagerStatCard color="emerald" title="Активный доступ" count={access.active.length} hint="approve свежий (< 7 дн)" />
+          <ManagerStatCard color="amber" title="Approve просрочен" count={access.expired.length} hint="заходил, но > 7 дн" />
+          <ManagerStatCard color="rose" title="Пытался войти, не одобрен" count={access.triedNotIn.length} hint="pending без устройства" />
+          <ManagerStatCard color="slate" title="Никогда не пытался" count={access.never.length} hint="нет ни одной попытки" />
+        </div>
+
+        <div className="mt-5 space-y-5">
+          <ManagerAccessTable
+            color="emerald"
+            title="Активный доступ"
+            hint="Заходил, approve действителен (< 7 дней)"
+            rows={access.active}
+            getKey={(row) => row.device.id}
+            columns={[
+              { label: 'Риелтор', cell: (row) => row.realtor.name || row.realtor.email },
+              { label: 'Устройство', cell: (row) => row.device.label || '—' },
+              { label: 'Добавлено', cell: (row) => fmtDate(row.device.created_at), muted: true },
+              { label: 'Последний вход', cell: (row) => fmtDate(row.device.last_used_at), muted: true },
+              { label: 'Approve', cell: (row) => fmtDate(row.device.last_approved_at), muted: true },
+              {
+                label: '',
+                w: 'w-24',
+                cell: (row) => (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteDevice(row.device.id)}
+                    className="text-rose-600 hover:underline"
+                  >
+                    Удалить
+                  </button>
+                ),
+              },
+            ]}
+          />
+          <ManagerAccessTable
+            color="amber"
+            title="Approve просрочен / устройство не одобрено"
+            hint="Прошло > 7 дней или approve ещё не давался — при следующем входе придёт новый запрос"
+            rows={access.expired}
+            getKey={(row) => row.device.id}
+            columns={[
+              { label: 'Риелтор', cell: (row) => row.realtor.name || row.realtor.email },
+              { label: 'Устройство', cell: (row) => row.device.label || '—' },
+              { label: 'Добавлено', cell: (row) => fmtDate(row.device.created_at), muted: true },
+              { label: 'Последний вход', cell: (row) => fmtDate(row.device.last_used_at), muted: true },
+              { label: 'Approve', cell: (row) => fmtDate(row.device.last_approved_at), muted: true },
+              {
+                label: '',
+                w: 'w-24',
+                cell: (row) => (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteDevice(row.device.id)}
+                    className="text-rose-600 hover:underline"
+                  >
+                    Удалить
+                  </button>
+                ),
+              },
+            ]}
+          />
+          <ManagerAccessTable
+            color="rose"
+            title="Пытался войти, не одобрен"
+            hint="Был pending, но устройство так и не подтвердили — войти не может"
+            rows={access.triedNotIn}
+            getKey={(row) => row.realtor.id}
+            columns={[
+              { label: 'Риелтор', cell: (row) => row.realtor.name || row.realtor.email },
+              { label: 'Устройство (попытка)', cell: (row) => row.pending.device_label || '—' },
+              { label: 'Последняя попытка', cell: (row) => fmtDate(row.pending.created_at), muted: true },
+              { label: 'Статус', cell: (row) => row.pending.status, muted: true },
+            ]}
+          />
+          <ManagerAccessTable
+            color="slate"
+            title="Никогда не пытался войти"
+            hint="Аккаунт создан, но ни одной попытки входа в систему"
+            rows={access.never}
+            getKey={(row) => row.realtor.id}
+            columns={[
+              { label: 'Риелтор', cell: (row) => row.realtor.name || row.realtor.email },
+              { label: 'Email', cell: (row) => row.realtor.email, muted: true },
+              { label: 'Аккаунт создан', cell: (row) => fmtDate(row.realtor.created_at), muted: true },
+            ]}
+          />
+        </div>
+      </section>
+    </div>
+  )
+}
+
+const MANAGER_THEME = {
+  emerald: {
+    dot: 'bg-emerald-500',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200',
+    cardBorder: 'border-emerald-300',
+    cardBg: 'bg-emerald-50',
+    cardLabel: 'text-emerald-700',
+    cardCount: 'text-emerald-700',
+    cardHint: 'text-emerald-600/80',
+  },
+  amber: {
+    dot: 'bg-amber-500',
+    text: 'text-amber-700',
+    border: 'border-amber-200',
+    cardBorder: 'border-amber-300',
+    cardBg: 'bg-amber-50',
+    cardLabel: 'text-amber-700',
+    cardCount: 'text-amber-700',
+    cardHint: 'text-amber-600/80',
+  },
+  rose: {
+    dot: 'bg-rose-500',
+    text: 'text-rose-700',
+    border: 'border-rose-200',
+    cardBorder: 'border-rose-300',
+    cardBg: 'bg-rose-50',
+    cardLabel: 'text-rose-700',
+    cardCount: 'text-rose-700',
+    cardHint: 'text-rose-600/80',
+  },
+  slate: {
+    dot: 'bg-gray-400',
+    text: 'text-gray-700',
+    border: 'border-gray-200',
+    cardBorder: 'border-gray-300',
+    cardBg: 'bg-gray-50',
+    cardLabel: 'text-gray-600',
+    cardCount: 'text-gray-700',
+    cardHint: 'text-gray-500',
+  },
+}
+
+function ManagerStatCard({ color, title, count, hint }) {
+  const c = MANAGER_THEME[color] || MANAGER_THEME.slate
+  return (
+    <div className={`rounded-xl border ${c.cardBorder} ${c.cardBg} p-3`}>
+      <div className={`text-[11px] font-semibold uppercase tracking-wide ${c.cardLabel}`}>{title}</div>
+      <div className={`mt-1 text-2xl font-semibold ${c.cardCount}`}>{count}</div>
+      <div className={c.cardHint}>{hint}</div>
+    </div>
+  )
+}
+
+function ManagerAccessTable({ color, title, hint, rows, columns, getKey }) {
+  const c = MANAGER_THEME[color] || MANAGER_THEME.slate
+  return (
+    <div className={`rounded-xl border ${c.border} bg-white p-4`}>
+      <div className="flex items-center gap-2">
+        <span className={`inline-block h-2 w-2 rounded-full ${c.dot}`} />
+        <h3 className={`text-sm font-semibold ${c.text}`}>{title}</h3>
+        <span className="text-xs text-gray-500">· {rows.length}</span>
+      </div>
+      {hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
+      {rows.length === 0 ? (
+        <p className="mt-2 text-xs text-gray-400">никого</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto rounded-lg border border-gray-200">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-gray-600">
+            <thead className="border-b border-gray-200 bg-gray-50">
               <tr>
-                <th className="p-3">Пользователь</th>
-                <th className="p-3">Устройство</th>
-                <th className="p-3">Добавлено</th>
-                <th className="p-3">Последний вход</th>
-                <th className="p-3">Approve</th>
-                <th className="w-28 p-3"></th>
+                {columns.map((col, i) => (
+                  <th
+                    key={i}
+                    className={`p-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 ${col.w || ''}`}
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {devices.length === 0 ? (
-                <tr><td colSpan={6} className="p-4 text-center text-gray-400">Устройств пока нет</td></tr>
-              ) : devices.map((d) => {
-                const r = realtorById.get(d.user_id)
-                const name = d.user_name || r?.name || d.user_email || r?.email || '—'
-                const role = d.user_role || r?.role || '—'
-                return (
-                  <tr key={d.id} className="border-b border-gray-100">
-                    <td className="p-3">
-                      <div className="font-medium text-gray-900">{name}</div>
-                      <div className="text-xs text-gray-500">{role}</div>
+              {rows.map((row) => (
+                <tr key={getKey(row)} className="border-b border-gray-100 last:border-b-0">
+                  {columns.map((col, i) => (
+                    <td
+                      key={i}
+                      className={`p-2.5 ${col.muted ? 'text-xs text-gray-500' : 'text-gray-800'}`}
+                    >
+                      {col.cell(row)}
                     </td>
-                    <td className="p-3 text-gray-700">{d.label || '—'}</td>
-                    <td className="p-3 text-xs text-gray-500">{new Date(d.created_at).toLocaleString('ru-RU')}</td>
-                    <td className="p-3 text-xs text-gray-500">{new Date(d.last_used_at).toLocaleString('ru-RU')}</td>
-                    <td className="p-3 text-xs text-gray-500">
-                      {d.last_approved_at ? new Date(d.last_approved_at).toLocaleString('ru-RU') : '—'}
-                    </td>
-                    <td className="p-3">
-                      <button type="button" onClick={() => handleDeleteDevice(d.id)}
-                        className="text-rose-600 hover:underline">Удалить</button>
-                    </td>
-                  </tr>
-                )
-              })}
+                  ))}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-      </section>
+      )}
     </div>
   )
 }
