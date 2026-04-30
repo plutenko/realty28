@@ -82,9 +82,11 @@ export default async function handler(req, res) {
     const PAGE = 1000
     let from = 0
     while (true) {
+      // Поля external_id/source_id/finish_image_url нужны только в админке —
+      // в /api/units их не тащим, экономим ~120 КБ на 1933 квартирах.
       const { data: units, error: uErr } = await supabase
         .from('units')
-        .select('id, building_id, floor, number, position, entrance, rooms, area, layout_title, layout_image_url, finish_image_url, floor_plan_url, price, price_per_meter, status, span_columns, span_floors, is_commercial, has_renovation, external_id, source_id')
+        .select('id, building_id, floor, number, position, entrance, rooms, area, layout_title, layout_image_url, floor_plan_url, price, price_per_meter, status, span_columns, span_floors, is_commercial, has_renovation')
         .in('building_id', buildingIds)
         .not('status', 'in', '("sold","booked","reserved","closed")')
         .order('id')
