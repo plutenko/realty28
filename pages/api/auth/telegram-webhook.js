@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
 async function processAuthUpdate(supabase, update) {
   if (update.callback_query) {
-    await processCallbackWithQueue(supabase, update.callback_query)
+    await handleCallbackQuery(supabase, update.callback_query)
     return
   }
 
@@ -104,58 +104,7 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;')
 }
 
-/**
- * Обёртка над handleCallbackQuery: ВСЕГДА пишет callback в очередь tg_callback_queue,
- * пытается обработать inline, на успехе помечает done, на ошибке — оставляет в очереди
- * с экспоненциальным бэк-оффом, чтобы воркер /api/auth/cron/retry-callbacks дожал.
- *
- * Зачем очередь: контейнер Timeweb периодически ловит SIGTERM (ребуты), Telegram retry
- * ограничен ~30-60 сек. Если в эту дыру попадает callback от «🔥 Беру» — терялся.
- * С очередью webhook не теряет ни одного callback'а, даже если процесс умер сразу
- * после INSERT.
- */
-const RETRY_BACKOFF_SEC = [30, 60, 120, 300, 600, 1800, 1800, 1800, 1800, 1800]
-
-async function processCallbackWithQueue(supabase, cq) {
-  const cqId = String(cq?.id || '')
-  if (!cqId) return
-
-  // Atomic INSERT с ON CONFLICT — если callback уже в очереди (повтор от Telegram),
-  // считаем что это retry, обрабатываем заново но без дублирования записи.
-  // (Идемпотентность самих побочек — внутри handleCallbackQuery через tg_processed_callbacks.)
-  await supabase
-    .from('tg_callback_queue')
-    .upsert({ cq_id: cqId, payload: cq, status: 'queued' }, { onConflict: 'cq_id', ignoreDuplicates: true })
-
-  let success = false
-  let lastError = null
-  try {
-    await handleCallbackQuery(supabase, cq)
-    success = true
-  } catch (e) {
-    lastError = String(e?.message || e).slice(0, 500)
-    console.error('[callback-queue] inline failed, leaving in queue', cqId, lastError)
-  }
-
-  if (success) {
-    await supabase
-      .from('tg_callback_queue')
-      .update({ status: 'done', processed_at: new Date().toISOString() })
-      .eq('cq_id', cqId)
-  } else {
-    // Откладываем на retry воркеру
-    await supabase
-      .from('tg_callback_queue')
-      .update({
-        attempts: 1,
-        last_error: lastError,
-        next_retry_at: new Date(Date.now() + RETRY_BACKOFF_SEC[0] * 1000).toISOString(),
-      })
-      .eq('cq_id', cqId)
-  }
-}
-
-export async function handleCallbackQuery(supabase, cq) {
+async function handleCallbackQuery(supabase, cq) {
   const cqId = cq.id
   const data = String(cq.data || '')
   const fromChatId = String(cq.from?.id || '')
