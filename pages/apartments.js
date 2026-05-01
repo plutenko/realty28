@@ -1598,7 +1598,10 @@ export default function ApartmentsPage() {
               )
             ) : pageView === 'map' ? (
               <MapView
-                busy={busy}
+                /* Карте достаточно /api/buildings-summary (~3 КБ), её необязательно
+                   ждать тяжёлого /api/complexes (1-3с). Показываем спиннер только
+                   пока buildingsSummary пуст. */
+                busy={!buildingsSummary?.length}
                 markers={mapMarkers}
                 hasFilters={hasActiveFilters}
                 picked={mapPicked}
