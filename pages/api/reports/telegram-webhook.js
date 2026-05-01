@@ -13,7 +13,7 @@ import {
   fillTemplate,
   pickDailyReportColumns,
 } from '../../../lib/reportsSettings'
-import { localParts } from '../../../lib/reportsCron'
+import { localParts, weekendCrossesMonthBoundary, formatRuShort } from '../../../lib/reportsCron'
 
 /**
  * Webhook бота @sobr_reports_bot.
@@ -198,11 +198,17 @@ async function handleMessage(supabase, message, { edited }) {
   // /api/reports/cron/friday-notice. Исключение — ручной override дня
   // через ЛК руководителя (hasOverride ниже); туда код не доходит, но
   // проверим после override, если нужен будет обход.
+  //
+  // Дополнительное исключение: если в это weekend-окно (Пт+Сб+Вс) попадает
+  // переход через границу месяца (1-е число — Пт/Сб/Вс), batch-режим
+  // отключается полностью: бойцы шлют одиночные отчёты за каждый день,
+  // иначе помесячные метрики не сводятся к календарному месяцу.
   {
     const l = localParts(now, settings.timezone || 'Asia/Yakutsk')
+    const monthCrossWeekend = weekendCrossesMonthBoundary(now, settings.timezone)
     const afterFri15 = l.dow === 'fri' && l.hour >= 15
     const isSat = l.dow === 'sat'
-    if (afterFri15 || isSat) {
+    if ((afterFri15 || isSat) && !monthCrossWeekend) {
       const replyText = fillTemplate(
         settings.messages?.weekend_hold_reply ||
           '✋ Одиночные рапорты за выходные не принимаю. Собери Пт+Сб+Вс и присылай в воскресенье вечером.',
@@ -224,7 +230,12 @@ async function handleMessage(supabase, message, { edited }) {
     // Исключение для абсент-кейсов (больничный Пт-Сб): override дня в ЛК.
     // Активируется только при `settings.sunday_batch_required_strict === true`,
     // чтобы выкатывать постепенно (не штрафовать риелторов в день деплоя).
-    if (l.dow === 'sun' && settings.sunday_batch_required_strict === true) {
+    // Если weekend пересекает границу месяца — strict тоже выключаем.
+    if (
+      l.dow === 'sun' &&
+      settings.sunday_batch_required_strict === true &&
+      !monthCrossWeekend
+    ) {
       const probe = parseReport(text, settings, now, { allowClosedWindow: true })
       const hasDate = Boolean(probe.dateFrom && probe.dateTo)
       const isBatch = hasDate && probe.dateFrom !== probe.dateTo
@@ -304,6 +315,33 @@ async function handleMessage(supabase, message, { edited }) {
         })
       }
     }
+    return
+  }
+
+  // Батч-диапазон через границу месяца ломает помесячный учёт: метрики из
+  // одной строки нельзя корректно разнести между двумя календарными месяцами.
+  // Просим бойца сдать раздельно за каждый месяц.
+  if (
+    parsed.dateFrom &&
+    parsed.dateTo &&
+    parsed.dateFrom !== parsed.dateTo &&
+    parsed.dateFrom.slice(0, 7) !== parsed.dateTo.slice(0, 7)
+  ) {
+    const replyText = fillTemplate(
+      settings.messages?.error_range_crosses_month ||
+        '📅 {name}, диапазон {value} переходит через границу месяца. Сдай раздельно: за прошлый месяц одним рапортом, за текущий — другим. Помесячные цифры нельзя разрезать пополам.',
+      {
+        name: displayName || mention || 'боец',
+        value: `${formatRuShort(parsed.dateFrom)}-${formatRuShort(parsed.dateTo)}`,
+      }
+    )
+    await sendMessage(chatId, replyText, { replyToMessageId: messageId })
+    await setMessageReactionWithQueue(
+      supabase,
+      chatId,
+      messageId,
+      settings.reaction_rejected || '🤔'
+    )
     return
   }
 
