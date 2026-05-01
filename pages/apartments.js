@@ -1197,19 +1197,27 @@ export default function ApartmentsPage() {
     return (selectedComplex.buildings ?? []).find((b) => b.id === selectedBuildingId) ?? null
   }, [selectedComplex, selectedBuildingId])
 
+  /** Юниты выбранного корпуса для шахматки. /api/complexes больше не отдаёт units[]
+   *  внутри building (коммит 58402e6) → берём из глобального units state.
+   *  /api/units на сервере отрезает sold/booked/reserved/closed, поэтому в шахматке
+   *  будут только available — sold/booked/reserved/closed как «визуальный контекст дома»
+   *  пока недоступен (потом можно вернуть через ленивый fetch /api/units/by-building/[id]?all=1). */
+  const selectedBuildingUnits = useMemo(() => {
+    if (!selectedBuildingId) return []
+    return (units ?? []).filter(
+      (u) => (u?.building?.id ?? u?.building_id) === selectedBuildingId,
+    )
+  }, [units, selectedBuildingId])
+
   const chessboardApartments = useMemo(() => {
     if (!selectedBuilding) return []
-    const all = selectedBuilding.units ?? []
+    const all = selectedBuildingUnits
     if (!hasActiveFilters) return mapUnitsToChessboardApartments(all)
-    // При активном фильтре в шахматке остаются sold/booked/reserved/closed
-    // (визуальный контекст дома) + available только те, что попали под фильтр.
-    const filteredUnits = all.filter((u) => {
-      const s = String(u?.status ?? 'available').toLowerCase()
-      if (s === 'sold' || s === 'booked' || s === 'reserved' || s === 'closed') return true
-      return filteredIds.has(u.id)
-    })
+    // При активном фильтре оставляем только matched (filteredIds) — sold/booked/reserved/closed
+    // в any случае не приезжают в /api/units, так что фильтровать их некого.
+    const filteredUnits = all.filter((u) => filteredIds.has(u.id))
     return mapUnitsToChessboardApartments(filteredUnits)
-  }, [selectedBuilding, hasActiveFilters, filteredIds])
+  }, [selectedBuilding, selectedBuildingUnits, hasActiveFilters, filteredIds])
 
   function openBuildingChessboard(c, b) {
     if (!c || !b) return
@@ -1240,7 +1248,7 @@ export default function ApartmentsPage() {
     }
     if (!selectedComplex || !selectedBuilding) return
     const dev = getComplexDeveloper(selectedComplex)
-    const raw = (selectedBuilding.units ?? []).find((u) => u.id === apt.id) || {}
+    const raw = selectedBuildingUnits.find((u) => u.id === apt.id) || {}
     setModalUnit({
       ...raw,
       building: {
