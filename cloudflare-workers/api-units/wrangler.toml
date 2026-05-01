@@ -1,0 +1,13 @@
+name = "api-units"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+
+# PURGE_SECRET задаётся через `wrangler secret put PURGE_SECRET` или в дашборде.
+# Сравнивается с ?secret= в запросе POST /purge.
+
+[observability]
+enabled = true
+
+# Лимиты — Free tier. Если что — поднимем до Standard ($5/мес, 10M req).
+# [limits]
+# cpu_ms = 50

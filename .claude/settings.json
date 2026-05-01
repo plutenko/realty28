@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl *)",
+      "Bash(dig *)",
+      "mcp__timeweb-deploy__app_runtime_logs",
+      "mcp__timeweb-deploy__deploy_list",
+      "mcp__timeweb-deploy__deploy_build_logs",
+      "mcp__timeweb-deploy__deploy_status",
+      "mcp__timeweb-deploy__app_envs_get",
+      "mcp__timeweb-deploy__app_get"
+    ]
+  }
+}
