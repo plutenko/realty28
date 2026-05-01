@@ -1081,7 +1081,7 @@ export default function ApartmentsPage() {
   const matchedByBuilding = useMemo(() => {
     const out = {}
     for (const u of filtered) {
-      const bid = u?.building?.id
+      const bid = u?.building?.id ?? u?.building_id
       if (!bid) continue
       out[bid] = (out[bid] ?? 0) + 1
     }
@@ -1092,12 +1092,40 @@ export default function ApartmentsPage() {
   const availableByBuilding = useMemo(() => {
     const out = {}
     for (const u of units ?? []) {
-      const bid = u?.building?.id
+      const bid = u?.building?.id ?? u?.building_id
       if (!bid) continue
       out[bid] = (out[bid] ?? 0) + 1
     }
     return out
   }, [units])
+
+  /** Минимальная цена среди доступных квартир в корпусе. Раньше ComplexCard сам перебирал
+   *  building.units, но /api/complexes больше не возвращает units[] (коммит 58402e6).
+   *  Считаем по списку units (там только available — sold/booked/reserved/closed уже отрезаны
+   *  на сервере) и передаём в ComplexCard prop'ом. */
+  const minPriceAvailableByBuilding = useMemo(() => {
+    const out = {}
+    for (const u of units ?? []) {
+      const bid = u?.building?.id ?? u?.building_id
+      if (!bid) continue
+      const p = Number(u?.price)
+      if (!Number.isFinite(p) || p <= 0) continue
+      if (out[bid] == null || p < out[bid]) out[bid] = p
+    }
+    return out
+  }, [units])
+
+  const minPriceFilteredByBuilding = useMemo(() => {
+    const out = {}
+    for (const u of filtered) {
+      const bid = u?.building?.id ?? u?.building_id
+      if (!bid) continue
+      const p = Number(u?.price)
+      if (!Number.isFinite(p) || p <= 0) continue
+      if (out[bid] == null || p < out[bid]) out[bid] = p
+    }
+    return out
+  }, [filtered])
 
   /** Пины корпусов для карты: только корпуса с заполненными координатами и подходящими квартирами.
    *  База — лёгкий /api/buildings-summary (рендерим сразу), фильтр matched применяется
@@ -1669,10 +1697,14 @@ export default function ApartmentsPage() {
                     key={b.id}
                     complex={c}
                     building={b}
-                    filteredIds={filteredIds}
                     matched={matched}
                     available={available}
                     hasFilters={hasActiveFilters}
+                    minPrice={
+                      hasActiveFilters
+                        ? minPriceFilteredByBuilding[b.id] ?? null
+                        : minPriceAvailableByBuilding[b.id] ?? null
+                    }
                     listView={viewMode === 'list'}
                     onOpen={() => openBuildingChessboard(c, b)}
                   />

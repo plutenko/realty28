@@ -16,10 +16,10 @@ const fmtPrice = (n) => {
 export default function ComplexCard({
   complex,
   building,
-  filteredIds,
   matched,
   available,
   hasFilters,
+  minPrice = null,
   listView = false,
   onOpen,
 }) {
@@ -29,19 +29,8 @@ export default function ComplexCard({
   const developerLabel = formatName(dev?.name || '')
   const imageUrl = complex?.image || null
 
-  let minPrice = null
-  for (const u of building?.units ?? []) {
-    if (hasFilters && !filteredIds.has(u.id)) continue
-    if (!hasFilters) {
-      const s = String(u?.status ?? '').toLowerCase()
-      if (s === 'booked' || s === 'reserved' || s === 'sold' || s === 'closed') continue
-    }
-    const p = Number(u?.price)
-    if (Number.isFinite(p) && p > 0 && (minPrice == null || p < minPrice)) {
-      minPrice = p
-    }
-  }
-
+  // minPrice считается в pages/apartments.js (родителе) — у нас тут нет building.units
+  // после рефактора /api/complexes (units[] больше не возвращается).
   const priceLine = minPrice != null ? `от ${fmtPrice(minPrice)}` : 'Нет в продаже'
   const counterLabel = hasFilters
     ? `${matched} из ${available} подходящих`
