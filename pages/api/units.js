@@ -65,7 +65,7 @@ export default async function handler(req, res) {
     while (true) {
       const { data: units, error: uErr } = await supabase
         .from('units')
-        .select('id, building_id, floor, number, position, entrance, rooms, area, layout_title, layout_image_url, price, price_per_meter, status, span_columns, span_floors, is_commercial, has_renovation')
+        .select('id, building_id, floor, number, rooms, area, layout_title, layout_image_url, price, price_per_meter, status, span_floors, is_commercial, has_renovation')
         .in('building_id', buildingIds)
         .not('status', 'in', '("sold","booked","reserved","closed")')
         .order('id')
