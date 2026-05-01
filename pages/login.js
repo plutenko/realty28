@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../lib/authContext'
@@ -11,6 +12,24 @@ function getBrowserId() {
     localStorage.setItem(key, id)
   }
   return id
+}
+
+const WORKER_BASE =
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_WORKER_BASE) || ''
+
+// Прогрев данных /apartments пока риелтор ждёт подтверждения руководителя.
+// Браузер возьмёт их из cache (Cache-Control: public, max-age=300) когда
+// /apartments после редиректа дёрнет fetchUnitsFromApi/fetchComplexesFromApi/etc.
+function prefetchApartmentsData() {
+  if (typeof window === 'undefined') return
+  if (window.__apartmentsPrefetched) return
+  window.__apartmentsPrefetched = true
+  const urls = WORKER_BASE
+    ? [`${WORKER_BASE}/units`, `${WORKER_BASE}/complexes`, `${WORKER_BASE}/buildings-summary`]
+    : ['/api/units', '/api/complexes', '/api/buildings-summary']
+  for (const u of urls) {
+    fetch(u, { credentials: 'omit', mode: 'cors' }).catch(() => {})
+  }
 }
 
 export default function LoginPage() {
@@ -170,6 +189,11 @@ export default function LoginPage() {
         setResendError('')
         setDeviceChecking(false)
         // Не логаутим — нужна активная сессия для finalizeLogin
+        // Пока риелтор ждёт подтверждения руководителя — прогреваем данные /apartments
+        // (для admin/manager не зовём — они идут не на /apartments)
+        if (profileData.role !== 'admin' && profileData.role !== 'manager') {
+          prefetchApartmentsData()
+        }
       }
     } catch (err) {
       setError(err.message || 'Ошибка входа')
@@ -219,9 +243,20 @@ export default function LoginPage() {
     await supabase.auth.signOut()
   }
 
-  if (loading) return null
+  // Preconnect к Worker'у выносим из основного JSX — useAuth() стартует с loading=true,
+  // и `if (loading) return null` иначе скрывает Head во время SSR.
+  const preconnectHead = WORKER_BASE ? (
+    <Head>
+      <link rel="preconnect" href={WORKER_BASE} crossOrigin="anonymous" />
+      <link rel="dns-prefetch" href={WORKER_BASE} />
+    </Head>
+  ) : null
+
+  if (loading) return preconnectHead
 
   return (
+    <>
+      {preconnectHead}
     <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
@@ -312,5 +347,6 @@ export default function LoginPage() {
         )}
       </div>
     </div>
+    </>
   )
 }
