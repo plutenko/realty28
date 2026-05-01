@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   }
   if (req.method !== 'GET') return res.status(405).end()
 
-  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400')
+  res.setHeader('Cache-Control', 'public, s-maxage=86400, max-age=300, stale-while-revalidate=86400')
 
   const now = Date.now()
   const fresh = req.query?.fresh === '1' || req.query?.invalidate === '1'

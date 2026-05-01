@@ -12,7 +12,10 @@ export default async function handler(req, res) {
   }
   if (req.method !== 'GET') return res.status(405).end()
 
-  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400')
+  // s-maxage=24h для Worker edge / shared cache, max-age=5min для браузера.
+  // Инвалидация: ручной `Сбросить кеш` в /admin (cf-purge → Worker /purge), а также
+  // автоматический /api/cf-purge при saveUnit в admin.
+  res.setHeader('Cache-Control', 'public, s-maxage=86400, max-age=300, stale-while-revalidate=86400')
   res.setHeader('Content-Type', 'application/json; charset=utf-8')
 
   const now = Date.now()

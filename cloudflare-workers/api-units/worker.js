@@ -18,7 +18,12 @@
 
 const ORIGIN = 'https://domovoy28.ru'
 const ALLOWED_ORIGIN = 'https://domovoy28.ru'
-const CACHE_TTL = 300 // 5 минут
+// Edge-кеш Worker'а — 24 часа. Свежесть обеспечивается ручной кнопкой
+// "Сбросить кеш" в /admin (POST /purge) и автомат-purge'ем при правках в админке.
+// Браузерный кеш короче (max-age=300 ниже) — пользователь не зависает на старье
+// после purge'а на серверной стороне.
+const EDGE_TTL = 86400 // 24 часа в Worker edge cache
+const BROWSER_TTL = 300 // 5 минут в браузере (revalidate к Worker)
 
 const ROUTES = {
   '/units': '/api/units',
@@ -127,7 +132,13 @@ export default {
 
     // Готовим response для отдачи клиенту: проставляем cache-control + наши заголовки.
     const respHeaders = new Headers(originResp.headers)
-    respHeaders.set('Cache-Control', `public, max-age=${CACHE_TTL}`)
+    // s-maxage=24h — Worker edge cache, max-age=5min — браузерный кеш.
+    // stale-while-revalidate — пока pure expire не настал, edge может отдавать
+    // старое и фоном обновлять.
+    respHeaders.set(
+      'Cache-Control',
+      `public, s-maxage=${EDGE_TTL}, max-age=${BROWSER_TTL}, stale-while-revalidate=86400`,
+    )
     respHeaders.set('X-Worker-Cache', 'MISS')
     // Origin'овский streaming-ответ не имеет ETag (Next.js не считает его на res.write).
     // Без ETag F5-revalidate тащит 117 КБ снова — синтезируем weak ETag, привязанный
