@@ -48,12 +48,29 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Forbidden' })
   }
 
+  // Период: произвольный (date_from / date_to) с приоритетом, иначе legacy ?period=
   const period = String(req.query?.period || 'week')
-  const days = PERIOD_DAYS[period] ?? 7
-  const sinceDate = new Date(Date.now() - (days || 1) * 24 * 60 * 60 * 1000)
-  const sinceIso = sinceDate.toISOString()
-  const sinceDay = sinceDate.toISOString().slice(0, 10)
-  const today = new Date().toISOString().slice(0, 10)
+  const dateFromParam = String(req.query?.date_from || '')
+  const dateToParam = String(req.query?.date_to || '')
+  let sinceDay
+  let untilDay
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateFromParam) && /^\d{4}-\d{2}-\d{2}$/.test(dateToParam)) {
+    sinceDay = dateFromParam
+    untilDay = dateToParam
+  } else {
+    const days = PERIOD_DAYS[period] ?? 7
+    const sinceDate = new Date(Date.now() - (days || 1) * 24 * 60 * 60 * 1000)
+    sinceDay = sinceDate.toISOString().slice(0, 10)
+    untilDay = new Date().toISOString().slice(0, 10)
+  }
+  // ISO с временем — для фильтра по created_at в leads (timestamptz)
+  const sinceIso = `${sinceDay}T00:00:00.000Z`
+  const untilIso = `${untilDay}T23:59:59.999Z`
+  const today = untilDay
+  const days_count = Math.max(
+    1,
+    Math.round((Date.parse(today) - Date.parse(sinceDay)) / 86400_000) + 1,
+  )
 
   try {
     // 1. Лиды за период с utm и yclid
@@ -61,6 +78,7 @@ export default async function handler(req, res) {
       .from('leads')
       .select('id, status, utm, yclid, created_at, lead_sources:source_id(kind, name)')
       .gte('created_at', sinceIso)
+      .lte('created_at', untilIso)
     if (leadsErr) throw leadsErr
 
     // 2. Расходы за период
@@ -252,7 +270,7 @@ export default async function handler(req, res) {
       since: sinceIso,
       since_date: sinceDay,
       until_date: today,
-      days_count: days || 1,
+      days_count,
       channels,
       totals: {
         leads: channels.reduce((s, c) => s + c.leads, 0),

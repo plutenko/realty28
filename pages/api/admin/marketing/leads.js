@@ -42,8 +42,17 @@ export default async function handler(req, res) {
   }
 
   const period = String(req.query?.period || 'week')
-  const days = PERIOD_DAYS[period] ?? 7
-  const since = new Date(Date.now() - (days || 1) * 24 * 60 * 60 * 1000).toISOString()
+  const dateFromParam = String(req.query?.date_from || '')
+  const dateToParam = String(req.query?.date_to || '')
+  let sinceIso, untilIso
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateFromParam) && /^\d{4}-\d{2}-\d{2}$/.test(dateToParam)) {
+    sinceIso = `${dateFromParam}T00:00:00.000Z`
+    untilIso = `${dateToParam}T23:59:59.999Z`
+  } else {
+    const days = PERIOD_DAYS[period] ?? 7
+    sinceIso = new Date(Date.now() - (days || 1) * 24 * 60 * 60 * 1000).toISOString()
+    untilIso = new Date().toISOString()
+  }
   const channel = String(req.query?.channel || '')
   const campaignExtId = req.query?.campaign_ext_id ? String(req.query.campaign_ext_id) : null
   const unattributed = req.query?.campaign_ext_id === 'unattributed'
@@ -54,7 +63,8 @@ export default async function handler(req, res) {
     const { data: leads } = await supabase
       .from('leads')
       .select('id, name, phone, status, utm, yclid, created_at, assigned_user_id, profiles:assigned_user_id(name)')
-      .gte('created_at', since)
+      .gte('created_at', sinceIso)
+      .lte('created_at', untilIso)
       .order('created_at', { ascending: false })
 
     // Имена кампаний для матчинга

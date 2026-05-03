@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import AdminLayout from '../../components/admin/AdminLayout'
+import PeriodPicker, { presetRange } from '../../components/admin/PeriodPicker'
 import { useAuth } from '../../lib/authContext'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -23,14 +24,6 @@ const STATUS_LABELS = {
   failed: { t: 'Срыв', cls: 'bg-red-500/20 text-red-300' },
 }
 
-const PERIOD_LABELS = [
-  { v: 'today', t: 'Сегодня' },
-  { v: 'week', t: 'Неделя' },
-  { v: 'month', t: 'Месяц' },
-  { v: 'quarter', t: 'Квартал' },
-  { v: 'year', t: 'Год' },
-]
-
 const fmtRub = (n) => (n == null ? '—' : `${Math.round(n).toLocaleString('ru-RU')} ₽`)
 const fmtNum = (n) => (n == null || n === 0 ? '—' : n.toLocaleString('ru-RU'))
 const fmtDate = (s) => {
@@ -48,14 +41,14 @@ const fmtDateOnly = (s) => {
 
 export default function AdminMarketingPage() {
   const { profile } = useAuth()
-  const [period, setPeriod] = useState('month')
+  const [periodRange, setPeriodRange] = useState(() => presetRange('last_30d'))
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [syncState, setSyncState] = useState('idle')
   const [syncMsg, setSyncMsg] = useState('')
   const [expandedChannels, setExpandedChannels] = useState(new Set())
-  const [leadsModal, setLeadsModal] = useState(null) // { channel, campaign_ext_id|null, campaign_name, period }
+  const [leadsModal, setLeadsModal] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -63,7 +56,8 @@ export default function AdminMarketingPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Нет сессии')
-      const res = await fetch(`/api/admin/marketing/summary?period=${period}`, {
+      const params = new URLSearchParams({ date_from: periodRange.from, date_to: periodRange.to })
+      const res = await fetch(`/api/admin/marketing/summary?${params}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       })
       const body = await res.json()
@@ -74,7 +68,7 @@ export default function AdminMarketingPage() {
     } finally {
       setLoading(false)
     }
-  }, [period])
+  }, [periodRange])
 
   useEffect(() => { load() }, [load])
 
@@ -130,21 +124,11 @@ export default function AdminMarketingPage() {
   return (
     <AdminLayout title="Маркетинг — каналы и расходы">
       {/* Период */}
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        {PERIOD_LABELS.map((p) => (
-          <button
-            key={p.v}
-            type="button"
-            onClick={() => setPeriod(p.v)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-              period === p.v
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            {p.t}
-          </button>
-        ))}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <PeriodPicker value={periodRange} onChange={setPeriodRange} />
+        {periodLabel && (
+          <span className="text-xs text-slate-500">{periodLabel}</span>
+        )}
         <button
           type="button"
           onClick={load}
@@ -153,10 +137,6 @@ export default function AdminMarketingPage() {
           ↻ Обновить
         </button>
       </div>
-
-      {periodLabel && (
-        <div className="mb-4 text-xs text-slate-500">Период: {periodLabel}</div>
-      )}
 
       {/* Сводка */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -344,7 +324,8 @@ export default function AdminMarketingPage() {
           channel={leadsModal.channel}
           campaignExtId={leadsModal.campaign_ext_id}
           campaignName={leadsModal.campaign_name}
-          period={period}
+          dateFrom={periodRange.from}
+          dateTo={periodRange.to}
           onClose={() => setLeadsModal(null)}
         />
       )}
@@ -363,7 +344,7 @@ function CampaignStatusBadge({ status }) {
   return <span className={cfg.cls} title={status}>{cfg.t}</span>
 }
 
-function LeadsModal({ channel, campaignExtId, campaignName, period, onClose }) {
+function LeadsModal({ channel, campaignExtId, campaignName, dateFrom, dateTo, onClose }) {
   const [leads, setLeads] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -374,7 +355,7 @@ function LeadsModal({ channel, campaignExtId, campaignName, period, onClose }) {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) throw new Error('Нет сессии')
-        const params = new URLSearchParams({ period, channel })
+        const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo, channel })
         if (campaignExtId) params.set('campaign_ext_id', campaignExtId)
         const res = await fetch(`/api/admin/marketing/leads?${params}`, {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -391,7 +372,7 @@ function LeadsModal({ channel, campaignExtId, campaignName, period, onClose }) {
     }
     load()
     return () => { cancelled = true }
-  }, [channel, campaignExtId, period])
+  }, [channel, campaignExtId, dateFrom, dateTo])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
