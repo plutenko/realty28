@@ -12,6 +12,7 @@ const cards = [
   { href: '/admin/users', label: 'Пользователи', icon: '👥', desc: 'Риелторы и менеджеры' },
   { href: '/admin/security', label: 'Безопасность', icon: '🔒', desc: 'Устройства и Telegram' },
   { href: '/admin/reports', label: 'Отчёты', icon: '📝', desc: 'Сводка по риелторам, экспорт за период' },
+  { href: '/admin/marketing', label: 'Маркетинг', icon: '📈', desc: 'Расходы по каналам, CPL, ROAS' },
 ]
 
 const PURGE_PATHS = ['/api/units', '/api/complexes', '/api/buildings-summary']
