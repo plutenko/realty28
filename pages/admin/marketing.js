@@ -43,6 +43,7 @@ export default function AdminMarketingPage() {
   const { profile } = useAuth()
   const [periodRange, setPeriodRange] = useState(() => presetRange('last_30d'))
   const [data, setData] = useState(null)
+  const [bySource, setBySource] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [syncState, setSyncState] = useState('idle')
@@ -57,12 +58,19 @@ export default function AdminMarketingPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Нет сессии')
       const params = new URLSearchParams({ date_from: periodRange.from, date_to: periodRange.to })
-      const res = await fetch(`/api/admin/marketing/summary?${params}`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      const body = await res.json()
-      if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`)
+      const [resSummary, resBySource] = await Promise.all([
+        fetch(`/api/admin/marketing/summary?${params}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }),
+        fetch(`/api/admin/marketing/by-source?${params}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }),
+      ])
+      const body = await resSummary.json()
+      if (!resSummary.ok) throw new Error(body?.error || `HTTP ${resSummary.status}`)
       setData(body)
+      const bs = await resBySource.json()
+      if (resBySource.ok) setBySource(bs?.sources ?? [])
     } catch (e) {
       setError(e?.message || 'Ошибка загрузки')
     } finally {
@@ -142,7 +150,7 @@ export default function AdminMarketingPage() {
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <SummaryCard label="Лидов" value={fmtNum(totals.leads || 0)} />
         <SummaryCard label="Сделок" value={fmtNum(totals.deals || 0)} />
-        <SummaryCard label="Расход" value={fmtRub(totals.spent_rub || 0)} />
+        <SummaryCard label="Расход с НДС" value={fmtRub(totals.spent_rub || 0)} />
         <SummaryCard label="Кликов" value={fmtNum(totals.clicks || 0)} />
       </div>
 
@@ -162,7 +170,7 @@ export default function AdminMarketingPage() {
               <th className="px-4 py-3 text-right">Показы</th>
               <th className="px-4 py-3 text-right">Клики</th>
               <th className="px-4 py-3 text-right">CTR</th>
-              <th className="px-4 py-3 text-right">Расход</th>
+              <th className="px-4 py-3 text-right" title="Расход с НДС, тянем через Я.Директ Reports API">Расход с НДС</th>
               <th className="px-4 py-3 text-right">Лидов</th>
               <th className="px-4 py-3 text-right">Сделок</th>
               <th className="px-4 py-3 text-right">CPL</th>
@@ -261,6 +269,53 @@ export default function AdminMarketingPage() {
           </tbody>
         </table>
       </div>
+
+      {/* По источникам приёма (Marquiz / Тильда / Ручной ввод) */}
+      {bySource && bySource.length > 0 && (
+        <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900/40 p-5">
+          <div className="mb-3">
+            <div className="text-sm font-semibold text-slate-200">По источникам приёма заявок</div>
+            <div className="mt-0.5 text-xs text-slate-500">
+              Откуда пришла заявка — конкретный квиз/форма/ручной ввод. Управление в{' '}
+              <a href="/admin/lead-sources" className="text-blue-400 hover:underline">CRM-источниках</a>.
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-slate-800">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-900 text-xs uppercase text-slate-400">
+                <tr>
+                  <th className="px-4 py-2 text-left">Источник</th>
+                  <th className="px-4 py-2 text-left">Тип</th>
+                  <th className="px-4 py-2 text-right">Лидов</th>
+                  <th className="px-4 py-2 text-right">Взято</th>
+                  <th className="px-4 py-2 text-right">Сделок</th>
+                  <th className="px-4 py-2 text-right">Срыв</th>
+                  <th className="px-4 py-2 text-right">% взятия</th>
+                  <th className="px-4 py-2 text-right">% сделок</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800 text-slate-200">
+                {bySource.map((s) => (
+                  <tr key={s.source_id || 'unknown'}>
+                    <td className="px-4 py-2 font-medium">{s.source_name}</td>
+                    <td className="px-4 py-2 text-xs text-slate-400">
+                      {s.source_kind === 'marquiz' ? 'Марквиз' :
+                       s.source_kind === 'tilda' ? 'Тильда' :
+                       s.source_kind === 'manual' ? 'Ручной ввод' : s.source_kind}
+                    </td>
+                    <td className="px-4 py-2 text-right">{fmtNum(s.leads)}</td>
+                    <td className="px-4 py-2 text-right">{fmtNum(s.taken)}</td>
+                    <td className="px-4 py-2 text-right">{fmtNum(s.deals)}</td>
+                    <td className="px-4 py-2 text-right">{fmtNum(s.lost)}</td>
+                    <td className="px-4 py-2 text-right">{s.take_rate_pct ? `${s.take_rate_pct}%` : '—'}</td>
+                    <td className="px-4 py-2 text-right">{s.conv_pct ? `${s.conv_pct}%` : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Sync controls */}
       {isAdmin && (
@@ -405,6 +460,7 @@ function LeadsModal({ channel, campaignExtId, campaignName, dateFrom, dateTo, on
                   <th className="px-4 py-3 text-left">Телефон</th>
                   <th className="px-4 py-3 text-left">Статус CRM</th>
                   <th className="px-4 py-3 text-left">Риелтор</th>
+                  <th className="px-4 py-3 text-left">Источник</th>
                   <th className="px-4 py-3 text-left">Кампания</th>
                   <th className="px-4 py-3 text-left">yclid</th>
                 </tr>
@@ -421,6 +477,7 @@ function LeadsModal({ channel, campaignExtId, campaignName, dateFrom, dateTo, on
                         <span className={`inline-block rounded px-2 py-0.5 text-xs ${st.cls}`}>{st.t}</span>
                       </td>
                       <td className="px-4 py-2 text-xs text-slate-400">{l.assigned_user || '—'}</td>
+                      <td className="px-4 py-2 text-xs">{l.source_name || '—'}</td>
                       <td className="px-4 py-2 text-xs">
                         {l.campaign_name || (l.utm_campaign ? <span className="text-slate-500">id {l.utm_campaign}</span> : '—')}
                       </td>
