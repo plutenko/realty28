@@ -62,7 +62,7 @@ export default async function handler(req, res) {
   try {
     const { data: leads } = await supabase
       .from('leads')
-      .select('id, name, phone, status, utm, yclid, created_at, assigned_user_id, profiles:assigned_user_id(name), lead_sources:source_id(id, kind, name)')
+      .select('id, name, phone, status, utm, yclid, deal_revenue_kop, created_at, assigned_user_id, profiles:assigned_user_id(name), lead_sources:source_id(id, kind, name)')
       .gte('created_at', sinceIso)
       .lte('created_at', untilIso)
       .order('created_at', { ascending: false })
@@ -107,6 +107,7 @@ export default async function handler(req, res) {
         assigned_user: l.profiles?.name || null,
         source_name: l.lead_sources?.name || null,
         source_kind: l.lead_sources?.kind || null,
+        deal_revenue_rub: l.deal_revenue_kop ? l.deal_revenue_kop / 100 : null,
       })
     }
 

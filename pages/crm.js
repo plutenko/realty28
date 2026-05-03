@@ -65,6 +65,7 @@ export default function CrmPage() {
   const [filters, setFilters] = useState({ status: 'all', period: 'all' })
   const [detail, setDetail] = useState(null)
   const [kindFor, setKindFor] = useState(null) // лид, для которого выбираем категорию (Внести в базу)
+  const [dealFor, setDealFor] = useState(null) // лид, для которого вводим Вал перед закрытием в сделку
 
   useEffect(() => {
     if (authLoading) return
@@ -96,7 +97,7 @@ export default function CrmPage() {
     return map
   }, [leads])
 
-  async function changeStatus(lead, status, commentArg, leadKind) {
+  async function changeStatus(lead, status, commentArg, leadKind, dealRevenueRub) {
     let comment = commentArg
     if ((status === 'not_lead' || status === 'failed') && !comment) {
       comment = prompt(status === 'not_lead' ? 'Причина «не лид»:' : 'Причина срыва:')
@@ -107,12 +108,19 @@ export default function CrmPage() {
       setKindFor(lead)
       return
     }
+    if (status === 'deal_done' && (dealRevenueRub == null || !Number.isFinite(Number(dealRevenueRub)) || Number(dealRevenueRub) <= 0)) {
+      // Открываем модалку ввода Вала
+      setDealFor(lead)
+      return
+    }
     try {
       const body = { action: 'change_status', status, comment }
       if (leadKind) body.lead_kind = leadKind
+      if (status === 'deal_done') body.deal_revenue_rub = Number(dealRevenueRub)
       await apiFetch('POST', `/api/crm/leads/${lead.id}`, body)
       setDetail(null)
       setKindFor(null)
+      setDealFor(null)
       await load()
     } catch (e) {
       alert(e.message || e)
@@ -241,6 +249,13 @@ export default function CrmPage() {
             lead={kindFor}
             onClose={() => setKindFor(null)}
             onSubmit={(kind) => changeStatus(kindFor, 'add_to_base', null, kind)}
+          />
+        )}
+        {dealFor && (
+          <DealRevenueModal
+            lead={dealFor}
+            onClose={() => setDealFor(null)}
+            onSubmit={(rub, comment) => changeStatus(dealFor, 'deal_done', comment, null, rub)}
           />
         )}
       </div>
@@ -393,5 +408,62 @@ function ActionBtn({ color = 'slate', children, onClick, disabled = false }) {
     >
       {children}
     </button>
+  )
+}
+
+function DealRevenueModal({ lead, onClose, onSubmit }) {
+  const [revenue, setRevenue] = useState('')
+  const [comment, setComment] = useState('')
+
+  const num = Number(String(revenue).replace(/\s+/g, '').replace(',', '.'))
+  const ready = Number.isFinite(num) && num > 0
+  const inputCls = 'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900'
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="mb-1 text-lg font-semibold text-gray-900">Закрыть сделку</h3>
+        <p className="mb-4 text-xs text-gray-600">
+          Клиент: <b>{lead.name || '—'}</b> ({lead.phone || '—'}).
+        </p>
+        <label className="mb-3 block">
+          <div className="mb-1 text-xs text-gray-600">
+            Вал — комиссия с продажи (₽) <span className="text-red-500">*</span>
+          </div>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={revenue}
+            onChange={(e) => setRevenue(e.target.value)}
+            placeholder="например, 150000"
+            autoFocus
+            className={inputCls}
+          />
+          {revenue && !ready && (
+            <div className="mt-1 text-xs text-red-500">Введите положительное число</div>
+          )}
+        </label>
+        <label className="block">
+          <div className="mb-1 text-xs text-gray-500">Комментарий (необязательно)</div>
+          <input
+            type="text"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="детали сделки"
+            className={inputCls}
+          />
+        </label>
+        <div className="mt-4 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100">Отмена</button>
+          <button
+            onClick={() => ready && onSubmit(num, comment.trim() || null)}
+            disabled={!ready}
+            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50"
+          >
+            Закрыть сделку
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }

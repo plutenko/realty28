@@ -147,11 +147,19 @@ export default function AdminMarketingPage() {
       </div>
 
       {/* Сводка */}
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <SummaryCard label="Лидов" value={fmtNum(totals.leads || 0)} />
         <SummaryCard label="Сделок" value={fmtNum(totals.deals || 0)} />
         <SummaryCard label="Расход с НДС" value={fmtRub(totals.spent_rub || 0)} />
-        <SummaryCard label="Кликов" value={fmtNum(totals.clicks || 0)} />
+        <SummaryCard label="Вал" value={fmtRub(totals.revenue_rub || 0)} />
+        <SummaryCard
+          label="ROAS"
+          value={
+            totals.spent_rub > 0
+              ? `×${(totals.revenue_rub / totals.spent_rub).toFixed(2)}`
+              : '—'
+          }
+        />
       </div>
 
       {error && (
@@ -173,6 +181,8 @@ export default function AdminMarketingPage() {
               <th className="px-4 py-3 text-right" title="Расход с НДС, тянем через Я.Директ Reports API">Расход с НДС</th>
               <th className="px-4 py-3 text-right">Лидов</th>
               <th className="px-4 py-3 text-right">Сделок</th>
+              <th className="px-4 py-3 text-right" title="Вал — суммарная комиссия риелторов с закрытых сделок">Вал</th>
+              <th className="px-4 py-3 text-right" title="ROAS = Вал / Расход. Окупаемость рекламы.">ROAS</th>
               <th className="px-4 py-3 text-right">CPL</th>
               <th className="px-4 py-3 text-right">CPD</th>
               <th className="px-4 py-3 text-right">Конв.</th>
@@ -181,9 +191,9 @@ export default function AdminMarketingPage() {
           </thead>
           <tbody className="divide-y divide-slate-800">
             {loading ? (
-              <tr><td colSpan={12} className="px-4 py-8 text-center text-slate-500">Загрузка…</td></tr>
+              <tr><td colSpan={14} className="px-4 py-8 text-center text-slate-500">Загрузка…</td></tr>
             ) : channels.length === 0 ? (
-              <tr><td colSpan={12} className="px-4 py-8 text-center text-slate-500">Нет данных за период</td></tr>
+              <tr><td colSpan={14} className="px-4 py-8 text-center text-slate-500">Нет данных за период</td></tr>
             ) : channels.map((c) => {
               const isExpanded = expandedChannels.has(c.channel)
               const hasCampaigns = (c.campaigns?.length ?? 0) > 0
@@ -202,6 +212,10 @@ export default function AdminMarketingPage() {
                     <td className="px-4 py-3 text-right">{c.spent_rub ? fmtRub(c.spent_rub) : '—'}</td>
                     <td className="px-4 py-3 text-right">{fmtNum(c.leads)}</td>
                     <td className="px-4 py-3 text-right">{fmtNum(c.deals)}</td>
+                    <td className="px-4 py-3 text-right">{c.revenue_rub ? fmtRub(c.revenue_rub) : '—'}</td>
+                    <td className={`px-4 py-3 text-right ${c.roas == null ? '' : c.roas >= 1 ? 'text-green-400' : 'text-amber-400'}`}>
+                      {c.roas == null ? '—' : `×${c.roas}`}
+                    </td>
                     <td className="px-4 py-3 text-right">{fmtRub(c.cpl_rub)}</td>
                     <td className="px-4 py-3 text-right">{fmtRub(c.cpd_rub)}</td>
                     <td className="px-4 py-3 text-right">{c.conv_pct ? `${c.conv_pct}%` : '—'}</td>
@@ -240,6 +254,10 @@ export default function AdminMarketingPage() {
                       <td className="px-4 py-2 text-right text-xs">{cp.spent_rub ? fmtRub(cp.spent_rub) : '—'}</td>
                       <td className="px-4 py-2 text-right text-xs">{fmtNum(cp.leads)}</td>
                       <td className="px-4 py-2 text-right text-xs">{fmtNum(cp.deals)}</td>
+                      <td className="px-4 py-2 text-right text-xs">{cp.revenue_rub ? fmtRub(cp.revenue_rub) : '—'}</td>
+                      <td className={`px-4 py-2 text-right text-xs ${cp.roas == null ? '' : cp.roas >= 1 ? 'text-green-400' : 'text-amber-400'}`}>
+                        {cp.roas == null ? '—' : `×${cp.roas}`}
+                      </td>
                       <td className="px-4 py-2 text-right text-xs">{fmtRub(cp.cpl_rub)}</td>
                       <td className="px-4 py-2 text-right text-xs">{fmtRub(cp.cpd_rub)}</td>
                       <td className="px-4 py-2 text-right text-xs">{cp.conv_pct ? `${cp.conv_pct}%` : '—'}</td>
@@ -462,6 +480,7 @@ function LeadsModal({ channel, campaignExtId, campaignName, dateFrom, dateTo, on
                   <th className="px-4 py-3 text-left">Риелтор</th>
                   <th className="px-4 py-3 text-left">Источник</th>
                   <th className="px-4 py-3 text-left">Кампания</th>
+                  <th className="px-4 py-3 text-right">Вал</th>
                   <th className="px-4 py-3 text-left">yclid</th>
                 </tr>
               </thead>
@@ -480,6 +499,9 @@ function LeadsModal({ channel, campaignExtId, campaignName, dateFrom, dateTo, on
                       <td className="px-4 py-2 text-xs">{l.source_name || '—'}</td>
                       <td className="px-4 py-2 text-xs">
                         {l.campaign_name || (l.utm_campaign ? <span className="text-slate-500">id {l.utm_campaign}</span> : '—')}
+                      </td>
+                      <td className="px-4 py-2 text-right text-xs text-violet-300">
+                        {l.deal_revenue_rub ? fmtRub(l.deal_revenue_rub) : '—'}
                       </td>
                       <td className="px-4 py-2 font-mono text-[10px] text-slate-500" title={l.yclid || ''}>
                         {l.yclid ? l.yclid.slice(0, 12) + '…' : '—'}

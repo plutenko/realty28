@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { action, status, comment, lead_kind } = req.body || {}
+  const { action, status, comment, lead_kind, deal_revenue_rub } = req.body || {}
   if (action !== 'change_status') return res.status(400).json({ error: 'action должен быть change_status' })
 
   const supabase = getSupabaseAdmin()
@@ -58,8 +58,19 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Укажите категорию: buyer | seller | both' })
   }
 
+  // Вал обязателен при закрытии в сделку (deal_done)
+  let dealRevenueKop = null
+  if (status === 'deal_done') {
+    const v = Number(deal_revenue_rub)
+    if (!Number.isFinite(v) || v <= 0) {
+      return res.status(400).json({ error: 'Укажите Вал — комиссию риелтора с продажи (₽)' })
+    }
+    dealRevenueKop = Math.round(v * 100)
+  }
+
   const updates = { status, updated_at: new Date().toISOString() }
   if (status === 'add_to_base') updates.lead_kind = lead_kind
+  if (status === 'deal_done') updates.deal_revenue_kop = dealRevenueKop
   if (TERMINAL.has(status)) {
     updates.closed_at = new Date().toISOString()
     updates.close_reason = String(comment || '').trim() || null

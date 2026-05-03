@@ -103,6 +103,7 @@ export default function LeadsDashboard({ theme = 'dark', isAdmin = false }) {
   const [reassignFor, setReassignFor] = useState(null)
   const [reopenFor, setReopenFor] = useState(null)
   const [confirmInBaseFor, setConfirmInBaseFor] = useState(null)
+  const [dealModalFor, setDealModalFor] = useState(null)
   const [addOpen, setAddOpen] = useState(false)
 
   async function load() {
@@ -153,10 +154,16 @@ export default function LeadsDashboard({ theme = 'dark', isAdmin = false }) {
       await load()
     } catch (e) { alert(e.message || e) }
   }
-  async function changeStatus(lead, status, comment) {
+  async function changeStatus(lead, status, comment, extra = {}) {
     try {
-      await apiFetch('POST', `/api/admin/leads/${lead.id}`, { action: 'change_status', status, comment })
+      await apiFetch('POST', `/api/admin/leads/${lead.id}`, {
+        action: 'change_status',
+        status,
+        comment,
+        ...extra,
+      })
       setDetail(null)
+      setDealModalFor(null)
       await load()
     } catch (e) { alert(e.message || e) }
   }
@@ -317,6 +324,7 @@ export default function LeadsDashboard({ theme = 'dark', isAdmin = false }) {
           onClose={() => setDetail(null)}
           onDelete={() => handleDelete(detail)}
           onChangeStatus={(st, c) => changeStatus(detail, st, c)}
+          onCloseDeal={() => setDealModalFor(detail)}
           onReassign={() => setReassignFor(detail)}
           onReopen={() => setReopenFor(detail)}
           onConfirmInBase={() => setConfirmInBaseFor(detail)}
@@ -330,6 +338,9 @@ export default function LeadsDashboard({ theme = 'dark', isAdmin = false }) {
       )}
       {confirmInBaseFor && (
         <ConfirmInBaseModal theme={theme} lead={confirmInBaseFor} onClose={() => setConfirmInBaseFor(null)} onSubmit={(id) => doConfirmInBase(confirmInBaseFor, id)} />
+      )}
+      {dealModalFor && (
+        <DealRevenueModal theme={theme} lead={dealModalFor} onClose={() => setDealModalFor(null)} onSubmit={(rub, comment) => changeStatus(dealModalFor, 'deal_done', comment, { deal_revenue_rub: rub })} />
       )}
       {addOpen && (
         <AddLeadModal
@@ -465,7 +476,7 @@ function inputCls(dark) {
   return `w-full rounded-lg border px-3 py-2 text-sm ${dark ? 'border-slate-700 bg-slate-800 text-white' : 'border-gray-200 bg-white text-gray-900'}`
 }
 
-function LeadDetailModal({ theme, lead, isAdmin, statusColor, onClose, onDelete, onChangeStatus, onReassign, onReopen, onConfirmInBase }) {
+function LeadDetailModal({ theme, lead, isAdmin, statusColor, onClose, onDelete, onChangeStatus, onCloseDeal, onReassign, onReopen, onConfirmInBase }) {
   const [busy, setBusy] = useState(false)
   const isTerminal = TERMINAL.includes(lead.status)
   const dark = theme !== 'light'
@@ -528,7 +539,7 @@ function LeadDetailModal({ theme, lead, isAdmin, statusColor, onClose, onDelete,
             <>
               {lead.status === 'new' && <ActionBtn dark={dark} disabled={busy} color="blue" onClick={() => wrap(() => onChangeStatus('add_to_base'))}>Внести в базу</ActionBtn>}
               {lead.status === 'add_to_base' && <ActionBtn dark={dark} disabled={busy} color="emerald" onClick={() => wrap(onConfirmInBase)}>✅ Подтвердить: внесено</ActionBtn>}
-              {lead.status === 'in_work' && <ActionBtn dark={dark} disabled={busy} color="violet" onClick={() => wrap(() => onChangeStatus('deal_done'))}>Сделка</ActionBtn>}
+              {lead.status === 'in_work' && <ActionBtn dark={dark} disabled={busy} color="violet" onClick={() => wrap(onCloseDeal)}>Сделка</ActionBtn>}
               <ActionBtn dark={dark} disabled={busy} color="slate" onClick={() => {
                 const reason = prompt('Причина «не лид»:') || ''
                 if (reason.trim()) wrap(() => onChangeStatus('not_lead', reason))
@@ -662,6 +673,65 @@ function ConfirmInBaseModal({ theme, lead, onClose, onSubmit }) {
             className="rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-2 text-sm text-white font-medium"
           >
             Подтвердить
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DealRevenueModal({ theme, lead, onClose, onSubmit }) {
+  const dark = theme !== 'light'
+  const [revenue, setRevenue] = useState('')
+  const [comment, setComment] = useState('')
+
+  const num = Number(String(revenue).replace(/\s+/g, '').replace(',', '.'))
+  const ready = Number.isFinite(num) && num > 0
+
+  const inputCls = `w-full rounded-lg border px-3 py-2 text-sm ${dark ? 'border-slate-700 bg-slate-800 text-white' : 'border-gray-200 bg-white text-gray-900'}`
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
+      <div className={`rounded-xl w-full max-w-md p-6 ${dark ? 'bg-slate-900 border border-slate-700' : 'bg-white shadow-xl'}`} onClick={e => e.stopPropagation()}>
+        <h3 className={`text-lg font-semibold mb-1 ${dark ? 'text-white' : 'text-gray-900'}`}>Закрыть сделку</h3>
+        <p className={`text-xs mb-4 ${dark ? 'text-slate-400' : 'text-gray-600'}`}>
+          Клиент: <b>{lead.name || '—'}</b> ({lead.phone || '—'}).
+        </p>
+        <label className="block mb-3">
+          <div className={`text-xs mb-1 ${dark ? 'text-slate-300' : 'text-gray-600'}`}>
+            Вал — комиссия риелтора с продажи (₽) <span className="text-red-400">*</span>
+          </div>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={revenue}
+            onChange={e => setRevenue(e.target.value)}
+            placeholder="например, 150000"
+            autoFocus
+            className={inputCls}
+          />
+          {revenue && !ready && (
+            <div className="mt-1 text-xs text-red-400">Введите положительное число</div>
+          )}
+        </label>
+        <label className="block">
+          <div className={`text-xs mb-1 ${dark ? 'text-slate-400' : 'text-gray-500'}`}>Комментарий (необязательно)</div>
+          <input
+            type="text"
+            value={comment}
+            onChange={e => setComment(e.target.value)}
+            placeholder="детали сделки, контакт"
+            className={inputCls}
+          />
+        </label>
+        <div className="flex justify-end gap-2 mt-4">
+          <button onClick={onClose} className={`rounded-lg px-3 py-2 text-sm ${dark ? 'text-slate-400 hover:bg-slate-800' : 'text-gray-500 hover:bg-gray-100'}`}>Отмена</button>
+          <button
+            onClick={() => ready && onSubmit(num, comment.trim() || null)}
+            disabled={!ready}
+            className="rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 px-4 py-2 text-sm text-white font-medium"
+          >
+            Закрыть сделку
           </button>
         </div>
       </div>

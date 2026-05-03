@@ -57,13 +57,22 @@ export default async function handler(req, res) {
 }
 
 async function changeStatus(supabase, caller, lead, body, res) {
-  const { status, comment, lead_kind } = body
+  const { status, comment, lead_kind, deal_revenue_rub } = body
   if (!ALLOWED_STATUS_SET.has(status)) return res.status(400).json({ error: 'Недопустимый статус' })
   if ((status === 'not_lead' || status === 'failed') && !String(comment || '').trim()) {
     return res.status(400).json({ error: 'Для этого статуса обязательна причина' })
   }
   if (status === 'add_to_base' && !['buyer', 'seller', 'both'].includes(lead_kind)) {
     return res.status(400).json({ error: 'Укажите категорию: buyer | seller | both' })
+  }
+  // Вал обязателен при закрытии в сделку
+  let dealRevenueKop = null
+  if (status === 'deal_done') {
+    const v = Number(deal_revenue_rub)
+    if (!Number.isFinite(v) || v <= 0) {
+      return res.status(400).json({ error: 'Укажите Вал — комиссию риелтора с продажи (₽)' })
+    }
+    dealRevenueKop = Math.round(v * 100)
   }
 
   // Идемпотентность
@@ -73,6 +82,7 @@ async function changeStatus(supabase, caller, lead, body, res) {
 
   const updates = { status, updated_at: new Date().toISOString() }
   if (status === 'add_to_base') updates.lead_kind = lead_kind
+  if (status === 'deal_done') updates.deal_revenue_kop = dealRevenueKop
   if (TERMINAL.has(status)) {
     updates.closed_at = new Date().toISOString()
     updates.close_reason = String(comment || '').trim() || null

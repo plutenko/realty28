@@ -76,7 +76,7 @@ export default async function handler(req, res) {
     // 1. Лиды за период с utm и yclid
     const { data: leads, error: leadsErr } = await supabase
       .from('leads')
-      .select('id, status, utm, yclid, created_at, lead_sources:source_id(kind, name)')
+      .select('id, status, utm, yclid, deal_revenue_kop, created_at, lead_sources:source_id(kind, name)')
       .gte('created_at', sinceIso)
       .lte('created_at', untilIso)
     if (leadsErr) throw leadsErr
@@ -107,6 +107,7 @@ export default async function handler(req, res) {
           taken: 0,
           deals: 0,
           lost: 0,
+          revenue_kop: 0,
           impressions: 0,
           clicks: 0,
           spent_kop: 0,
@@ -127,6 +128,7 @@ export default async function handler(req, res) {
           taken: 0,
           deals: 0,
           lost: 0,
+          revenue_kop: 0,
         })
       }
       return m.get(campaignId)
@@ -160,20 +162,25 @@ export default async function handler(req, res) {
       const ch = ensureChannel(channel)
       ch.leads += 1
       if (l.status !== 'new') ch.taken += 1
-      if (l.status === 'deal_done') ch.deals += 1
+      if (l.status === 'deal_done') {
+        ch.deals += 1
+        ch.revenue_kop += Number(l.deal_revenue_kop || 0)
+      }
       if (l.status === 'failed' || l.status === 'not_lead') ch.lost += 1
 
       // matching to campaign: utm.campaign == ad_campaigns.ext_id
       const utmCampaign = l?.utm?.campaign ? String(l.utm.campaign) : null
       if (utmCampaign) {
-        // find campaign in this channel
         const matchKey = `${channel}::${utmCampaign}`
         const matchedCampaign = campaignsByExtId.get(matchKey)
         if (matchedCampaign) {
           const c = ensureCampaign(ch, matchedCampaign.id)
           c.leads += 1
           if (l.status !== 'new') c.taken += 1
-          if (l.status === 'deal_done') c.deals += 1
+          if (l.status === 'deal_done') {
+            c.deals += 1
+            c.revenue_kop += Number(l.deal_revenue_kop || 0)
+          }
           if (l.status === 'failed' || l.status === 'not_lead') c.lost += 1
         }
       }
@@ -187,6 +194,7 @@ export default async function handler(req, res) {
       for (const [campaignId, ca] of agg.campaigns) {
         const meta = campaignsById.get(campaignId)
         const caSpent = ca.spent_kop / 100
+        const caRevenue = (ca.revenue_kop || 0) / 100
         campaigns.push({
           campaign_id: campaignId,
           ext_id: meta?.ext_id || null,
@@ -199,10 +207,12 @@ export default async function handler(req, res) {
           taken: ca.taken,
           deals: ca.deals,
           lost: ca.lost,
+          revenue_rub: caRevenue,
           cpl_rub: ca.leads ? Math.round(caSpent / ca.leads) : null,
           cpd_rub: ca.deals ? Math.round(caSpent / ca.deals) : null,
           ctr_pct: ca.impressions ? Number(((ca.clicks / ca.impressions) * 100).toFixed(2)) : null,
           conv_pct: ca.leads ? Number(((ca.deals / ca.leads) * 100).toFixed(2)) : 0,
+          roas: caSpent > 0 ? Number((caRevenue / caSpent).toFixed(2)) : null,
         })
       }
       // Сортируем кампании: активные первыми, потом по расходу
@@ -219,6 +229,8 @@ export default async function handler(req, res) {
       if (unattributedLeads > 0) {
         const attributedDeals = campaigns.reduce((s, c) => s + c.deals, 0)
         const unattributedDeals = agg.deals - attributedDeals
+        const attributedRevenue = campaigns.reduce((s, c) => s + (c.revenue_rub || 0), 0)
+        const unattributedRevenue = Math.max(0, agg.revenue_kop / 100 - attributedRevenue)
         campaigns.push({
           campaign_id: null,
           ext_id: null,
@@ -231,15 +243,18 @@ export default async function handler(req, res) {
           taken: 0,
           deals: Math.max(0, unattributedDeals),
           lost: 0,
+          revenue_rub: unattributedRevenue,
           cpl_rub: null,
           cpd_rub: null,
           ctr_pct: null,
           conv_pct: unattributedLeads
             ? Number(((Math.max(0, unattributedDeals) / unattributedLeads) * 100).toFixed(2))
             : 0,
+          roas: null,
         })
       }
 
+      const revenueRub = (agg.revenue_kop || 0) / 100
       channels.push({
         channel: channelName,
         leads: agg.leads,
@@ -249,10 +264,12 @@ export default async function handler(req, res) {
         impressions: agg.impressions,
         clicks: agg.clicks,
         spent_rub: spentRub,
+        revenue_rub: revenueRub,
         cpl_rub: agg.leads ? Math.round(spentRub / agg.leads) : null,
         cpd_rub: agg.deals ? Math.round(spentRub / agg.deals) : null,
         conv_pct: agg.leads ? Number(((agg.deals / agg.leads) * 100).toFixed(2)) : 0,
         ctr_pct: agg.impressions ? Number(((agg.clicks / agg.impressions) * 100).toFixed(2)) : null,
+        roas: spentRub > 0 ? Number((revenueRub / spentRub).toFixed(2)) : null,
         campaigns,
       })
     }
@@ -276,6 +293,7 @@ export default async function handler(req, res) {
         leads: channels.reduce((s, c) => s + c.leads, 0),
         deals: channels.reduce((s, c) => s + c.deals, 0),
         spent_rub: channels.reduce((s, c) => s + c.spent_rub, 0),
+        revenue_rub: channels.reduce((s, c) => s + (c.revenue_rub || 0), 0),
         clicks: channels.reduce((s, c) => s + c.clicks, 0),
       },
       recent_syncs: syncs ?? [],
