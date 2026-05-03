@@ -11,16 +11,20 @@ const PERIOD_DAYS = {
 /**
  * GET /api/admin/marketing/summary?period=week
  *
- * Возвращает агрегацию по каналам рекламы:
- *  - leads: количество лидов из этого источника за период
- *  - taken: сколько взято риелторами (status != new)
- *  - deals: deal_done
- *  - conv_pct: deals/leads
- *  - clicks/impressions/spent_kop: из ad_spend (если данные коннектора есть)
- *  - cpl: spent / leads — стоимость лида
- *  - cpd: spent / deals — стоимость сделки
+ * Возвращает агрегацию по каналам рекламы с drill-down до кампаний:
  *
- * Канал = `utm.source` лида (нормализуется: 'yandex' / 'vk' / 'tg' / 'avito' / 'organic' / 'unknown').
+ * channels: [{
+ *   channel: 'yandex_direct',
+ *   leads / taken / deals / lost — счётчики по утилу.source = yandex
+ *   impressions / clicks / spent_rub — из ad_spend
+ *   cpl / cpd / conv / ctr
+ *   campaigns: [{
+ *     campaign_id, ext_id, name, status,
+ *     impressions / clicks / spent_rub,
+ *     leads / deals (matched by utm.campaign == ext_id)
+ *     cpl / cpd
+ *   }]
+ * }]
  *
  * Auth: admin или manager.
  */
@@ -46,87 +50,209 @@ export default async function handler(req, res) {
 
   const period = String(req.query?.period || 'week')
   const days = PERIOD_DAYS[period] ?? 7
-  const since = new Date(Date.now() - (days || 1) * 24 * 60 * 60 * 1000)
-  const sinceIso = since.toISOString()
-  const sinceDate = since.toISOString().slice(0, 10)
+  const sinceDate = new Date(Date.now() - (days || 1) * 24 * 60 * 60 * 1000)
+  const sinceIso = sinceDate.toISOString()
+  const sinceDay = sinceDate.toISOString().slice(0, 10)
   const today = new Date().toISOString().slice(0, 10)
 
   try {
-    // 1. Лиды за период с разбивкой по каналу
+    // 1. Лиды за период с utm и yclid
     const { data: leads, error: leadsErr } = await supabase
       .from('leads')
       .select('id, status, utm, yclid, created_at, lead_sources:source_id(kind, name)')
       .gte('created_at', sinceIso)
     if (leadsErr) throw leadsErr
 
-    const channelKey = (lead) => {
-      const src = String(lead?.utm?.source || '').toLowerCase().trim()
-      if (src) return normalizeChannel(src)
-      const kind = lead?.lead_sources?.kind
-      if (kind === 'marquiz') return 'organic'
-      if (kind === 'manual') return 'manual'
-      return 'unknown'
-    }
-
-    const byChannel = new Map()
-    for (const l of leads ?? []) {
-      const k = channelKey(l)
-      if (!byChannel.has(k)) byChannel.set(k, { leads: 0, taken: 0, deals: 0, lost: 0 })
-      const b = byChannel.get(k)
-      b.leads += 1
-      if (l.status !== 'new') b.taken += 1
-      if (l.status === 'deal_done') b.deals += 1
-      if (l.status === 'failed' || l.status === 'not_lead') b.lost += 1
-    }
-
-    // 2. Расходы по каналам за период
+    // 2. Расходы за период
     const { data: spend, error: spendErr } = await supabase
       .from('ad_spend')
-      .select('channel, impressions, clicks, spent_kop')
-      .gte('date', sinceDate)
+      .select('date, channel, campaign_id, impressions, clicks, spent_kop')
+      .gte('date', sinceDay)
       .lte('date', today)
     if (spendErr) throw spendErr
 
-    for (const s of spend ?? []) {
-      const k = normalizeChannel(s.channel)
-      if (!byChannel.has(k)) byChannel.set(k, { leads: 0, taken: 0, deals: 0, lost: 0 })
-      const b = byChannel.get(k)
-      b.impressions = (b.impressions || 0) + Number(s.impressions || 0)
-      b.clicks = (b.clicks || 0) + Number(s.clicks || 0)
-      b.spent_kop = (b.spent_kop || 0) + Number(s.spent_kop || 0)
+    // 3. Справочник кампаний
+    const { data: campaignsRaw } = await supabase
+      .from('ad_campaigns')
+      .select('id, channel, ext_id, name, status, utm_campaign, utm_source')
+    const campaignsById = new Map((campaignsRaw ?? []).map((c) => [c.id, c]))
+    const campaignsByExtId = new Map(
+      (campaignsRaw ?? []).map((c) => [`${c.channel}::${c.ext_id}`, c]),
+    )
+
+    // 4. Агрегируем расходы по каналу и кампании
+    const byChannel = new Map() // channel -> {leads,taken,deals,lost,impressions,clicks,spent_kop, campaigns: Map<campaign_id, agg>}
+    function ensureChannel(name) {
+      if (!byChannel.has(name)) {
+        byChannel.set(name, {
+          leads: 0,
+          taken: 0,
+          deals: 0,
+          lost: 0,
+          impressions: 0,
+          clicks: 0,
+          spent_kop: 0,
+          campaigns: new Map(),
+        })
+      }
+      return byChannel.get(name)
+    }
+    function ensureCampaign(channelAgg, campaignId) {
+      const m = channelAgg.campaigns
+      if (!m.has(campaignId)) {
+        m.set(campaignId, {
+          campaign_id: campaignId,
+          impressions: 0,
+          clicks: 0,
+          spent_kop: 0,
+          leads: 0,
+          taken: 0,
+          deals: 0,
+          lost: 0,
+        })
+      }
+      return m.get(campaignId)
     }
 
-    // 3. Считаем производные метрики
+    for (const s of spend ?? []) {
+      const channel = normalizeChannel(s.channel)
+      const ch = ensureChannel(channel)
+      ch.impressions += Number(s.impressions || 0)
+      ch.clicks += Number(s.clicks || 0)
+      ch.spent_kop += Number(s.spent_kop || 0)
+      if (s.campaign_id) {
+        const c = ensureCampaign(ch, s.campaign_id)
+        c.impressions += Number(s.impressions || 0)
+        c.clicks += Number(s.clicks || 0)
+        c.spent_kop += Number(s.spent_kop || 0)
+      }
+    }
+
+    // 5. Привязываем лиды к каналу (utm.source) и кампании (utm.campaign matched по ext_id)
+    for (const l of leads ?? []) {
+      const utmSource = String(l?.utm?.source || '').toLowerCase().trim()
+      const channel = utmSource
+        ? normalizeChannel(utmSource)
+        : l?.lead_sources?.kind === 'marquiz'
+        ? 'organic'
+        : l?.lead_sources?.kind === 'manual'
+        ? 'manual'
+        : 'unknown'
+
+      const ch = ensureChannel(channel)
+      ch.leads += 1
+      if (l.status !== 'new') ch.taken += 1
+      if (l.status === 'deal_done') ch.deals += 1
+      if (l.status === 'failed' || l.status === 'not_lead') ch.lost += 1
+
+      // matching to campaign: utm.campaign == ad_campaigns.ext_id
+      const utmCampaign = l?.utm?.campaign ? String(l.utm.campaign) : null
+      if (utmCampaign) {
+        // find campaign in this channel
+        const matchKey = `${channel}::${utmCampaign}`
+        const matchedCampaign = campaignsByExtId.get(matchKey)
+        if (matchedCampaign) {
+          const c = ensureCampaign(ch, matchedCampaign.id)
+          c.leads += 1
+          if (l.status !== 'new') c.taken += 1
+          if (l.status === 'deal_done') c.deals += 1
+          if (l.status === 'failed' || l.status === 'not_lead') c.lost += 1
+        }
+      }
+    }
+
+    // 6. Сериализуем в финальный массив
     const channels = []
-    for (const [name, b] of byChannel) {
-      const spentRub = (b.spent_kop || 0) / 100
+    for (const [channelName, agg] of byChannel) {
+      const spentRub = agg.spent_kop / 100
+      const campaigns = []
+      for (const [campaignId, ca] of agg.campaigns) {
+        const meta = campaignsById.get(campaignId)
+        const caSpent = ca.spent_kop / 100
+        campaigns.push({
+          campaign_id: campaignId,
+          ext_id: meta?.ext_id || null,
+          name: meta?.name || `(unknown ${String(campaignId).slice(0, 8)})`,
+          status: meta?.status || 'unknown',
+          impressions: ca.impressions,
+          clicks: ca.clicks,
+          spent_rub: caSpent,
+          leads: ca.leads,
+          taken: ca.taken,
+          deals: ca.deals,
+          lost: ca.lost,
+          cpl_rub: ca.leads ? Math.round(caSpent / ca.leads) : null,
+          cpd_rub: ca.deals ? Math.round(caSpent / ca.deals) : null,
+          ctr_pct: ca.impressions ? Number(((ca.clicks / ca.impressions) * 100).toFixed(2)) : null,
+          conv_pct: ca.leads ? Number(((ca.deals / ca.leads) * 100).toFixed(2)) : 0,
+        })
+      }
+      // Сортируем кампании: активные первыми, потом по расходу
+      campaigns.sort((a, b) => {
+        const aActive = a.status === 'active' ? 0 : 1
+        const bActive = b.status === 'active' ? 0 : 1
+        if (aActive !== bActive) return aActive - bActive
+        return (b.spent_rub || 0) - (a.spent_rub || 0)
+      })
+
+      // Если у канала есть лиды без атрибуции к кампании — добавим виртуальную строку
+      const attributedLeads = campaigns.reduce((s, c) => s + c.leads, 0)
+      const unattributedLeads = agg.leads - attributedLeads
+      if (unattributedLeads > 0) {
+        const attributedDeals = campaigns.reduce((s, c) => s + c.deals, 0)
+        const unattributedDeals = agg.deals - attributedDeals
+        campaigns.push({
+          campaign_id: null,
+          ext_id: null,
+          name: '(без привязки к кампании)',
+          status: 'unattributed',
+          impressions: 0,
+          clicks: 0,
+          spent_rub: 0,
+          leads: unattributedLeads,
+          taken: 0,
+          deals: Math.max(0, unattributedDeals),
+          lost: 0,
+          cpl_rub: null,
+          cpd_rub: null,
+          ctr_pct: null,
+          conv_pct: unattributedLeads
+            ? Number(((Math.max(0, unattributedDeals) / unattributedLeads) * 100).toFixed(2))
+            : 0,
+        })
+      }
+
       channels.push({
-        channel: name,
-        leads: b.leads || 0,
-        taken: b.taken || 0,
-        deals: b.deals || 0,
-        lost: b.lost || 0,
-        impressions: b.impressions || 0,
-        clicks: b.clicks || 0,
+        channel: channelName,
+        leads: agg.leads,
+        taken: agg.taken,
+        deals: agg.deals,
+        lost: agg.lost,
+        impressions: agg.impressions,
+        clicks: agg.clicks,
         spent_rub: spentRub,
-        cpl_rub: b.leads ? Math.round(spentRub / b.leads) : null,
-        cpd_rub: b.deals ? Math.round(spentRub / b.deals) : null,
-        conv_pct: b.leads ? Number(((b.deals / b.leads) * 100).toFixed(2)) : 0,
-        ctr_pct: b.impressions ? Number(((b.clicks / b.impressions) * 100).toFixed(2)) : null,
+        cpl_rub: agg.leads ? Math.round(spentRub / agg.leads) : null,
+        cpd_rub: agg.deals ? Math.round(spentRub / agg.deals) : null,
+        conv_pct: agg.leads ? Number(((agg.deals / agg.leads) * 100).toFixed(2)) : 0,
+        ctr_pct: agg.impressions ? Number(((agg.clicks / agg.impressions) * 100).toFixed(2)) : null,
+        campaigns,
       })
     }
-    channels.sort((a, b) => (b.spent_rub || 0) + b.leads - ((a.spent_rub || 0) + a.leads))
+    channels.sort((a, b) => (b.spent_rub || 0) - (a.spent_rub || 0) || b.leads - a.leads)
 
-    // 4. Последний sync — для индикации "ожидаются данные коннектора"
+    // 7. Sync logs
     const { data: syncs } = await supabase
       .from('ad_sync_runs')
-      .select('channel, started_at, finished_at, status, rows_upserted')
+      .select('channel, started_at, finished_at, status, rows_upserted, error')
       .order('started_at', { ascending: false })
       .limit(10)
 
     return res.status(200).json({
       period,
       since: sinceIso,
+      since_date: sinceDay,
+      until_date: today,
+      days_count: days || 1,
       channels,
       totals: {
         leads: channels.reduce((s, c) => s + c.leads, 0),

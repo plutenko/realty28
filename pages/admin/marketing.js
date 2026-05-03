@@ -14,6 +14,15 @@ const CHANNEL_LABELS = {
   unknown: 'Неизвестно',
 }
 
+const STATUS_LABELS = {
+  new: { t: 'Новый', cls: 'bg-blue-500/20 text-blue-300' },
+  add_to_base: { t: 'В базу', cls: 'bg-purple-500/20 text-purple-300' },
+  in_work: { t: 'В работе', cls: 'bg-amber-500/20 text-amber-300' },
+  deal_done: { t: 'Сделка', cls: 'bg-green-500/20 text-green-300' },
+  not_lead: { t: 'Не лид', cls: 'bg-slate-500/20 text-slate-300' },
+  failed: { t: 'Срыв', cls: 'bg-red-500/20 text-red-300' },
+}
+
 const PERIOD_LABELS = [
   { v: 'today', t: 'Сегодня' },
   { v: 'week', t: 'Неделя' },
@@ -24,6 +33,18 @@ const PERIOD_LABELS = [
 
 const fmtRub = (n) => (n == null ? '—' : `${Math.round(n).toLocaleString('ru-RU')} ₽`)
 const fmtNum = (n) => (n == null || n === 0 ? '—' : n.toLocaleString('ru-RU'))
+const fmtDate = (s) => {
+  if (!s) return '—'
+  try {
+    return new Date(s).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+  } catch { return s }
+}
+const fmtDateOnly = (s) => {
+  if (!s) return ''
+  try {
+    return new Date(s).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  } catch { return s }
+}
 
 export default function AdminMarketingPage() {
   const { profile } = useAuth()
@@ -31,8 +52,10 @@ export default function AdminMarketingPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [syncState, setSyncState] = useState('idle') // idle/running/done/err
+  const [syncState, setSyncState] = useState('idle')
   const [syncMsg, setSyncMsg] = useState('')
+  const [expandedChannels, setExpandedChannels] = useState(new Set())
+  const [leadsModal, setLeadsModal] = useState(null) // { channel, campaign_ext_id|null, campaign_name, period }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -72,11 +95,14 @@ export default function AdminMarketingPage() {
       const body = await res.json()
       if (body.ok) {
         setSyncState('done')
-        setSyncMsg(`Синхронизировано ${body.rows_upserted ?? '?'} строк`)
+        setSyncMsg(
+          `Синхронизировано: кампаний ${body.campaigns_upserted ?? '?'}, ` +
+          `строк расходов ${body.spend_rows_upserted ?? '?'}`,
+        )
         load()
       } else {
         setSyncState('err')
-        setSyncMsg(body.message || body.reason || `HTTP ${res.status}`)
+        setSyncMsg(body.message || body.error || `HTTP ${res.status}`)
       }
     } catch (e) {
       setSyncState('err')
@@ -86,15 +112,25 @@ export default function AdminMarketingPage() {
     }
   }
 
+  function toggleChannel(name) {
+    const next = new Set(expandedChannels)
+    if (next.has(name)) next.delete(name)
+    else next.add(name)
+    setExpandedChannels(next)
+  }
+
   const isAdmin = profile?.role === 'admin'
   const channels = data?.channels ?? []
   const totals = data?.totals ?? {}
   const recentSyncs = data?.recent_syncs ?? []
+  const periodLabel = data
+    ? `${data.days_count} дн. (${fmtDateOnly(data.since_date)} — ${fmtDateOnly(data.until_date)})`
+    : ''
 
   return (
     <AdminLayout title="Маркетинг — каналы и расходы">
       {/* Период */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         {PERIOD_LABELS.map((p) => (
           <button
             key={p.v}
@@ -118,6 +154,10 @@ export default function AdminMarketingPage() {
         </button>
       </div>
 
+      {periodLabel && (
+        <div className="mb-4 text-xs text-slate-500">Период: {periodLabel}</div>
+      )}
+
       {/* Сводка */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <SummaryCard label="Лидов" value={fmtNum(totals.leads || 0)} />
@@ -132,12 +172,13 @@ export default function AdminMarketingPage() {
         </div>
       )}
 
-      {/* Таблица каналов */}
+      {/* Таблица каналов с drill-down */}
       <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/50">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-900 text-xs uppercase text-slate-400">
             <tr>
-              <th className="px-4 py-3 text-left">Канал</th>
+              <th className="w-8 px-2 py-3"></th>
+              <th className="px-4 py-3 text-left">Канал / Кампания</th>
               <th className="px-4 py-3 text-right">Показы</th>
               <th className="px-4 py-3 text-right">Клики</th>
               <th className="px-4 py-3 text-right">CTR</th>
@@ -146,30 +187,97 @@ export default function AdminMarketingPage() {
               <th className="px-4 py-3 text-right">Сделок</th>
               <th className="px-4 py-3 text-right">CPL</th>
               <th className="px-4 py-3 text-right">CPD</th>
-              <th className="px-4 py-3 text-right">Конверсия</th>
+              <th className="px-4 py-3 text-right">Конв.</th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
             {loading ? (
-              <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-500">Загрузка…</td></tr>
+              <tr><td colSpan={12} className="px-4 py-8 text-center text-slate-500">Загрузка…</td></tr>
             ) : channels.length === 0 ? (
-              <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-500">Нет данных за период</td></tr>
-            ) : channels.map((c) => (
-              <tr key={c.channel} className="text-slate-200 hover:bg-slate-900/80">
-                <td className="px-4 py-3 font-medium">
-                  {CHANNEL_LABELS[c.channel] || c.channel}
-                </td>
-                <td className="px-4 py-3 text-right">{fmtNum(c.impressions)}</td>
-                <td className="px-4 py-3 text-right">{fmtNum(c.clicks)}</td>
-                <td className="px-4 py-3 text-right">{c.ctr_pct == null ? '—' : `${c.ctr_pct}%`}</td>
-                <td className="px-4 py-3 text-right">{c.spent_rub ? fmtRub(c.spent_rub) : '—'}</td>
-                <td className="px-4 py-3 text-right">{fmtNum(c.leads)}</td>
-                <td className="px-4 py-3 text-right">{fmtNum(c.deals)}</td>
-                <td className="px-4 py-3 text-right">{fmtRub(c.cpl_rub)}</td>
-                <td className="px-4 py-3 text-right">{fmtRub(c.cpd_rub)}</td>
-                <td className="px-4 py-3 text-right">{c.conv_pct ? `${c.conv_pct}%` : '—'}</td>
-              </tr>
-            ))}
+              <tr><td colSpan={12} className="px-4 py-8 text-center text-slate-500">Нет данных за период</td></tr>
+            ) : channels.map((c) => {
+              const isExpanded = expandedChannels.has(c.channel)
+              const hasCampaigns = (c.campaigns?.length ?? 0) > 0
+              return (
+                <>
+                  <tr key={c.channel} className={`text-slate-200 ${hasCampaigns ? 'cursor-pointer hover:bg-slate-900/80' : ''}`} onClick={() => hasCampaigns && toggleChannel(c.channel)}>
+                    <td className="px-2 py-3 text-center text-slate-500">
+                      {hasCampaigns ? (isExpanded ? '▾' : '▸') : ''}
+                    </td>
+                    <td className="px-4 py-3 font-medium">
+                      {CHANNEL_LABELS[c.channel] || c.channel}
+                    </td>
+                    <td className="px-4 py-3 text-right">{fmtNum(c.impressions)}</td>
+                    <td className="px-4 py-3 text-right">{fmtNum(c.clicks)}</td>
+                    <td className="px-4 py-3 text-right">{c.ctr_pct == null ? '—' : `${c.ctr_pct}%`}</td>
+                    <td className="px-4 py-3 text-right">{c.spent_rub ? fmtRub(c.spent_rub) : '—'}</td>
+                    <td className="px-4 py-3 text-right">{fmtNum(c.leads)}</td>
+                    <td className="px-4 py-3 text-right">{fmtNum(c.deals)}</td>
+                    <td className="px-4 py-3 text-right">{fmtRub(c.cpl_rub)}</td>
+                    <td className="px-4 py-3 text-right">{fmtRub(c.cpd_rub)}</td>
+                    <td className="px-4 py-3 text-right">{c.conv_pct ? `${c.conv_pct}%` : '—'}</td>
+                    <td className="px-4 py-3 text-right">
+                      {c.leads > 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setLeadsModal({
+                              channel: c.channel,
+                              campaign_ext_id: null,
+                              campaign_name: null,
+                            })
+                          }}
+                          className="rounded bg-slate-800 px-2 py-1 text-xs text-blue-300 hover:bg-slate-700"
+                        >
+                          Лиды
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                  {isExpanded && hasCampaigns && c.campaigns.map((cp) => (
+                    <tr key={`${c.channel}-${cp.campaign_id || 'unattr'}-${cp.ext_id || 'none'}`} className="bg-slate-950/50 text-slate-300">
+                      <td className="px-2 py-2"></td>
+                      <td className="px-4 py-2 pl-10 text-xs">
+                        <div className="flex items-center gap-2">
+                          <CampaignStatusBadge status={cp.status} />
+                          <span className="truncate">{cp.name}</span>
+                        </div>
+                        {cp.ext_id && <div className="text-[10px] text-slate-600">id {cp.ext_id}</div>}
+                      </td>
+                      <td className="px-4 py-2 text-right text-xs">{fmtNum(cp.impressions)}</td>
+                      <td className="px-4 py-2 text-right text-xs">{fmtNum(cp.clicks)}</td>
+                      <td className="px-4 py-2 text-right text-xs">{cp.ctr_pct == null ? '—' : `${cp.ctr_pct}%`}</td>
+                      <td className="px-4 py-2 text-right text-xs">{cp.spent_rub ? fmtRub(cp.spent_rub) : '—'}</td>
+                      <td className="px-4 py-2 text-right text-xs">{fmtNum(cp.leads)}</td>
+                      <td className="px-4 py-2 text-right text-xs">{fmtNum(cp.deals)}</td>
+                      <td className="px-4 py-2 text-right text-xs">{fmtRub(cp.cpl_rub)}</td>
+                      <td className="px-4 py-2 text-right text-xs">{fmtRub(cp.cpd_rub)}</td>
+                      <td className="px-4 py-2 text-right text-xs">{cp.conv_pct ? `${cp.conv_pct}%` : '—'}</td>
+                      <td className="px-4 py-2 text-right">
+                        {cp.leads > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setLeadsModal({
+                                channel: c.channel,
+                                campaign_ext_id: cp.status === 'unattributed' ? 'unattributed' : cp.ext_id,
+                                campaign_name: cp.name,
+                              })
+                            }}
+                            className="rounded bg-slate-800 px-2 py-1 text-[10px] text-blue-300 hover:bg-slate-700"
+                          >
+                            Лиды
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -181,7 +289,8 @@ export default function AdminMarketingPage() {
             <div>
               <div className="text-sm font-semibold text-slate-200">Синхронизация расходов</div>
               <div className="mt-1 text-xs text-slate-500">
-                Тянет расходы и метрики кликов из API канала. Cron ежедневно в 06:00 — этой кнопкой можно вручную.
+                Тянет расходы и метрики кликов из API канала. Cron ежедневно в 12:00 Yakutsk —
+                этой кнопкой можно вручную.
               </div>
             </div>
             <button
@@ -210,16 +319,18 @@ export default function AdminMarketingPage() {
               <ul className="space-y-1 text-xs text-slate-400">
                 {recentSyncs.map((s, i) => (
                   <li key={i} className="flex items-center gap-3">
-                    <span className="font-mono text-slate-500">{new Date(s.started_at).toLocaleString('ru-RU')}</span>
+                    <span className="font-mono text-slate-500">{fmtDate(s.started_at)}</span>
                     <span>{CHANNEL_LABELS[s.channel] || s.channel}</span>
                     <span className={
                       s.status === 'success' ? 'text-green-400'
                       : s.status === 'partial' ? 'text-amber-400'
+                      : s.status === 'running' ? 'text-blue-400'
                       : 'text-red-400'
                     }>
                       {s.status || 'running'}
                     </span>
                     {s.rows_upserted ? <span>{s.rows_upserted} строк</span> : null}
+                    {s.error && <span className="truncate text-red-400">— {s.error}</span>}
                   </li>
                 ))}
               </ul>
@@ -227,7 +338,123 @@ export default function AdminMarketingPage() {
           )}
         </div>
       )}
+
+      {leadsModal && (
+        <LeadsModal
+          channel={leadsModal.channel}
+          campaignExtId={leadsModal.campaign_ext_id}
+          campaignName={leadsModal.campaign_name}
+          period={period}
+          onClose={() => setLeadsModal(null)}
+        />
+      )}
     </AdminLayout>
+  )
+}
+
+function CampaignStatusBadge({ status }) {
+  const cfg = {
+    active: { t: '●', cls: 'text-green-400' },
+    paused: { t: '●', cls: 'text-amber-400' },
+    archived: { t: '●', cls: 'text-slate-500' },
+    unattributed: { t: '◌', cls: 'text-slate-600' },
+    unknown: { t: '●', cls: 'text-slate-500' },
+  }[status] || { t: '●', cls: 'text-slate-500' }
+  return <span className={cfg.cls} title={status}>{cfg.t}</span>
+}
+
+function LeadsModal({ channel, campaignExtId, campaignName, period, onClose }) {
+  const [leads, setLeads] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) throw new Error('Нет сессии')
+        const params = new URLSearchParams({ period, channel })
+        if (campaignExtId) params.set('campaign_ext_id', campaignExtId)
+        const res = await fetch(`/api/admin/marketing/leads?${params}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        const body = await res.json()
+        if (cancelled) return
+        if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`)
+        setLeads(body.leads ?? [])
+      } catch (e) {
+        if (!cancelled) setError(e?.message || 'Ошибка')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [channel, campaignExtId, period])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="max-h-[85vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 border-b border-slate-800 px-6 py-4">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-100">
+              Лиды — {CHANNEL_LABELS[channel] || channel}
+            </h3>
+            {campaignName && <div className="mt-1 text-sm text-slate-400">Кампания: {campaignName}</div>}
+            {!campaignName && <div className="mt-1 text-sm text-slate-400">Все кампании канала за период</div>}
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg bg-slate-800 px-3 py-1 text-sm text-slate-300 hover:bg-slate-700">
+            Закрыть
+          </button>
+        </div>
+        <div className="max-h-[calc(85vh-100px)] overflow-auto">
+          {loading ? (
+            <div className="px-6 py-8 text-center text-slate-500">Загрузка…</div>
+          ) : error ? (
+            <div className="px-6 py-8 text-center text-red-400">{error}</div>
+          ) : leads.length === 0 ? (
+            <div className="px-6 py-8 text-center text-slate-500">Лидов нет</div>
+          ) : (
+            <table className="min-w-full text-sm">
+              <thead className="sticky top-0 bg-slate-900 text-xs uppercase text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Дата</th>
+                  <th className="px-4 py-3 text-left">Имя</th>
+                  <th className="px-4 py-3 text-left">Телефон</th>
+                  <th className="px-4 py-3 text-left">Статус CRM</th>
+                  <th className="px-4 py-3 text-left">Риелтор</th>
+                  <th className="px-4 py-3 text-left">Кампания</th>
+                  <th className="px-4 py-3 text-left">yclid</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800 text-slate-200">
+                {leads.map((l) => {
+                  const st = STATUS_LABELS[l.status] || { t: l.status, cls: 'bg-slate-700/50 text-slate-300' }
+                  return (
+                    <tr key={l.id}>
+                      <td className="px-4 py-2 text-xs text-slate-400 whitespace-nowrap">{fmtDate(l.created_at)}</td>
+                      <td className="px-4 py-2">{l.name}</td>
+                      <td className="px-4 py-2 font-mono text-xs">{l.phone}</td>
+                      <td className="px-4 py-2">
+                        <span className={`inline-block rounded px-2 py-0.5 text-xs ${st.cls}`}>{st.t}</span>
+                      </td>
+                      <td className="px-4 py-2 text-xs text-slate-400">{l.assigned_user || '—'}</td>
+                      <td className="px-4 py-2 text-xs">
+                        {l.campaign_name || (l.utm_campaign ? <span className="text-slate-500">id {l.utm_campaign}</span> : '—')}
+                      </td>
+                      <td className="px-4 py-2 font-mono text-[10px] text-slate-500" title={l.yclid || ''}>
+                        {l.yclid ? l.yclid.slice(0, 12) + '…' : '—'}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
