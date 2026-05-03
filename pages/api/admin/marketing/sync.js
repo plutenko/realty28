@@ -1,21 +1,19 @@
 import { getSupabaseAdmin } from '../../../../lib/supabaseServer'
+import { syncYandexDirect } from '../../../../lib/yandexDirect'
 
 /**
  * POST /api/admin/marketing/sync
- * body: { channel: 'yandex_direct' | 'vk_ads' | ..., date_from?, date_to? }
+ * body: { channel: 'yandex_direct', date_from?, date_to? }
  *
- * Триггер ручной синхронизации расходов с API канала. Также вызывается из
- * cron-job.org ежедневно для актуализации данных за последние 7 дней.
+ * Триггер ручной/cron-синхронизации расходов с API канала.
  *
- * Phase A: возвращает no_config если для канала не настроены credentials.
- * Phase B: реальные API-вызовы (Я.Директ Reports API через OAuth и т.д.).
- *
- * Auth: admin only.
+ * Auth:
+ *   - admin (Bearer token)
+ *   - cron (X-Cron-Secret header)
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  // Cron mode — авторизация через CRON_SECRET header (без Bearer пользователя)
   const cronSecret = req.headers['x-cron-secret']
   const userToken = req.headers.authorization?.replace('Bearer ', '')
 
@@ -46,47 +44,77 @@ export default async function handler(req, res) {
   const channel = String(req.body?.channel || 'yandex_direct')
 
   if (channel === 'yandex_direct') {
-    return syncYandexDirect(supabase, req, res)
+    return runYandexDirect(supabase, req, res)
   }
 
   return res.status(400).json({ error: `Unknown channel: ${channel}`, supported: ['yandex_direct'] })
 }
 
-async function syncYandexDirect(supabase, req, res) {
-  const oauth = process.env.YANDEX_DIRECT_OAUTH_TOKEN
-  if (!oauth) {
+async function runYandexDirect(supabase, req, res) {
+  if (!process.env.YANDEX_DIRECT_OAUTH_TOKEN) {
     return res.status(200).json({
       ok: false,
       reason: 'no_config',
-      message:
-        'YANDEX_DIRECT_OAUTH_TOKEN не задан в env. Получи токен в https://oauth.yandex.ru/ и добавь в Timeweb env. ' +
-        'См. docs/marketing-yandex-direct.md.',
+      message: 'YANDEX_DIRECT_OAUTH_TOKEN не задан в env.',
     })
   }
 
-  // Phase B placeholder: здесь будет реальный код по Я.Директ Reports API.
-  // Пока — отметка о попытке в ad_sync_runs.
-  const startedAt = new Date()
-  const dateFrom = req.body?.date_from || new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10)
-  const dateTo = req.body?.date_to || new Date().toISOString().slice(0, 10)
+  const dateFrom = req.body?.date_from
+  const dateTo = req.body?.date_to
 
+  // Открываем sync run
   const { data: run } = await supabase
     .from('ad_sync_runs')
     .insert({
       channel: 'yandex_direct',
-      started_at: startedAt.toISOString(),
-      status: 'partial',
-      date_from: dateFrom,
-      date_to: dateTo,
-      meta: { phase: 'A', message: 'connector not yet implemented' },
+      status: 'running',
+      started_at: new Date().toISOString(),
+      date_from: dateFrom || null,
+      date_to: dateTo || null,
     })
     .select('id')
     .single()
 
-  return res.status(200).json({
-    ok: false,
-    reason: 'not_implemented',
-    message: 'Я.Директ коннектор будет реализован в Phase B. Токен есть — нужна реализация.',
-    sync_run_id: run?.id,
-  })
+  const runId = run?.id
+
+  try {
+    const result = await syncYandexDirect(supabase, { dateFrom, dateTo })
+
+    if (runId) {
+      await supabase
+        .from('ad_sync_runs')
+        .update({
+          status: 'success',
+          finished_at: new Date().toISOString(),
+          rows_upserted: result.spend,
+          date_from: result.date_from,
+          date_to: result.date_to,
+          meta: { campaigns: result.campaigns, spend: result.spend },
+        })
+        .eq('id', runId)
+    }
+
+    return res.status(200).json({
+      ok: true,
+      campaigns_upserted: result.campaigns,
+      spend_rows_upserted: result.spend,
+      date_from: result.date_from,
+      date_to: result.date_to,
+      sync_run_id: runId,
+    })
+  } catch (e) {
+    const msg = String(e?.message || e)
+    console.error('[admin/marketing/sync] yandex_direct error:', msg)
+    if (runId) {
+      await supabase
+        .from('ad_sync_runs')
+        .update({
+          status: 'error',
+          finished_at: new Date().toISOString(),
+          error: msg,
+        })
+        .eq('id', runId)
+    }
+    return res.status(502).json({ ok: false, error: msg, sync_run_id: runId })
+  }
 }
