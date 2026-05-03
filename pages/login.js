@@ -51,7 +51,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && user && profile && !pendingToken && !deviceChecking && !submitting) {
-      router.replace(profile.role === 'admin' ? '/admin' : '/apartments')
+      const dest =
+        profile.role === 'admin' ? '/admin'
+        : profile.role === 'manager' ? '/manager'
+        : '/apartments'
+      router.replace(dest)
     }
   }, [loading, user, profile, pendingToken, deviceChecking, submitting])
 

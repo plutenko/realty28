@@ -3,16 +3,37 @@ import AdminLayout from '../../components/admin/AdminLayout'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabaseClient'
 
-const cards = [
-  { href: '/admin/developers', label: 'Застройщики', icon: '🏢', desc: 'Управление застройщиками' },
-  { href: '/admin/buildings', label: 'Дома', icon: '🏗️', desc: 'Корпуса и литеры' },
-  { href: '/admin/units', label: 'Квартиры', icon: '🚪', desc: 'Все объекты' },
-  { href: '/admin/collections', label: 'Подборки', icon: '📋', desc: 'Подборки для клиентов' },
-  { href: '/admin/sources', label: 'Источники', icon: '🔗', desc: 'Google Sheets, Profitbase' },
-  { href: '/admin/users', label: 'Пользователи', icon: '👥', desc: 'Риелторы и менеджеры' },
-  { href: '/admin/security', label: 'Безопасность', icon: '🔒', desc: 'Устройства и Telegram' },
-  { href: '/admin/reports', label: 'Отчёты', icon: '📝', desc: 'Сводка по риелторам, экспорт за период' },
-  { href: '/admin/marketing', label: 'Маркетинг', icon: '📈', desc: 'Расходы по каналам, CPL, ROAS' },
+const groupedCards = [
+  {
+    label: 'Каталог',
+    desc: 'Что мы продаём',
+    items: [
+      { href: '/admin/developers', label: 'Застройщики', icon: '🏢', desc: 'Управление застройщиками' },
+      { href: '/admin/complexes', label: 'ЖК', icon: '🏘️', desc: 'Жилые комплексы' },
+      { href: '/admin/buildings', label: 'Дома', icon: '🏗️', desc: 'Корпуса и литеры' },
+      { href: '/admin/units', label: 'Квартиры', icon: '🚪', desc: 'Все объекты, шахматка' },
+      { href: '/admin/sources', label: 'Источники импорта', icon: '🔗', desc: 'Google Sheets, Profitbase' },
+    ],
+  },
+  {
+    label: 'Продажи и маркетинг',
+    desc: 'Лиды, рекламные расходы, подборки',
+    items: [
+      { href: '/admin/leads', label: 'Лиды', icon: '📥', desc: 'Воронка заявок и распределение' },
+      { href: '/admin/lead-sources', label: 'CRM-источники', icon: '🎯', desc: 'Marquiz / Tilda webhooks' },
+      { href: '/admin/marketing', label: 'Маркетинг', icon: '📈', desc: 'Расходы по каналам, CPL, ROAS' },
+      { href: '/admin/collections', label: 'Подборки', icon: '📋', desc: 'Подборки для клиентов риелторами' },
+    ],
+  },
+  {
+    label: 'Команда',
+    desc: 'Сотрудники, отчёты, безопасность',
+    items: [
+      { href: '/admin/users', label: 'Пользователи', icon: '👥', desc: 'Риелторы и менеджеры' },
+      { href: '/admin/reports', label: 'Отчёты', icon: '📝', desc: 'Сводка по риелторам, экспорт за период' },
+      { href: '/admin/security', label: 'Безопасность', icon: '🔒', desc: 'Устройства и Telegram' },
+    ],
+  },
 ]
 
 const PURGE_PATHS = ['/api/units', '/api/complexes', '/api/buildings-summary']
@@ -55,17 +76,27 @@ export default function AdminHomePage() {
 
   return (
     <AdminLayout title="Панель управления">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {cards.map((c) => (
-          <Link
-            key={c.href}
-            href={c.href}
-            className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 transition hover:border-slate-600 hover:bg-slate-900"
-          >
-            <div className="text-2xl mb-2">{c.icon}</div>
-            <div className="text-sm font-semibold text-slate-200">{c.label}</div>
-            <div className="mt-1 text-xs text-slate-500">{c.desc}</div>
-          </Link>
+      <div className="space-y-8">
+        {groupedCards.map((group) => (
+          <section key={group.label}>
+            <div className="mb-3">
+              <h2 className="text-base font-semibold text-slate-200">{group.label}</h2>
+              <p className="text-xs text-slate-500">{group.desc}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {group.items.map((c) => (
+                <Link
+                  key={c.href}
+                  href={c.href}
+                  className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 transition hover:border-slate-600 hover:bg-slate-900"
+                >
+                  <div className="text-2xl mb-2">{c.icon}</div>
+                  <div className="text-sm font-semibold text-slate-200">{c.label}</div>
+                  <div className="mt-1 text-xs text-slate-500">{c.desc}</div>
+                </Link>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
 
